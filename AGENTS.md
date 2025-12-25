@@ -464,3 +464,123 @@ uv run main.py --solver cpsat-dual-queue
 
 **Default**: The dual-queue solver is now the default solver.
 
+## Build Order Solver Architecture (UPDATED 2025-12-25)
+
+### Current Issue: Incorrect Resource Modeling ⚠️
+
+The current CP-SAT implementation does NOT correctly model continuous resource accumulation over time. The solver shows instant upgrades at time 00:00:00 which is incorrect.
+
+### Root Cause
+
+- No resource production modeling - resources don't accumulate over time from production buildings
+- No wait time for resource gathering - solver assumes infinite resources
+- Missing reservoir constraints for continuous resource flow
+
+### Correct Solution: Reservoir Constraints with Time Discretization ✅
+
+Use **OR-Tools CP-SAT with `add_reservoir_constraint`**:
+
+#### 1. Time Discretization
+- Use **minutes** or **10-second intervals** as base time unit
+- Scale all durations to integers (e.g., 06:23 → 383 seconds)
+
+#### 2. Resource Reservoir Modeling
+Each resource (wood, stone, iron, food) needs:
+- **Reservoir constraint** tracking level over time
+- **Initial production**: Starting resources + base production rate
+- **Consumption events**: Building upgrades consume resources (negative demand at start time)
+- **Production events**: Production building upgrades increase rates (positive demand over time)
+
+#### 3. Storage Constraints
+- Use `max_level` parameter in reservoir constraint for storage limits
+- Or add separate cumulative constraints for storage capacity
+
+#### 4. Queue Constraints
+- **Building queue**: `add_no_overlap` with all building upgrade intervals
+- **Research queue**: `add_no_overlap` with library upgrades + tech research intervals
+- Both queues are independent and can run in parallel
+
+#### 5. Key Implementation Points
+
+```python
+from ortools.sat.python import cp_model
+
+model = cp_model.CpModel()
+
+# For each resource (wood, stone, iron, food):
+resource_times = []  # Time variables for events
+resource_demands = []  # Amount (positive=production, negative=consumption)
+
+# Initial resources at time 0
+resource_times.append(model.NewConstant(0))
+resource_demands.append(initial_wood)
+
+# Building upgrade consumes resources
+upgrade_start = model.NewIntVar(0, horizon, 'upgrade_start')
+resource_times.append(upgrade_start)
+resource_demands.append(-cost_wood)  # Negative = consumption
+
+# Production building adds continuous production
+# Discretize: add production event every time period
+for t in range(0, horizon, production_interval):
+    resource_times.append(model.NewConstant(t))
+    resource_demands.append(production_rate * production_interval)
+
+# Add reservoir constraint
+model.AddReservoirConstraint(
+    times=resource_times,
+    demands=resource_demands,
+    min_level=0,
+    max_level=storage_capacity
+)
+```
+
+#### 6. Handling Continuous Production
+
+Since CP-SAT works with discrete events, continuous production must be discretized:
+
+**Option A: Fixed time intervals**
+- Every N minutes, add a production event
+- Finer intervals = more accurate but larger model
+
+**Option B: Event-driven**
+- Add production events only at key times (upgrade starts/ends)
+- Less accurate but more efficient
+
+**Option C: Piecewise linear**
+- Model production rate as piecewise linear function
+- Most accurate but complex
+
+**Recommendation**: Start with Option A (1-minute intervals for first implementation)
+
+#### 7. Objective Function
+
+```python
+# Minimize makespan (total completion time)
+makespan = model.NewIntVar(0, horizon, 'makespan')
+model.AddMaxEquality(makespan, all_upgrade_end_times)
+model.Minimize(makespan)
+```
+
+### Implementation Priority
+
+1. ✅ **First**: Implement reservoir constraints for resource accumulation
+2. ✅ **Second**: Add production rate modeling (discretized over time)
+3. ✅ **Third**: Add storage capacity constraints
+4. ✅ **Fourth**: Verify solution correctness (no instant upgrades, resources accumulate properly)
+5. ✅ **Fifth**: Optimize performance (adjust time discretization granularity)
+
+### References
+
+- OR-Tools `AddReservoirConstraint`: https://developers.google.com/optimization/reference/python/sat/python/cp_model#addreservoirconstraint
+- Example from Context7: Consumer-producer problems with reservoir constraints
+- Stack Overflow: Efficient reservoir formulations in CP solvers
+
+### Current Status
+
+**NOT ACCEPTABLE** ❌ - Must implement proper reservoir constraints before considering solution correct.
+
+---
+
+**Last Updated**: 2025-12-25 - Documented correct approach for resource accumulation with reservoir constraints
+
