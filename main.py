@@ -9,6 +9,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from solver_lnk.models import BuildingType, GameState, ResourceType
+from solver_lnk.solvers.cpsat_solver import CPSATBuildOrderSolver
 from solver_lnk.solvers.greedy_solver import GreedyBuildOrderSolver
 from solver_lnk.utils.data_loader import get_default_buildings
 
@@ -75,6 +76,14 @@ Examples:
         default="castle-levelup",
         choices=["castle-levelup"],
         help="Problem to solve (default: castle-levelup)",
+    )
+
+    parser.add_argument(
+        "--solver",
+        type=str,
+        default="cpsat",
+        choices=["greedy", "cpsat"],
+        help="Solver to use (default: cpsat)",
     )
 
     parser.add_argument(
@@ -196,11 +205,19 @@ def main() -> None:
 
         console.print("\n[bold magenta]Solving...[/bold magenta]")
 
-    solver = GreedyBuildOrderSolver(
-        buildings=buildings,
-        initial_state=initial_state,
-        target_levels=target_levels,
-    )
+    # Solve with selected solver
+    if args.solver == "greedy":
+        solver = GreedyBuildOrderSolver(
+            buildings=buildings,
+            initial_state=initial_state,
+            target_levels=target_levels,
+        )
+    else:  # cpsat
+        solver = CPSATBuildOrderSolver(
+            buildings=buildings,
+            initial_state=initial_state,
+            target_levels=target_levels,
+        )
 
     solution = solver.solve()
 

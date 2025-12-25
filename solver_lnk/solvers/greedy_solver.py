@@ -23,14 +23,16 @@ class GreedyBuildOrderSolver:
     """Greedy solver using priority-based heuristics."""
 
     # Priority order: lower number = higher priority
+    # All resource buildings have SAME priority so they upgrade together
     PRIORITY_MAP: ClassVar[dict[BuildingType, int]] = {
         BuildingType.LUMBERJACK: 1,
-        BuildingType.QUARRY: 2,
-        BuildingType.MINE: 3,
-        BuildingType.FARM: 4,
+        BuildingType.QUARRY: 1,
+        BuildingType.ORE_MINE: 1,
+        BuildingType.MINE: 1,
+        BuildingType.FARM: 1,
         BuildingType.WOOD_STORE: 10,
-        BuildingType.STONE_STORE: 11,
-        BuildingType.ORE_STORE: 12,
+        BuildingType.STONE_STORE: 10,
+        BuildingType.ORE_STORE: 10,
         BuildingType.CASTLE: 20,
         BuildingType.KEEP: 21,
         BuildingType.ARSENAL: 22,
