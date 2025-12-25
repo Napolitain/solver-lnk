@@ -1,20 +1,29 @@
 # Agent Rules and Guidelines
 
-## ⚠️ CURRENT SOLVER STATUS (2025-12-25 19:20 UTC)
+## ⚠️ CURRENT SOLVER STATUS (2025-12-25 19:50 UTC)
 
 ### What Works ✅
 - ✅ Greedy simulation solver with accurate resource tracking
 - ✅ Continuous resource production/accumulation over time
 - ✅ Storage capacity constraints enforced dynamically
 - ✅ Waits for resources when insufficient
-- ✅ Prioritizes resource buildings → storage → core → military
-- ✅ Completes full castle build in ~54 days (realistic)
+- ✅ Interleaved resource building upgrades (LJ→Q→OM per level)
+- ✅ Food is ABSOLUTE capacity from Farm (not produced!)
+- ✅ Farm upgrades refill workers to new capacity
+- ✅ Full castle build in ~205 days (realistic for this game)
 - ✅ Accurate time modeling (no instant upgrades)
 
 ### Implementation Details
 **Solver**: `solver_lnk/solvers/greedy_solver.py`
 **Approach**: Simulation-based with event-driven resource accumulation
 **Status**: ✅ WORKING AND ACCURATE
+
+### Key Mechanics Modeled
+1. **Resources**: Wood, Stone, Iron produced by buildings
+2. **Food**: ABSOLUTE capacity from Farm - consumed by upgrades, refilled on Farm upgrade
+3. **Storage**: Wood/Stone/Ore stores limit accumulation
+4. **Queues**: Single building queue (research queue not yet implemented)
+5. **Priority**: Resource buildings (interleaved) → Farm → Storage → Core → Military
 
 ### Why Not CP-SAT?
 CP-SAT requires complex reservoir constraints for continuous resource accumulation.
