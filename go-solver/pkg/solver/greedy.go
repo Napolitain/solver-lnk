@@ -376,15 +376,20 @@ func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string,
 		return
 	}
 
-	// Wait for resources
+	// Wait for resources (research costs don't include Food, so we can always wait)
 	canAfford, waitTime := s.canAffordOrWaitTime(state, tech.Costs)
 	if !canAfford {
-		if waitTime < 0 {
-			// Can't produce, mark as researched to skip
-			state.ResearchedTechnologies[techName] = true
-			return
+		if waitTime > 0 {
+			s.advanceTime(state, waitTime)
 		}
-		s.advanceTime(state, waitTime)
+		// If waitTime <= 0 but can't afford, we'll try again next iteration
+		// after more resources accumulate
+	}
+
+	// Re-check affordability after waiting
+	canAfford, _ = s.canAffordOrWaitTime(state, tech.Costs)
+	if !canAfford {
+		return // Will retry next iteration
 	}
 
 	// Start research
