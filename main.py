@@ -16,7 +16,7 @@ from solver_lnk.models import (
     ResourceType,
     Solution,
 )
-from solver_lnk.solvers.cpsat_dual_queue_solver import CPSATDualQueueSolver
+from solver_lnk.solvers.greedy_solver import GreedySolver
 from solver_lnk.utils.data_loader import get_default_buildings
 
 console = Console()
@@ -289,12 +289,11 @@ def main() -> None:
 
         console.print("\n[bold magenta]Solving...[/bold magenta]")
 
-    # Solve with CP-SAT dual queue solver
-    solver = CPSATDualQueueSolver(
+    # Solve with greedy simulation solver
+    solver = GreedySolver(
         buildings=buildings,
         initial_state=initial_state,
         target_levels=target_levels,
-        time_step_minutes=60,
     )
     solution_obj = solver.solve()
 
