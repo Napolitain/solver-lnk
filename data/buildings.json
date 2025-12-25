@@ -929,7 +929,7 @@
           "food": 0
         },
         "build_time_seconds": 159,
-        "production_rate": 40.0
+        "storage_capacity": 40.0
       },
       "2": {
         "costs": {
@@ -939,7 +939,7 @@
           "food": 0
         },
         "build_time_seconds": 159,
-        "production_rate": 52.0
+        "storage_capacity": 52.0
       },
       "3": {
         "costs": {
@@ -949,7 +949,7 @@
           "food": 0
         },
         "build_time_seconds": 184,
-        "production_rate": 67.0
+        "storage_capacity": 67.0
       },
       "4": {
         "costs": {
@@ -959,7 +959,7 @@
           "food": 0
         },
         "build_time_seconds": 214,
-        "production_rate": 86.0
+        "storage_capacity": 86.0
       },
       "5": {
         "costs": {
@@ -969,7 +969,7 @@
           "food": 0
         },
         "build_time_seconds": 250,
-        "production_rate": 109.0
+        "storage_capacity": 109.0
       },
       "6": {
         "costs": {
@@ -979,7 +979,7 @@
           "food": 0
         },
         "build_time_seconds": 292,
-        "production_rate": 137.0
+        "storage_capacity": 137.0
       },
       "7": {
         "costs": {
@@ -989,7 +989,7 @@
           "food": 0
         },
         "build_time_seconds": 345,
-        "production_rate": 171.0
+        "storage_capacity": 171.0
       },
       "8": {
         "costs": {
@@ -999,7 +999,7 @@
           "food": 0
         },
         "build_time_seconds": 410,
-        "production_rate": 210.0
+        "storage_capacity": 210.0
       },
       "9": {
         "costs": {
@@ -1009,7 +1009,7 @@
           "food": 0
         },
         "build_time_seconds": 493,
-        "production_rate": 256.0
+        "storage_capacity": 256.0
       },
       "10": {
         "costs": {
@@ -1019,7 +1019,7 @@
           "food": 0
         },
         "build_time_seconds": 596,
-        "production_rate": 310.0
+        "storage_capacity": 310.0
       },
       "11": {
         "costs": {
@@ -1029,7 +1029,7 @@
           "food": 0
         },
         "build_time_seconds": 727,
-        "production_rate": 372.0
+        "storage_capacity": 372.0
       },
       "12": {
         "costs": {
@@ -1039,7 +1039,7 @@
           "food": 0
         },
         "build_time_seconds": 894,
-        "production_rate": 443.0
+        "storage_capacity": 443.0
       },
       "13": {
         "costs": {
@@ -1049,7 +1049,7 @@
           "food": 0
         },
         "build_time_seconds": 1109,
-        "production_rate": 523.0
+        "storage_capacity": 523.0
       },
       "14": {
         "costs": {
@@ -1059,7 +1059,7 @@
           "food": 0
         },
         "build_time_seconds": 1386,
-        "production_rate": 612.0
+        "storage_capacity": 612.0
       },
       "15": {
         "costs": {
@@ -1069,7 +1069,7 @@
           "food": 0
         },
         "build_time_seconds": 1747,
-        "production_rate": 710.0
+        "storage_capacity": 710.0
       },
       "16": {
         "costs": {
@@ -1079,7 +1079,7 @@
           "food": 0
         },
         "build_time_seconds": 2218,
-        "production_rate": 817.0
+        "storage_capacity": 817.0
       },
       "17": {
         "costs": {
@@ -1089,7 +1089,7 @@
           "food": 0
         },
         "build_time_seconds": 2839,
-        "production_rate": 931.0
+        "storage_capacity": 931.0
       },
       "18": {
         "costs": {
@@ -1099,7 +1099,7 @@
           "food": 0
         },
         "build_time_seconds": 3663,
-        "production_rate": 1061.0
+        "storage_capacity": 1061.0
       },
       "19": {
         "costs": {
@@ -1109,7 +1109,7 @@
           "food": 0
         },
         "build_time_seconds": 4762,
-        "production_rate": 1210.0
+        "storage_capacity": 1210.0
       },
       "20": {
         "costs": {
@@ -1119,7 +1119,7 @@
           "food": 0
         },
         "build_time_seconds": 6238,
-        "production_rate": 1379.0
+        "storage_capacity": 1379.0
       },
       "21": {
         "costs": {
@@ -1129,7 +1129,7 @@
           "food": 0
         },
         "build_time_seconds": 8234,
-        "production_rate": 1572.0
+        "storage_capacity": 1572.0
       },
       "22": {
         "costs": {
@@ -1139,7 +1139,7 @@
           "food": 0
         },
         "build_time_seconds": 10951,
-        "production_rate": 1792.0
+        "storage_capacity": 1792.0
       },
       "23": {
         "costs": {
@@ -1149,7 +1149,7 @@
           "food": 0
         },
         "build_time_seconds": 14565,
-        "production_rate": 2043.0
+        "storage_capacity": 2043.0
       },
       "24": {
         "costs": {
@@ -1159,7 +1159,7 @@
           "food": 0
         },
         "build_time_seconds": 19518,
-        "production_rate": 2329.0
+        "storage_capacity": 2329.0
       },
       "25": {
         "costs": {
@@ -1169,7 +1169,7 @@
           "food": 0
         },
         "build_time_seconds": 26349,
-        "production_rate": 2655.0
+        "storage_capacity": 2655.0
       },
       "26": {
         "costs": {
@@ -1179,7 +1179,7 @@
           "food": 0
         },
         "build_time_seconds": 35834,
-        "production_rate": 3027.0
+        "storage_capacity": 3027.0
       },
       "27": {
         "costs": {
@@ -1189,7 +1189,7 @@
           "food": 0
         },
         "build_time_seconds": 49093,
-        "production_rate": 3451.0
+        "storage_capacity": 3451.0
       },
       "28": {
         "costs": {
@@ -1199,7 +1199,7 @@
           "food": 0
         },
         "build_time_seconds": 67749,
-        "production_rate": 3900.0
+        "storage_capacity": 3900.0
       },
       "29": {
         "costs": {
@@ -1209,7 +1209,7 @@
           "food": 0
         },
         "build_time_seconds": 94848,
-        "production_rate": 4407.0
+        "storage_capacity": 4407.0
       },
       "30": {
         "costs": {
@@ -1219,7 +1219,7 @@
           "food": 0
         },
         "build_time_seconds": 142272,
-        "production_rate": 5000.0
+        "storage_capacity": 5000.0
       }
     }
   },
@@ -1235,7 +1235,7 @@
           "food": 0
         },
         "build_time_seconds": 126,
-        "production_rate": 120.0
+        "storage_capacity": 120.0
       },
       "2": {
         "costs": {
@@ -1245,7 +1245,7 @@
           "food": 0
         },
         "build_time_seconds": 126,
-        "production_rate": 180.0
+        "storage_capacity": 180.0
       },
       "3": {
         "costs": {
@@ -1255,7 +1255,7 @@
           "food": 0
         },
         "build_time_seconds": 176,
-        "production_rate": 252.0
+        "storage_capacity": 252.0
       },
       "4": {
         "costs": {
@@ -1265,7 +1265,7 @@
           "food": 0
         },
         "build_time_seconds": 247,
-        "production_rate": 340.0
+        "storage_capacity": 340.0
       },
       "5": {
         "costs": {
@@ -1275,7 +1275,7 @@
           "food": 0
         },
         "build_time_seconds": 343,
-        "production_rate": 442.0
+        "storage_capacity": 442.0
       },
       "6": {
         "costs": {
@@ -1285,7 +1285,7 @@
           "food": 0
         },
         "build_time_seconds": 477,
-        "production_rate": 575.0
+        "storage_capacity": 575.0
       },
       "7": {
         "costs": {
@@ -1295,7 +1295,7 @@
           "food": 0
         },
         "build_time_seconds": 658,
-        "production_rate": 748.0
+        "storage_capacity": 748.0
       },
       "8": {
         "costs": {
@@ -1305,7 +1305,7 @@
           "food": 0
         },
         "build_time_seconds": 909,
-        "production_rate": 957.0
+        "storage_capacity": 957.0
       },
       "9": {
         "costs": {
@@ -1315,7 +1315,7 @@
           "food": 0
         },
         "build_time_seconds": 1245,
-        "production_rate": 1215.0
+        "storage_capacity": 1215.0
       },
       "10": {
         "costs": {
@@ -1325,7 +1325,7 @@
           "food": 0
         },
         "build_time_seconds": 1706,
-        "production_rate": 1531.0
+        "storage_capacity": 1531.0
       },
       "11": {
         "costs": {
@@ -1335,7 +1335,7 @@
           "food": 0
         },
         "build_time_seconds": 2320,
-        "production_rate": 1914.0
+        "storage_capacity": 1914.0
       },
       "12": {
         "costs": {
@@ -1345,7 +1345,7 @@
           "food": 0
         },
         "build_time_seconds": 3155,
-        "production_rate": 2373.0
+        "storage_capacity": 2373.0
       },
       "13": {
         "costs": {
@@ -1355,7 +1355,7 @@
           "food": 0
         },
         "build_time_seconds": 4259,
-        "production_rate": 2919.0
+        "storage_capacity": 2919.0
       },
       "14": {
         "costs": {
@@ -1365,7 +1365,7 @@
           "food": 0
         },
         "build_time_seconds": 5749,
-        "production_rate": 3561.0
+        "storage_capacity": 3561.0
       },
       "15": {
         "costs": {
@@ -1375,7 +1375,7 @@
           "food": 0
         },
         "build_time_seconds": 7704,
-        "production_rate": 4309.0
+        "storage_capacity": 4309.0
       },
       "16": {
         "costs": {
@@ -1385,7 +1385,7 @@
           "food": 0
         },
         "build_time_seconds": 10323,
-        "production_rate": 5171.0
+        "storage_capacity": 5171.0
       },
       "17": {
         "costs": {
@@ -1395,7 +1395,7 @@
           "food": 0
         },
         "build_time_seconds": 13730,
-        "production_rate": 6153.0
+        "storage_capacity": 6153.0
       },
       "18": {
         "costs": {
@@ -1405,7 +1405,7 @@
           "food": 0
         },
         "build_time_seconds": 18261,
-        "production_rate": 7261.0
+        "storage_capacity": 7261.0
       },
       "19": {
         "costs": {
@@ -1415,7 +1415,7 @@
           "food": 0
         },
         "build_time_seconds": 24104,
-        "production_rate": 8495.0
+        "storage_capacity": 8495.0
       },
       "20": {
         "costs": {
@@ -1425,7 +1425,7 @@
           "food": 0
         },
         "build_time_seconds": 31817,
-        "production_rate": 9999.0
+        "storage_capacity": 9999.0
       }
     }
   },
@@ -1441,7 +1441,7 @@
           "food": 0
         },
         "build_time_seconds": 126,
-        "production_rate": 120.0
+        "storage_capacity": 120.0
       },
       "2": {
         "costs": {
@@ -1451,7 +1451,7 @@
           "food": 0
         },
         "build_time_seconds": 126,
-        "production_rate": 180.0
+        "storage_capacity": 180.0
       },
       "3": {
         "costs": {
@@ -1461,7 +1461,7 @@
           "food": 0
         },
         "build_time_seconds": 176,
-        "production_rate": 252.0
+        "storage_capacity": 252.0
       },
       "4": {
         "costs": {
@@ -1471,7 +1471,7 @@
           "food": 0
         },
         "build_time_seconds": 247,
-        "production_rate": 340.0
+        "storage_capacity": 340.0
       },
       "5": {
         "costs": {
@@ -1481,7 +1481,7 @@
           "food": 0
         },
         "build_time_seconds": 343,
-        "production_rate": 442.0
+        "storage_capacity": 442.0
       },
       "6": {
         "costs": {
@@ -1491,7 +1491,7 @@
           "food": 0
         },
         "build_time_seconds": 477,
-        "production_rate": 575.0
+        "storage_capacity": 575.0
       },
       "7": {
         "costs": {
@@ -1501,7 +1501,7 @@
           "food": 0
         },
         "build_time_seconds": 658,
-        "production_rate": 748.0
+        "storage_capacity": 748.0
       },
       "8": {
         "costs": {
@@ -1511,7 +1511,7 @@
           "food": 0
         },
         "build_time_seconds": 909,
-        "production_rate": 957.0
+        "storage_capacity": 957.0
       },
       "9": {
         "costs": {
@@ -1521,7 +1521,7 @@
           "food": 0
         },
         "build_time_seconds": 1245,
-        "production_rate": 1215.0
+        "storage_capacity": 1215.0
       },
       "10": {
         "costs": {
@@ -1531,7 +1531,7 @@
           "food": 0
         },
         "build_time_seconds": 1706,
-        "production_rate": 1531.0
+        "storage_capacity": 1531.0
       },
       "11": {
         "costs": {
@@ -1541,7 +1541,7 @@
           "food": 0
         },
         "build_time_seconds": 2320,
-        "production_rate": 1914.0
+        "storage_capacity": 1914.0
       },
       "12": {
         "costs": {
@@ -1551,7 +1551,7 @@
           "food": 0
         },
         "build_time_seconds": 3155,
-        "production_rate": 2373.0
+        "storage_capacity": 2373.0
       },
       "13": {
         "costs": {
@@ -1561,7 +1561,7 @@
           "food": 0
         },
         "build_time_seconds": 4259,
-        "production_rate": 2919.0
+        "storage_capacity": 2919.0
       },
       "14": {
         "costs": {
@@ -1571,7 +1571,7 @@
           "food": 0
         },
         "build_time_seconds": 5749,
-        "production_rate": 3561.0
+        "storage_capacity": 3561.0
       },
       "15": {
         "costs": {
@@ -1581,7 +1581,7 @@
           "food": 0
         },
         "build_time_seconds": 7704,
-        "production_rate": 4309.0
+        "storage_capacity": 4309.0
       },
       "16": {
         "costs": {
@@ -1591,7 +1591,7 @@
           "food": 0
         },
         "build_time_seconds": 10323,
-        "production_rate": 5171.0
+        "storage_capacity": 5171.0
       },
       "17": {
         "costs": {
@@ -1601,7 +1601,7 @@
           "food": 0
         },
         "build_time_seconds": 13730,
-        "production_rate": 6153.0
+        "storage_capacity": 6153.0
       },
       "18": {
         "costs": {
@@ -1611,7 +1611,7 @@
           "food": 0
         },
         "build_time_seconds": 18261,
-        "production_rate": 7261.0
+        "storage_capacity": 7261.0
       },
       "19": {
         "costs": {
@@ -1621,7 +1621,7 @@
           "food": 0
         },
         "build_time_seconds": 24104,
-        "production_rate": 8495.0
+        "storage_capacity": 8495.0
       },
       "20": {
         "costs": {
@@ -1631,7 +1631,7 @@
           "food": 0
         },
         "build_time_seconds": 31817,
-        "production_rate": 9999.0
+        "storage_capacity": 9999.0
       }
     }
   },
@@ -1647,7 +1647,7 @@
           "food": 0
         },
         "build_time_seconds": 126,
-        "production_rate": 120.0
+        "storage_capacity": 120.0
       },
       "2": {
         "costs": {
@@ -1657,7 +1657,7 @@
           "food": 0
         },
         "build_time_seconds": 126,
-        "production_rate": 180.0
+        "storage_capacity": 180.0
       },
       "3": {
         "costs": {
@@ -1667,7 +1667,7 @@
           "food": 0
         },
         "build_time_seconds": 176,
-        "production_rate": 252.0
+        "storage_capacity": 252.0
       },
       "4": {
         "costs": {
@@ -1677,7 +1677,7 @@
           "food": 0
         },
         "build_time_seconds": 247,
-        "production_rate": 340.0
+        "storage_capacity": 340.0
       },
       "5": {
         "costs": {
@@ -1687,7 +1687,7 @@
           "food": 0
         },
         "build_time_seconds": 343,
-        "production_rate": 442.0
+        "storage_capacity": 442.0
       },
       "6": {
         "costs": {
@@ -1697,7 +1697,7 @@
           "food": 0
         },
         "build_time_seconds": 477,
-        "production_rate": 575.0
+        "storage_capacity": 575.0
       },
       "7": {
         "costs": {
@@ -1707,7 +1707,7 @@
           "food": 0
         },
         "build_time_seconds": 658,
-        "production_rate": 748.0
+        "storage_capacity": 748.0
       },
       "8": {
         "costs": {
@@ -1717,7 +1717,7 @@
           "food": 0
         },
         "build_time_seconds": 909,
-        "production_rate": 957.0
+        "storage_capacity": 957.0
       },
       "9": {
         "costs": {
@@ -1727,7 +1727,7 @@
           "food": 0
         },
         "build_time_seconds": 1245,
-        "production_rate": 1215.0
+        "storage_capacity": 1215.0
       },
       "10": {
         "costs": {
@@ -1737,7 +1737,7 @@
           "food": 0
         },
         "build_time_seconds": 1706,
-        "production_rate": 1531.0
+        "storage_capacity": 1531.0
       },
       "11": {
         "costs": {
@@ -1747,7 +1747,7 @@
           "food": 0
         },
         "build_time_seconds": 2320,
-        "production_rate": 1914.0
+        "storage_capacity": 1914.0
       },
       "12": {
         "costs": {
@@ -1757,7 +1757,7 @@
           "food": 0
         },
         "build_time_seconds": 3155,
-        "production_rate": 2373.0
+        "storage_capacity": 2373.0
       },
       "13": {
         "costs": {
@@ -1767,7 +1767,7 @@
           "food": 0
         },
         "build_time_seconds": 4259,
-        "production_rate": 2919.0
+        "storage_capacity": 2919.0
       },
       "14": {
         "costs": {
@@ -1777,7 +1777,7 @@
           "food": 0
         },
         "build_time_seconds": 5749,
-        "production_rate": 3561.0
+        "storage_capacity": 3561.0
       },
       "15": {
         "costs": {
@@ -1787,7 +1787,7 @@
           "food": 0
         },
         "build_time_seconds": 7704,
-        "production_rate": 4309.0
+        "storage_capacity": 4309.0
       },
       "16": {
         "costs": {
@@ -1797,7 +1797,7 @@
           "food": 0
         },
         "build_time_seconds": 10323,
-        "production_rate": 5171.0
+        "storage_capacity": 5171.0
       },
       "17": {
         "costs": {
@@ -1807,7 +1807,7 @@
           "food": 0
         },
         "build_time_seconds": 13730,
-        "production_rate": 6153.0
+        "storage_capacity": 6153.0
       },
       "18": {
         "costs": {
@@ -1817,7 +1817,7 @@
           "food": 0
         },
         "build_time_seconds": 18261,
-        "production_rate": 7261.0
+        "storage_capacity": 7261.0
       },
       "19": {
         "costs": {
@@ -1827,7 +1827,7 @@
           "food": 0
         },
         "build_time_seconds": 24104,
-        "production_rate": 8495.0
+        "storage_capacity": 8495.0
       },
       "20": {
         "costs": {
@@ -1837,7 +1837,7 @@
           "food": 0
         },
         "build_time_seconds": 31817,
-        "production_rate": 9999.0
+        "storage_capacity": 9999.0
       }
     }
   }

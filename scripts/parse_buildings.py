@@ -13,15 +13,17 @@ def parse_time_string(time_str: str) -> int:
     return hours * 3600 + minutes * 60 + seconds
 
 
-def parse_production_rate(line: str) -> float | None:
-    """Parse production rate like '+5/h' or '120/180'."""
+def parse_production_or_storage(line: str) -> tuple[str, float] | None:
+    """Parse production rate or storage capacity."""
+    # Production: +5/h, +24/h
     match = re.search(r"\+(\d+)/h", line)
     if match:
-        return float(match.group(1))
+        return ("production", float(match.group(1)))
 
+    # Storage: 120/180 (capacity is second number)
     match = re.search(r"(\d+)/(\d+)", line)
     if match:
-        return float(match.group(2))
+        return ("storage", float(match.group(2)))
 
     return None
 
@@ -32,7 +34,7 @@ def parse_building_file(filepath: Path) -> dict:
     building_name = filepath.stem
     levels = {}
 
-    # Parse all levels
+    # First pass: parse levels with costs
     i = 0
     while i < len(lines):
         line = lines[i].strip()
@@ -40,12 +42,16 @@ def parse_building_file(filepath: Path) -> dict:
         if line.startswith("Upgrade level "):
             level = int(line.split("Upgrade level ")[1])
 
-            # Get production rate
+            # Get production/storage
             production = None
+            storage = None
             for j in range(i + 1, min(i + 10, len(lines))):
-                prod = parse_production_rate(lines[j])
-                if prod:
-                    production = prod
+                result = parse_production_or_storage(lines[j])
+                if result:
+                    if result[0] == "production":
+                        production = result[1]
+                    elif result[0] == "storage":
+                        storage = result[1]
                     break
 
             # Look for costs
@@ -78,35 +84,39 @@ def parse_building_file(filepath: Path) -> dict:
                     }
                     if production:
                         levels[level]["production_rate"] = production
+                    if storage:
+                        levels[level]["storage_capacity"] = storage
+
         i += 1
 
-    # Fill missing early levels with first available costs
+    # Second pass: fill missing early levels
     if levels:
         first_level = min(levels.keys())
-        # max_level = max(levels.keys())
-        template_costs = levels[first_level]["costs"]
-        template_time = levels[first_level]["build_time_seconds"]
+        template = levels[first_level]
 
-        # Find all levels and their production rates
-        all_level_productions = {}
         for i, line in enumerate(lines):
             if line.strip().startswith("Upgrade level "):
                 lvl = int(line.strip().split("Upgrade level ")[1])
-                for j in range(i + 1, min(i + 10, len(lines))):
-                    prod = parse_production_rate(lines[j])
-                    if prod:
-                        all_level_productions[lvl] = prod
-                        break
+                if lvl not in levels:
+                    production = None
+                    storage = None
+                    for j in range(i + 1, min(i + 10, len(lines))):
+                        result = parse_production_or_storage(lines[j])
+                        if result:
+                            if result[0] == "production":
+                                production = result[1]
+                            elif result[0] == "storage":
+                                storage = result[1]
+                            break
 
-        # Add missing levels
-        for lvl in range(1, first_level):
-            if lvl not in levels:
-                levels[lvl] = {
-                    "costs": template_costs.copy(),
-                    "build_time_seconds": template_time,
-                }
-                if lvl in all_level_productions:
-                    levels[lvl]["production_rate"] = all_level_productions[lvl]
+                    levels[lvl] = {
+                        "costs": template["costs"].copy(),
+                        "build_time_seconds": template["build_time_seconds"],
+                    }
+                    if production:
+                        levels[lvl]["production_rate"] = production
+                    if storage:
+                        levels[lvl]["storage_capacity"] = storage
 
     return {
         "building_type": building_name,

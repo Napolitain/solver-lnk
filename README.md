@@ -43,10 +43,13 @@ pip install -e .
 ## Usage
 
 ```bash
-# Run with default problem (castle level-up)
+# Run with default settings (CP-SAT solver, all buildings to max level)
 uv run python main.py
 
-# Use quiet mode (only output completion time)
+# Use greedy solver (faster but may not find optimal solution)
+uv run python main.py --solver greedy
+
+# Quiet mode (only output completion time)
 uv run python main.py --quiet
 
 # Export solution to JSON
