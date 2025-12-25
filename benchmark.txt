@@ -1,0 +1,10 @@
+❯ poop "uv run main.py"
+Benchmark 1 (22 runs): uv run main.py
+  measurement          mean ± σ            min … max           outliers
+  wall_time           229ms ± 5.05ms     222ms …  239ms          0 ( 0%)        
+  peak_rss           44.0MB ±  407KB    43.3MB … 44.9MB          0 ( 0%)        
+  cpu_cycles          952M  ± 8.17M      941M  …  968M           0 ( 0%)        
+  instructions       1.29G  ± 1.05M     1.28G  … 1.29G           0 ( 0%)        
+  cache_references   55.2M  ± 2.32M     48.3M  … 57.6M           2 ( 9%)        
+  cache_misses        759K  ± 94.4K      607K  …  918K           0 ( 0%)        
+  branch_misses      9.38M  ± 28.4K     9.33M  … 9.43M           0 ( 0%)        
