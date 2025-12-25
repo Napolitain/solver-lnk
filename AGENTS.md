@@ -1,5 +1,37 @@
 # Agent Rules and Guidelines
 
+## ⚠️ CURRENT SOLVER STATUS (2025-12-25 19:00 UTC)
+
+### What Works ✅
+- CP-SAT solver finds OPTIMAL solutions in <100ms
+- Task creation for all building upgrades + tech research
+- Sequential upgrade constraints (1→2→3...)
+- Dual-queue no-overlap (building + research)
+- Time discretization framework (60-minute steps)
+- Proper data model integration
+
+### Critical Issues ❌ (MUST FIX BEFORE ACCEPTABLE)
+**The solver does NOT model resources correctly:**
+1. ❌ No resource production/accumulation over time
+2. ❌ No storage capacity constraints
+3. ❌ No resource availability checks before tasks
+4. ❌ Assumes infinite resources (solution is INVALID)
+
+**Current output shows all upgrades at time 0:00 - this is WRONG!**
+
+### Next Steps (Priority Order)
+1. **Implement discretized resource tracking** (resource_level[timestep][resource_type] variables)
+2. **Add production rate constraints** (link production to level changes)
+3. **Add storage capacity constraints** (enforce storage limits)
+4. **Add resource consumption** (deduct costs when tasks start)
+
+### Reference Implementation
+- Use OR-Tools reservoir constraints OR discrete time-indexed resource variables
+- Trade-off: finer time steps = more accurate but slower
+- See "Build Order Solver Architecture" section below for details
+
+---
+
 ## General Behavior
 
 ### When in Doubt - Always Ask or Search
