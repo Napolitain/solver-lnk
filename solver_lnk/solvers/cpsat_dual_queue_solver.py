@@ -385,35 +385,106 @@ class CPSATDualQueueSolver:
         max_horizon: int,
     ):
         """Add resource production, storage, and cost constraints."""
-        # For simplicity, we'll use a simplified approach:
-        # - Track cumulative resource production at task start times
-        # - Ensure resources >= costs at each task start
-        # - Model storage constraints
+        # Collect all tasks for ordering
+        all_tasks = []
 
-        # This is complex and would require reservoir constraints or
-        # time-indexed resources. For now, we'll use a simplified heuristic
-        # ordering to guide the solver
+        for key, task in building_tasks.items():
+            all_tasks.append(("building", key, task))
+        for key, task in library_tasks.items():
+            all_tasks.append(("library", key, task))
+        for key, task in tech_tasks.items():
+            all_tasks.append(("tech", key, task))
 
-        # Priority heuristic: production buildings should start earlier
-        production_buildings = {
-            BuildingType.LUMBERJACK,
-            BuildingType.QUARRY,
-            BuildingType.ORE_MINE,
-            BuildingType.FARM,
+        # For each resource type, track cumulative production and consumption
+        for resource_type in ResourceType:
+            # Start with initial resources
+            initial_amount = self.initial_state.resources.get(resource_type, 0.0)
+
+            # For each task, ensure we have enough resources before starting
+            for _task_type, _task_key, task in all_tasks:
+                costs = task["costs"]
+                cost = costs.get(resource_type, 0)
+
+                if cost > 0:
+                    # For now, add precedence: production buildings before consumers
+                    if resource_type == ResourceType.WOOD:
+                        producer_type = BuildingType.LUMBERJACK
+                    elif resource_type == ResourceType.STONE:
+                        producer_type = BuildingType.QUARRY
+                    elif resource_type == ResourceType.IRON:
+                        producer_type = BuildingType.ORE_MINE
+                    elif resource_type == ResourceType.FOOD:
+                        producer_type = BuildingType.FARM
+                    else:
+                        continue
+
+                    # Find early producer upgrades
+                    for level in range(2, 6):  # First few levels should come first
+                        producer_key = (producer_type, level)
+                        if producer_key in building_tasks and cost > initial_amount:
+                            # Producer must complete before expensive tasks
+                            model.Add(
+                                building_tasks[producer_key]["end"]
+                                <= task["start"]
+                            )
+
+        # Add storage constraints
+        self._add_storage_constraints(model, building_tasks, all_tasks)
+
+    def _calculate_production_rate_at_task(
+        self,
+        model: cp_model.CpModel,
+        resource_type: ResourceType,
+        task: dict,
+        building_tasks: dict,
+        all_tasks: list,
+    ) -> float:
+        """Calculate production rate for a resource at a given task's start."""
+        # This would track which production buildings are completed before this task
+        # Simplified for now
+        return 0.0
+
+    def _add_storage_constraints(
+        self,
+        model: cp_model.CpModel,
+        building_tasks: dict,
+        all_tasks: list,
+    ):
+        """Ensure storage buildings are upgraded before capacity is exceeded."""
+        # For each storage building, ensure it's upgraded before
+        # corresponding production exceeds capacity
+
+        storage_mapping = {
+            ResourceType.WOOD: BuildingType.WOOD_STORE,
+            ResourceType.STONE: BuildingType.STONE_STORE,
+            ResourceType.IRON: BuildingType.ORE_STORE,
         }
 
-        # Soft constraint: production buildings preferred early
-        for (building_type, _level), _task in building_tasks.items():
-            if building_type in production_buildings:
-                # Encourage earlier start (this is a heuristic, not a hard
-                # constraint). We can add hints or penalties but CP-SAT
-                # doesn't have soft constraints directly
-                pass
+        production_mapping = {
+            ResourceType.WOOD: BuildingType.LUMBERJACK,
+            ResourceType.STONE: BuildingType.QUARRY,
+            ResourceType.IRON: BuildingType.ORE_MINE,
+        }
 
-        # Hard constraint: storage must be upgraded before production
-        # exceeds capacity. This is simplified - proper implementation would
-        # need time-indexed resource tracking
-        pass
+        for resource_type, storage_type in storage_mapping.items():
+            producer_type = production_mapping[resource_type]
+
+            # For each production level, ensure appropriate storage exists
+            for prod_level in range(10, 31):  # Higher production levels
+                prod_key = (producer_type, prod_level)
+                if prod_key not in building_tasks:
+                    continue
+
+                # Require storage at reasonable level
+                required_storage_level = max(prod_level // 2, 10)
+                storage_key = (storage_type, required_storage_level)
+
+                if storage_key in building_tasks:
+                    # Storage must be ready before high production
+                    model.Add(
+                        building_tasks[storage_key]["end"]
+                        <= building_tasks[prod_key]["start"]
+                    )
 
     def _extract_solution(
         self,
