@@ -1,0 +1,1844 @@
+{
+  "lumberjack": {
+    "building_type": "lumberjack",
+    "max_level": 30,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 31,
+          "stone": 26,
+          "iron": 7,
+          "food": 2
+        },
+        "build_time_seconds": 383,
+        "production_rate": 5.0
+      },
+      "2": {
+        "costs": {
+          "wood": 31,
+          "stone": 26,
+          "iron": 7,
+          "food": 2
+        },
+        "build_time_seconds": 383,
+        "production_rate": 7.0
+      },
+      "3": {
+        "costs": {
+          "wood": 31,
+          "stone": 26,
+          "iron": 7,
+          "food": 2
+        },
+        "build_time_seconds": 383,
+        "production_rate": 9.0
+      },
+      "4": {
+        "costs": {
+          "wood": 31,
+          "stone": 26,
+          "iron": 7,
+          "food": 2
+        },
+        "build_time_seconds": 383,
+        "production_rate": 12.0
+      },
+      "5": {
+        "costs": {
+          "wood": 31,
+          "stone": 26,
+          "iron": 7,
+          "food": 2
+        },
+        "build_time_seconds": 383,
+        "production_rate": 15.0
+      },
+      "6": {
+        "costs": {
+          "wood": 31,
+          "stone": 26,
+          "iron": 7,
+          "food": 2
+        },
+        "build_time_seconds": 383,
+        "production_rate": 19.0
+      },
+      "7": {
+        "costs": {
+          "wood": 38,
+          "stone": 32,
+          "iron": 8,
+          "food": 2
+        },
+        "build_time_seconds": 467,
+        "production_rate": 24.0
+      },
+      "8": {
+        "costs": {
+          "wood": 46,
+          "stone": 39,
+          "iron": 10,
+          "food": 2
+        },
+        "build_time_seconds": 570,
+        "production_rate": 30.0
+      },
+      "9": {
+        "costs": {
+          "wood": 55,
+          "stone": 48,
+          "iron": 12,
+          "food": 2
+        },
+        "build_time_seconds": 695,
+        "production_rate": 37.0
+      },
+      "10": {
+        "costs": {
+          "wood": 67,
+          "stone": 59,
+          "iron": 14,
+          "food": 3
+        },
+        "build_time_seconds": 855,
+        "production_rate": 45.0
+      },
+      "11": {
+        "costs": {
+          "wood": 82,
+          "stone": 73,
+          "iron": 18,
+          "food": 3
+        },
+        "build_time_seconds": 1051,
+        "production_rate": 55.0
+      },
+      "12": {
+        "costs": {
+          "wood": 102,
+          "stone": 91,
+          "iron": 22,
+          "food": 3
+        },
+        "build_time_seconds": 1304,
+        "production_rate": 66.0
+      },
+      "13": {
+        "costs": {
+          "wood": 126,
+          "stone": 113,
+          "iron": 28,
+          "food": 3
+        },
+        "build_time_seconds": 1616,
+        "production_rate": 78.0
+      },
+      "14": {
+        "costs": {
+          "wood": 155,
+          "stone": 142,
+          "iron": 37,
+          "food": 4
+        },
+        "build_time_seconds": 2020,
+        "production_rate": 92.0
+      },
+      "15": {
+        "costs": {
+          "wood": 194,
+          "stone": 178,
+          "iron": 45,
+          "food": 4
+        },
+        "build_time_seconds": 2526,
+        "production_rate": 107.0
+      },
+      "16": {
+        "costs": {
+          "wood": 243,
+          "stone": 226,
+          "iron": 56,
+          "food": 4
+        },
+        "build_time_seconds": 3182,
+        "production_rate": 124.0
+      },
+      "17": {
+        "costs": {
+          "wood": 304,
+          "stone": 286,
+          "iron": 71,
+          "food": 4
+        },
+        "build_time_seconds": 4010,
+        "production_rate": 142.0
+      },
+      "18": {
+        "costs": {
+          "wood": 384,
+          "stone": 364,
+          "iron": 92,
+          "food": 5
+        },
+        "build_time_seconds": 5092,
+        "production_rate": 163.0
+      },
+      "19": {
+        "costs": {
+          "wood": 485,
+          "stone": 465,
+          "iron": 117,
+          "food": 5
+        },
+        "build_time_seconds": 6467,
+        "production_rate": 184.0
+      },
+      "20": {
+        "costs": {
+          "wood": 618,
+          "stone": 598,
+          "iron": 150,
+          "food": 5
+        },
+        "build_time_seconds": 8278,
+        "production_rate": 206.0
+      },
+      "21": {
+        "costs": {
+          "wood": 787,
+          "stone": 769,
+          "iron": 192,
+          "food": 5
+        },
+        "build_time_seconds": 10596,
+        "production_rate": 228.0
+      },
+      "22": {
+        "costs": {
+          "wood": 1002,
+          "stone": 989,
+          "iron": 247,
+          "food": 6
+        },
+        "build_time_seconds": 13563,
+        "production_rate": 251.0
+      },
+      "23": {
+        "costs": {
+          "wood": 1285,
+          "stone": 1282,
+          "iron": 320,
+          "food": 6
+        },
+        "build_time_seconds": 17496,
+        "production_rate": 274.0
+      },
+      "24": {
+        "costs": {
+          "wood": 1647,
+          "stone": 1661,
+          "iron": 416,
+          "food": 6
+        },
+        "build_time_seconds": 22569,
+        "production_rate": 296.0
+      },
+      "25": {
+        "costs": {
+          "wood": 2114,
+          "stone": 2152,
+          "iron": 538,
+          "food": 6
+        },
+        "build_time_seconds": 29115,
+        "production_rate": 317.0
+      },
+      "26": {
+        "costs": {
+          "wood": 2712,
+          "stone": 2789,
+          "iron": 697,
+          "food": 7
+        },
+        "build_time_seconds": 37558,
+        "production_rate": 336.0
+      },
+      "27": {
+        "costs": {
+          "wood": 3505,
+          "stone": 3641,
+          "iron": 911,
+          "food": 7
+        },
+        "build_time_seconds": 48825,
+        "production_rate": 354.0
+      },
+      "28": {
+        "costs": {
+          "wood": 4529,
+          "stone": 4755,
+          "iron": 1189,
+          "food": 7
+        },
+        "build_time_seconds": 63473,
+        "production_rate": 368.0
+      },
+      "29": {
+        "costs": {
+          "wood": 5855,
+          "stone": 6208,
+          "iron": 1551,
+          "food": 7
+        },
+        "build_time_seconds": 82515,
+        "production_rate": 379.0
+      },
+      "30": {
+        "costs": {
+          "wood": 7567,
+          "stone": 8106,
+          "iron": 2027,
+          "food": 8
+        },
+        "build_time_seconds": 107269,
+        "production_rate": 387.0
+      }
+    }
+  },
+  "quarry": {
+    "building_type": "quarry",
+    "max_level": 30,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 20,
+          "stone": 25,
+          "iron": 12,
+          "food": 1
+        },
+        "build_time_seconds": 342,
+        "production_rate": 5.0
+      },
+      "2": {
+        "costs": {
+          "wood": 20,
+          "stone": 25,
+          "iron": 12,
+          "food": 1
+        },
+        "build_time_seconds": 342,
+        "production_rate": 7.0
+      },
+      "3": {
+        "costs": {
+          "wood": 20,
+          "stone": 25,
+          "iron": 12,
+          "food": 1
+        },
+        "build_time_seconds": 342,
+        "production_rate": 9.0
+      },
+      "4": {
+        "costs": {
+          "wood": 20,
+          "stone": 25,
+          "iron": 12,
+          "food": 1
+        },
+        "build_time_seconds": 342,
+        "production_rate": 12.0
+      },
+      "5": {
+        "costs": {
+          "wood": 20,
+          "stone": 25,
+          "iron": 12,
+          "food": 1
+        },
+        "build_time_seconds": 342,
+        "production_rate": 15.0
+      },
+      "6": {
+        "costs": {
+          "wood": 24,
+          "stone": 30,
+          "iron": 15,
+          "food": 2
+        },
+        "build_time_seconds": 413,
+        "production_rate": 19.0
+      },
+      "7": {
+        "costs": {
+          "wood": 30,
+          "stone": 37,
+          "iron": 17,
+          "food": 2
+        },
+        "build_time_seconds": 504,
+        "production_rate": 24.0
+      },
+      "8": {
+        "costs": {
+          "wood": 36,
+          "stone": 44,
+          "iron": 23,
+          "food": 2
+        },
+        "build_time_seconds": 615,
+        "production_rate": 30.0
+      },
+      "9": {
+        "costs": {
+          "wood": 44,
+          "stone": 53,
+          "iron": 27,
+          "food": 2
+        },
+        "build_time_seconds": 750,
+        "production_rate": 37.0
+      },
+      "10": {
+        "costs": {
+          "wood": 54,
+          "stone": 65,
+          "iron": 33,
+          "food": 3
+        },
+        "build_time_seconds": 923,
+        "production_rate": 45.0
+      },
+      "11": {
+        "costs": {
+          "wood": 66,
+          "stone": 79,
+          "iron": 42,
+          "food": 3
+        },
+        "build_time_seconds": 1135,
+        "production_rate": 55.0
+      },
+      "12": {
+        "costs": {
+          "wood": 82,
+          "stone": 98,
+          "iron": 52,
+          "food": 3
+        },
+        "build_time_seconds": 1408,
+        "production_rate": 66.0
+      },
+      "13": {
+        "costs": {
+          "wood": 103,
+          "stone": 121,
+          "iron": 64,
+          "food": 3
+        },
+        "build_time_seconds": 1746,
+        "production_rate": 78.0
+      },
+      "14": {
+        "costs": {
+          "wood": 129,
+          "stone": 150,
+          "iron": 81,
+          "food": 4
+        },
+        "build_time_seconds": 2182,
+        "production_rate": 92.0
+      },
+      "15": {
+        "costs": {
+          "wood": 160,
+          "stone": 187,
+          "iron": 103,
+          "food": 4
+        },
+        "build_time_seconds": 2728,
+        "production_rate": 107.0
+      },
+      "16": {
+        "costs": {
+          "wood": 203,
+          "stone": 234,
+          "iron": 131,
+          "food": 4
+        },
+        "build_time_seconds": 3437,
+        "production_rate": 124.0
+      },
+      "17": {
+        "costs": {
+          "wood": 255,
+          "stone": 293,
+          "iron": 166,
+          "food": 4
+        },
+        "build_time_seconds": 4330,
+        "production_rate": 142.0
+      },
+      "18": {
+        "costs": {
+          "wood": 326,
+          "stone": 370,
+          "iron": 212,
+          "food": 5
+        },
+        "build_time_seconds": 5500,
+        "production_rate": 163.0
+      },
+      "19": {
+        "costs": {
+          "wood": 414,
+          "stone": 466,
+          "iron": 272,
+          "food": 5
+        },
+        "build_time_seconds": 6984,
+        "production_rate": 184.0
+      },
+      "20": {
+        "costs": {
+          "wood": 531,
+          "stone": 594,
+          "iron": 350,
+          "food": 5
+        },
+        "build_time_seconds": 8940,
+        "production_rate": 206.0
+      },
+      "21": {
+        "costs": {
+          "wood": 680,
+          "stone": 755,
+          "iron": 452,
+          "food": 5
+        },
+        "build_time_seconds": 11443,
+        "production_rate": 228.0
+      },
+      "22": {
+        "costs": {
+          "wood": 871,
+          "stone": 960,
+          "iron": 585,
+          "food": 6
+        },
+        "build_time_seconds": 14648,
+        "production_rate": 251.0
+      },
+      "23": {
+        "costs": {
+          "wood": 1126,
+          "stone": 1232,
+          "iron": 760,
+          "food": 6
+        },
+        "build_time_seconds": 18895,
+        "production_rate": 274.0
+      },
+      "24": {
+        "costs": {
+          "wood": 1454,
+          "stone": 1579,
+          "iron": 988,
+          "food": 6
+        },
+        "build_time_seconds": 24375,
+        "production_rate": 296.0
+      },
+      "25": {
+        "costs": {
+          "wood": 1878,
+          "stone": 2024,
+          "iron": 1287,
+          "food": 6
+        },
+        "build_time_seconds": 31444,
+        "production_rate": 317.0
+      },
+      "26": {
+        "costs": {
+          "wood": 2426,
+          "stone": 2594,
+          "iron": 1672,
+          "food": 7
+        },
+        "build_time_seconds": 40562,
+        "production_rate": 336.0
+      },
+      "27": {
+        "costs": {
+          "wood": 3158,
+          "stone": 3350,
+          "iron": 2193,
+          "food": 7
+        },
+        "build_time_seconds": 52731,
+        "production_rate": 354.0
+      },
+      "28": {
+        "costs": {
+          "wood": 4111,
+          "stone": 4326,
+          "iron": 2873,
+          "food": 7
+        },
+        "build_time_seconds": 68551,
+        "production_rate": 368.0
+      },
+      "29": {
+        "costs": {
+          "wood": 5352,
+          "stone": 5588,
+          "iron": 3765,
+          "food": 7
+        },
+        "build_time_seconds": 89116,
+        "production_rate": 379.0
+      },
+      "30": {
+        "costs": {
+          "wood": 6968,
+          "stone": 7216,
+          "iron": 4931,
+          "food": 8
+        },
+        "build_time_seconds": 115850,
+        "production_rate": 387.0
+      }
+    }
+  },
+  "ore_mine": {
+    "building_type": "ore_mine",
+    "max_level": 30,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 15,
+          "stone": 15,
+          "iron": 13,
+          "food": 1
+        },
+        "build_time_seconds": 259,
+        "production_rate": 5.0
+      },
+      "2": {
+        "costs": {
+          "wood": 15,
+          "stone": 15,
+          "iron": 13,
+          "food": 1
+        },
+        "build_time_seconds": 259,
+        "production_rate": 7.0
+      },
+      "3": {
+        "costs": {
+          "wood": 15,
+          "stone": 15,
+          "iron": 13,
+          "food": 1
+        },
+        "build_time_seconds": 259,
+        "production_rate": 9.0
+      },
+      "4": {
+        "costs": {
+          "wood": 19,
+          "stone": 18,
+          "iron": 15,
+          "food": 1
+        },
+        "build_time_seconds": 314,
+        "production_rate": 12.0
+      },
+      "5": {
+        "costs": {
+          "wood": 23,
+          "stone": 22,
+          "iron": 18,
+          "food": 1
+        },
+        "build_time_seconds": 379,
+        "production_rate": 15.0
+      },
+      "6": {
+        "costs": {
+          "wood": 28,
+          "stone": 26,
+          "iron": 23,
+          "food": 2
+        },
+        "build_time_seconds": 459,
+        "production_rate": 19.0
+      },
+      "7": {
+        "costs": {
+          "wood": 34,
+          "stone": 32,
+          "iron": 27,
+          "food": 2
+        },
+        "build_time_seconds": 560,
+        "production_rate": 24.0
+      },
+      "8": {
+        "costs": {
+          "wood": 42,
+          "stone": 39,
+          "iron": 33,
+          "food": 2
+        },
+        "build_time_seconds": 683,
+        "production_rate": 30.0
+      },
+      "9": {
+        "costs": {
+          "wood": 51,
+          "stone": 48,
+          "iron": 39,
+          "food": 2
+        },
+        "build_time_seconds": 834,
+        "production_rate": 37.0
+      },
+      "10": {
+        "costs": {
+          "wood": 63,
+          "stone": 57,
+          "iron": 49,
+          "food": 3
+        },
+        "build_time_seconds": 1026,
+        "production_rate": 45.0
+      },
+      "11": {
+        "costs": {
+          "wood": 79,
+          "stone": 70,
+          "iron": 58,
+          "food": 3
+        },
+        "build_time_seconds": 1261,
+        "production_rate": 55.0
+      },
+      "12": {
+        "costs": {
+          "wood": 99,
+          "stone": 87,
+          "iron": 72,
+          "food": 3
+        },
+        "build_time_seconds": 1564,
+        "production_rate": 66.0
+      },
+      "13": {
+        "costs": {
+          "wood": 124,
+          "stone": 108,
+          "iron": 88,
+          "food": 3
+        },
+        "build_time_seconds": 1940,
+        "production_rate": 78.0
+      },
+      "14": {
+        "costs": {
+          "wood": 155,
+          "stone": 135,
+          "iron": 110,
+          "food": 4
+        },
+        "build_time_seconds": 2425,
+        "production_rate": 92.0
+      },
+      "15": {
+        "costs": {
+          "wood": 196,
+          "stone": 168,
+          "iron": 136,
+          "food": 4
+        },
+        "build_time_seconds": 3031,
+        "production_rate": 107.0
+      },
+      "16": {
+        "costs": {
+          "wood": 248,
+          "stone": 211,
+          "iron": 170,
+          "food": 4
+        },
+        "build_time_seconds": 3819,
+        "production_rate": 124.0
+      },
+      "17": {
+        "costs": {
+          "wood": 316,
+          "stone": 265,
+          "iron": 213,
+          "food": 4
+        },
+        "build_time_seconds": 4812,
+        "production_rate": 142.0
+      },
+      "18": {
+        "costs": {
+          "wood": 404,
+          "stone": 336,
+          "iron": 268,
+          "food": 5
+        },
+        "build_time_seconds": 6111,
+        "production_rate": 163.0
+      },
+      "19": {
+        "costs": {
+          "wood": 518,
+          "stone": 425,
+          "iron": 338,
+          "food": 5
+        },
+        "build_time_seconds": 7761,
+        "production_rate": 184.0
+      },
+      "20": {
+        "costs": {
+          "wood": 667,
+          "stone": 543,
+          "iron": 430,
+          "food": 5
+        },
+        "build_time_seconds": 9934,
+        "production_rate": 206.0
+      },
+      "21": {
+        "costs": {
+          "wood": 860,
+          "stone": 692,
+          "iron": 545,
+          "food": 5
+        },
+        "build_time_seconds": 12715,
+        "production_rate": 228.0
+      },
+      "22": {
+        "costs": {
+          "wood": 1109,
+          "stone": 883,
+          "iron": 694,
+          "food": 6
+        },
+        "build_time_seconds": 16275,
+        "production_rate": 251.0
+      },
+      "23": {
+        "costs": {
+          "wood": 1441,
+          "stone": 1137,
+          "iron": 886,
+          "food": 6
+        },
+        "build_time_seconds": 20995,
+        "production_rate": 274.0
+      },
+      "24": {
+        "costs": {
+          "wood": 1872,
+          "stone": 1461,
+          "iron": 1136,
+          "food": 6
+        },
+        "build_time_seconds": 27083,
+        "production_rate": 296.0
+      },
+      "25": {
+        "costs": {
+          "wood": 2432,
+          "stone": 1879,
+          "iron": 1453,
+          "food": 6
+        },
+        "build_time_seconds": 34937,
+        "production_rate": 317.0
+      },
+      "26": {
+        "costs": {
+          "wood": 3160,
+          "stone": 2417,
+          "iron": 1860,
+          "food": 7
+        },
+        "build_time_seconds": 45069,
+        "production_rate": 336.0
+      },
+      "27": {
+        "costs": {
+          "wood": 4137,
+          "stone": 3132,
+          "iron": 2398,
+          "food": 7
+        },
+        "build_time_seconds": 58590,
+        "production_rate": 354.0
+      },
+      "28": {
+        "costs": {
+          "wood": 5416,
+          "stone": 4059,
+          "iron": 3093,
+          "food": 7
+        },
+        "build_time_seconds": 76167,
+        "production_rate": 368.0
+      },
+      "29": {
+        "costs": {
+          "wood": 7090,
+          "stone": 5261,
+          "iron": 3987,
+          "food": 7
+        },
+        "build_time_seconds": 99017,
+        "production_rate": 379.0
+      },
+      "30": {
+        "costs": {
+          "wood": 9281,
+          "stone": 6818,
+          "iron": 5140,
+          "food": 8
+        },
+        "build_time_seconds": 128723,
+        "production_rate": 387.0
+      }
+    }
+  },
+  "farm": {
+    "building_type": "farm",
+    "max_level": 30,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 13,
+          "stone": 8,
+          "iron": 5,
+          "food": 0
+        },
+        "build_time_seconds": 159,
+        "production_rate": 40.0
+      },
+      "2": {
+        "costs": {
+          "wood": 13,
+          "stone": 8,
+          "iron": 5,
+          "food": 0
+        },
+        "build_time_seconds": 159,
+        "production_rate": 52.0
+      },
+      "3": {
+        "costs": {
+          "wood": 15,
+          "stone": 9,
+          "iron": 7,
+          "food": 0
+        },
+        "build_time_seconds": 184,
+        "production_rate": 67.0
+      },
+      "4": {
+        "costs": {
+          "wood": 17,
+          "stone": 11,
+          "iron": 8,
+          "food": 0
+        },
+        "build_time_seconds": 214,
+        "production_rate": 86.0
+      },
+      "5": {
+        "costs": {
+          "wood": 20,
+          "stone": 13,
+          "iron": 9,
+          "food": 0
+        },
+        "build_time_seconds": 250,
+        "production_rate": 109.0
+      },
+      "6": {
+        "costs": {
+          "wood": 23,
+          "stone": 16,
+          "iron": 10,
+          "food": 0
+        },
+        "build_time_seconds": 292,
+        "production_rate": 137.0
+      },
+      "7": {
+        "costs": {
+          "wood": 27,
+          "stone": 19,
+          "iron": 11,
+          "food": 0
+        },
+        "build_time_seconds": 345,
+        "production_rate": 171.0
+      },
+      "8": {
+        "costs": {
+          "wood": 32,
+          "stone": 22,
+          "iron": 14,
+          "food": 0
+        },
+        "build_time_seconds": 410,
+        "production_rate": 210.0
+      },
+      "9": {
+        "costs": {
+          "wood": 38,
+          "stone": 27,
+          "iron": 17,
+          "food": 0
+        },
+        "build_time_seconds": 493,
+        "production_rate": 256.0
+      },
+      "10": {
+        "costs": {
+          "wood": 45,
+          "stone": 33,
+          "iron": 21,
+          "food": 0
+        },
+        "build_time_seconds": 596,
+        "production_rate": 310.0
+      },
+      "11": {
+        "costs": {
+          "wood": 54,
+          "stone": 41,
+          "iron": 25,
+          "food": 0
+        },
+        "build_time_seconds": 727,
+        "production_rate": 372.0
+      },
+      "12": {
+        "costs": {
+          "wood": 65,
+          "stone": 50,
+          "iron": 32,
+          "food": 0
+        },
+        "build_time_seconds": 894,
+        "production_rate": 443.0
+      },
+      "13": {
+        "costs": {
+          "wood": 80,
+          "stone": 63,
+          "iron": 40,
+          "food": 0
+        },
+        "build_time_seconds": 1109,
+        "production_rate": 523.0
+      },
+      "14": {
+        "costs": {
+          "wood": 100,
+          "stone": 80,
+          "iron": 49,
+          "food": 0
+        },
+        "build_time_seconds": 1386,
+        "production_rate": 612.0
+      },
+      "15": {
+        "costs": {
+          "wood": 124,
+          "stone": 103,
+          "iron": 61,
+          "food": 0
+        },
+        "build_time_seconds": 1747,
+        "production_rate": 710.0
+      },
+      "16": {
+        "costs": {
+          "wood": 155,
+          "stone": 132,
+          "iron": 79,
+          "food": 0
+        },
+        "build_time_seconds": 2218,
+        "production_rate": 817.0
+      },
+      "17": {
+        "costs": {
+          "wood": 197,
+          "stone": 170,
+          "iron": 101,
+          "food": 0
+        },
+        "build_time_seconds": 2839,
+        "production_rate": 931.0
+      },
+      "18": {
+        "costs": {
+          "wood": 250,
+          "stone": 223,
+          "iron": 131,
+          "food": 0
+        },
+        "build_time_seconds": 3663,
+        "production_rate": 1061.0
+      },
+      "19": {
+        "costs": {
+          "wood": 322,
+          "stone": 292,
+          "iron": 172,
+          "food": 0
+        },
+        "build_time_seconds": 4762,
+        "production_rate": 1210.0
+      },
+      "20": {
+        "costs": {
+          "wood": 417,
+          "stone": 387,
+          "iron": 226,
+          "food": 0
+        },
+        "build_time_seconds": 6238,
+        "production_rate": 1379.0
+      },
+      "21": {
+        "costs": {
+          "wood": 544,
+          "stone": 516,
+          "iron": 299,
+          "food": 0
+        },
+        "build_time_seconds": 8234,
+        "production_rate": 1572.0
+      },
+      "22": {
+        "costs": {
+          "wood": 714,
+          "stone": 694,
+          "iron": 399,
+          "food": 0
+        },
+        "build_time_seconds": 10951,
+        "production_rate": 1792.0
+      },
+      "23": {
+        "costs": {
+          "wood": 938,
+          "stone": 933,
+          "iron": 534,
+          "food": 0
+        },
+        "build_time_seconds": 14565,
+        "production_rate": 2043.0
+      },
+      "24": {
+        "costs": {
+          "wood": 1239,
+          "stone": 1262,
+          "iron": 719,
+          "food": 0
+        },
+        "build_time_seconds": 19518,
+        "production_rate": 2329.0
+      },
+      "25": {
+        "costs": {
+          "wood": 1652,
+          "stone": 1722,
+          "iron": 973,
+          "food": 0
+        },
+        "build_time_seconds": 26349,
+        "production_rate": 2655.0
+      },
+      "26": {
+        "costs": {
+          "wood": 2218,
+          "stone": 2365,
+          "iron": 1330,
+          "food": 0
+        },
+        "build_time_seconds": 35834,
+        "production_rate": 3027.0
+      },
+      "27": {
+        "costs": {
+          "wood": 2997,
+          "stone": 3273,
+          "iron": 1831,
+          "food": 0
+        },
+        "build_time_seconds": 49093,
+        "production_rate": 3451.0
+      },
+      "28": {
+        "costs": {
+          "wood": 4080,
+          "stone": 4561,
+          "iron": 2537,
+          "food": 0
+        },
+        "build_time_seconds": 67749,
+        "production_rate": 3900.0
+      },
+      "29": {
+        "costs": {
+          "wood": 5634,
+          "stone": 6448,
+          "iron": 3568,
+          "food": 0
+        },
+        "build_time_seconds": 94848,
+        "production_rate": 4407.0
+      },
+      "30": {
+        "costs": {
+          "wood": 8334,
+          "stone": 9765,
+          "iron": 5376,
+          "food": 0
+        },
+        "build_time_seconds": 142272,
+        "production_rate": 5000.0
+      }
+    }
+  },
+  "wood_store": {
+    "building_type": "wood_store",
+    "max_level": 20,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 10,
+          "stone": 7,
+          "iron": 4,
+          "food": 0
+        },
+        "build_time_seconds": 126,
+        "production_rate": 120.0
+      },
+      "2": {
+        "costs": {
+          "wood": 10,
+          "stone": 7,
+          "iron": 4,
+          "food": 0
+        },
+        "build_time_seconds": 126,
+        "production_rate": 180.0
+      },
+      "3": {
+        "costs": {
+          "wood": 14,
+          "stone": 11,
+          "iron": 4,
+          "food": 0
+        },
+        "build_time_seconds": 176,
+        "production_rate": 252.0
+      },
+      "4": {
+        "costs": {
+          "wood": 20,
+          "stone": 15,
+          "iron": 6,
+          "food": 0
+        },
+        "build_time_seconds": 247,
+        "production_rate": 340.0
+      },
+      "5": {
+        "costs": {
+          "wood": 27,
+          "stone": 21,
+          "iron": 9,
+          "food": 0
+        },
+        "build_time_seconds": 343,
+        "production_rate": 442.0
+      },
+      "6": {
+        "costs": {
+          "wood": 37,
+          "stone": 30,
+          "iron": 13,
+          "food": 0
+        },
+        "build_time_seconds": 477,
+        "production_rate": 575.0
+      },
+      "7": {
+        "costs": {
+          "wood": 50,
+          "stone": 42,
+          "iron": 18,
+          "food": 0
+        },
+        "build_time_seconds": 658,
+        "production_rate": 748.0
+      },
+      "8": {
+        "costs": {
+          "wood": 67,
+          "stone": 57,
+          "iron": 25,
+          "food": 0
+        },
+        "build_time_seconds": 909,
+        "production_rate": 957.0
+      },
+      "9": {
+        "costs": {
+          "wood": 90,
+          "stone": 80,
+          "iron": 35,
+          "food": 0
+        },
+        "build_time_seconds": 1245,
+        "production_rate": 1215.0
+      },
+      "10": {
+        "costs": {
+          "wood": 122,
+          "stone": 111,
+          "iron": 49,
+          "food": 0
+        },
+        "build_time_seconds": 1706,
+        "production_rate": 1531.0
+      },
+      "11": {
+        "costs": {
+          "wood": 162,
+          "stone": 153,
+          "iron": 67,
+          "food": 0
+        },
+        "build_time_seconds": 2320,
+        "production_rate": 1914.0
+      },
+      "12": {
+        "costs": {
+          "wood": 218,
+          "stone": 211,
+          "iron": 92,
+          "food": 0
+        },
+        "build_time_seconds": 3155,
+        "production_rate": 2373.0
+      },
+      "13": {
+        "costs": {
+          "wood": 288,
+          "stone": 288,
+          "iron": 127,
+          "food": 0
+        },
+        "build_time_seconds": 4259,
+        "production_rate": 2919.0
+      },
+      "14": {
+        "costs": {
+          "wood": 382,
+          "stone": 394,
+          "iron": 172,
+          "food": 0
+        },
+        "build_time_seconds": 5749,
+        "production_rate": 3561.0
+      },
+      "15": {
+        "costs": {
+          "wood": 502,
+          "stone": 534,
+          "iron": 236,
+          "food": 0
+        },
+        "build_time_seconds": 7704,
+        "production_rate": 4309.0
+      },
+      "16": {
+        "costs": {
+          "wood": 660,
+          "stone": 724,
+          "iron": 320,
+          "food": 0
+        },
+        "build_time_seconds": 10323,
+        "production_rate": 5171.0
+      },
+      "17": {
+        "costs": {
+          "wood": 861,
+          "stone": 974,
+          "iron": 430,
+          "food": 0
+        },
+        "build_time_seconds": 13730,
+        "production_rate": 6153.0
+      },
+      "18": {
+        "costs": {
+          "wood": 1123,
+          "stone": 1311,
+          "iron": 579,
+          "food": 0
+        },
+        "build_time_seconds": 18261,
+        "production_rate": 7261.0
+      },
+      "19": {
+        "costs": {
+          "wood": 1451,
+          "stone": 1750,
+          "iron": 775,
+          "food": 0
+        },
+        "build_time_seconds": 24104,
+        "production_rate": 8495.0
+      },
+      "20": {
+        "costs": {
+          "wood": 1877,
+          "stone": 2336,
+          "iron": 1037,
+          "food": 0
+        },
+        "build_time_seconds": 31817,
+        "production_rate": 9999.0
+      }
+    }
+  },
+  "stone_store": {
+    "building_type": "stone_store",
+    "max_level": 20,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 8,
+          "stone": 10,
+          "iron": 3,
+          "food": 0
+        },
+        "build_time_seconds": 126,
+        "production_rate": 120.0
+      },
+      "2": {
+        "costs": {
+          "wood": 8,
+          "stone": 10,
+          "iron": 3,
+          "food": 0
+        },
+        "build_time_seconds": 126,
+        "production_rate": 180.0
+      },
+      "3": {
+        "costs": {
+          "wood": 11,
+          "stone": 14,
+          "iron": 4,
+          "food": 0
+        },
+        "build_time_seconds": 176,
+        "production_rate": 252.0
+      },
+      "4": {
+        "costs": {
+          "wood": 16,
+          "stone": 19,
+          "iron": 6,
+          "food": 0
+        },
+        "build_time_seconds": 247,
+        "production_rate": 340.0
+      },
+      "5": {
+        "costs": {
+          "wood": 21,
+          "stone": 27,
+          "iron": 9,
+          "food": 0
+        },
+        "build_time_seconds": 343,
+        "production_rate": 442.0
+      },
+      "6": {
+        "costs": {
+          "wood": 29,
+          "stone": 38,
+          "iron": 13,
+          "food": 0
+        },
+        "build_time_seconds": 477,
+        "production_rate": 575.0
+      },
+      "7": {
+        "costs": {
+          "wood": 39,
+          "stone": 52,
+          "iron": 18,
+          "food": 0
+        },
+        "build_time_seconds": 658,
+        "production_rate": 748.0
+      },
+      "8": {
+        "costs": {
+          "wood": 52,
+          "stone": 72,
+          "iron": 25,
+          "food": 0
+        },
+        "build_time_seconds": 909,
+        "production_rate": 957.0
+      },
+      "9": {
+        "costs": {
+          "wood": 70,
+          "stone": 101,
+          "iron": 34,
+          "food": 0
+        },
+        "build_time_seconds": 1245,
+        "production_rate": 1215.0
+      },
+      "10": {
+        "costs": {
+          "wood": 94,
+          "stone": 140,
+          "iron": 48,
+          "food": 0
+        },
+        "build_time_seconds": 1706,
+        "production_rate": 1531.0
+      },
+      "11": {
+        "costs": {
+          "wood": 125,
+          "stone": 191,
+          "iron": 67,
+          "food": 0
+        },
+        "build_time_seconds": 2320,
+        "production_rate": 1914.0
+      },
+      "12": {
+        "costs": {
+          "wood": 165,
+          "stone": 263,
+          "iron": 92,
+          "food": 0
+        },
+        "build_time_seconds": 3155,
+        "production_rate": 2373.0
+      },
+      "13": {
+        "costs": {
+          "wood": 218,
+          "stone": 358,
+          "iron": 127,
+          "food": 0
+        },
+        "build_time_seconds": 4259,
+        "production_rate": 2919.0
+      },
+      "14": {
+        "costs": {
+          "wood": 287,
+          "stone": 488,
+          "iron": 173,
+          "food": 0
+        },
+        "build_time_seconds": 5749,
+        "production_rate": 3561.0
+      },
+      "15": {
+        "costs": {
+          "wood": 375,
+          "stone": 661,
+          "iron": 235,
+          "food": 0
+        },
+        "build_time_seconds": 7704,
+        "production_rate": 4309.0
+      },
+      "16": {
+        "costs": {
+          "wood": 490,
+          "stone": 894,
+          "iron": 320,
+          "food": 0
+        },
+        "build_time_seconds": 10323,
+        "production_rate": 5171.0
+      },
+      "17": {
+        "costs": {
+          "wood": 635,
+          "stone": 1201,
+          "iron": 430,
+          "food": 0
+        },
+        "build_time_seconds": 13730,
+        "production_rate": 6153.0
+      },
+      "18": {
+        "costs": {
+          "wood": 821,
+          "stone": 1612,
+          "iron": 580,
+          "food": 0
+        },
+        "build_time_seconds": 18261,
+        "production_rate": 7261.0
+      },
+      "19": {
+        "costs": {
+          "wood": 1054,
+          "stone": 2147,
+          "iron": 775,
+          "food": 0
+        },
+        "build_time_seconds": 24104,
+        "production_rate": 8495.0
+      },
+      "20": {
+        "costs": {
+          "wood": 1351,
+          "stone": 2861,
+          "iron": 1038,
+          "food": 0
+        },
+        "build_time_seconds": 31817,
+        "production_rate": 9999.0
+      }
+    }
+  },
+  "ore_store": {
+    "building_type": "ore_store",
+    "max_level": 20,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 9,
+          "stone": 8,
+          "iron": 4,
+          "food": 0
+        },
+        "build_time_seconds": 126,
+        "production_rate": 120.0
+      },
+      "2": {
+        "costs": {
+          "wood": 9,
+          "stone": 8,
+          "iron": 4,
+          "food": 0
+        },
+        "build_time_seconds": 126,
+        "production_rate": 180.0
+      },
+      "3": {
+        "costs": {
+          "wood": 12,
+          "stone": 11,
+          "iron": 6,
+          "food": 0
+        },
+        "build_time_seconds": 176,
+        "production_rate": 252.0
+      },
+      "4": {
+        "costs": {
+          "wood": 17,
+          "stone": 16,
+          "iron": 8,
+          "food": 0
+        },
+        "build_time_seconds": 247,
+        "production_rate": 340.0
+      },
+      "5": {
+        "costs": {
+          "wood": 23,
+          "stone": 22,
+          "iron": 12,
+          "food": 0
+        },
+        "build_time_seconds": 343,
+        "production_rate": 442.0
+      },
+      "6": {
+        "costs": {
+          "wood": 31,
+          "stone": 31,
+          "iron": 18,
+          "food": 0
+        },
+        "build_time_seconds": 477,
+        "production_rate": 575.0
+      },
+      "7": {
+        "costs": {
+          "wood": 42,
+          "stone": 44,
+          "iron": 24,
+          "food": 0
+        },
+        "build_time_seconds": 658,
+        "production_rate": 748.0
+      },
+      "8": {
+        "costs": {
+          "wood": 57,
+          "stone": 60,
+          "iron": 32,
+          "food": 0
+        },
+        "build_time_seconds": 909,
+        "production_rate": 957.0
+      },
+      "9": {
+        "costs": {
+          "wood": 77,
+          "stone": 83,
+          "iron": 45,
+          "food": 0
+        },
+        "build_time_seconds": 1245,
+        "production_rate": 1215.0
+      },
+      "10": {
+        "costs": {
+          "wood": 104,
+          "stone": 115,
+          "iron": 62,
+          "food": 0
+        },
+        "build_time_seconds": 1706,
+        "production_rate": 1531.0
+      },
+      "11": {
+        "costs": {
+          "wood": 140,
+          "stone": 156,
+          "iron": 87,
+          "food": 0
+        },
+        "build_time_seconds": 2320,
+        "production_rate": 1914.0
+      },
+      "12": {
+        "costs": {
+          "wood": 187,
+          "stone": 215,
+          "iron": 119,
+          "food": 0
+        },
+        "build_time_seconds": 3155,
+        "production_rate": 2373.0
+      },
+      "13": {
+        "costs": {
+          "wood": 248,
+          "stone": 292,
+          "iron": 162,
+          "food": 0
+        },
+        "build_time_seconds": 4259,
+        "production_rate": 2919.0
+      },
+      "14": {
+        "costs": {
+          "wood": 331,
+          "stone": 397,
+          "iron": 221,
+          "food": 0
+        },
+        "build_time_seconds": 5749,
+        "production_rate": 3561.0
+      },
+      "15": {
+        "costs": {
+          "wood": 436,
+          "stone": 537,
+          "iron": 299,
+          "food": 0
+        },
+        "build_time_seconds": 7704,
+        "production_rate": 4309.0
+      },
+      "16": {
+        "costs": {
+          "wood": 575,
+          "stone": 724,
+          "iron": 405,
+          "food": 0
+        },
+        "build_time_seconds": 10323,
+        "production_rate": 5171.0
+      },
+      "17": {
+        "costs": {
+          "wood": 752,
+          "stone": 969,
+          "iron": 544,
+          "food": 0
+        },
+        "build_time_seconds": 13730,
+        "production_rate": 6153.0
+      },
+      "18": {
+        "costs": {
+          "wood": 984,
+          "stone": 1299,
+          "iron": 730,
+          "food": 0
+        },
+        "build_time_seconds": 18261,
+        "production_rate": 7261.0
+      },
+      "19": {
+        "costs": {
+          "wood": 1277,
+          "stone": 1727,
+          "iron": 973,
+          "food": 0
+        },
+        "build_time_seconds": 24104,
+        "production_rate": 8495.0
+      },
+      "20": {
+        "costs": {
+          "wood": 1656,
+          "stone": 2294,
+          "iron": 1300,
+          "food": 0
+        },
+        "build_time_seconds": 31817,
+        "production_rate": 9999.0
+      }
+    }
+  }
+}
