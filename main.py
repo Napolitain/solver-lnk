@@ -17,7 +17,7 @@ from solver_lnk.models import (
     Solution,
 )
 from solver_lnk.solvers.greedy_solver import GreedySolver
-from solver_lnk.utils.data_loader import get_default_buildings
+from solver_lnk.utils.data_loader import get_default_buildings, get_default_technologies
 
 console = Console()
 
@@ -289,11 +289,15 @@ def main() -> None:
 
         console.print("\n[bold magenta]Solving...[/bold magenta]")
 
+    # Load technologies for research queue
+    technologies = get_default_technologies()
+
     # Solve with greedy simulation solver
     solver = GreedySolver(
         buildings=buildings,
         initial_state=initial_state,
         target_levels=target_levels,
+        technologies=technologies,
     )
     solution_obj = solver.solve()
 

@@ -1,14 +1,16 @@
 """Greedy simulation-based solver with accurate resource tracking."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from solver_lnk.models import (
     Building,
     BuildingType,
     BuildingUpgradeAction,
     GameState,
+    LibraryResearchAction,
     ResourceType,
     Solution,
+    Technology,
 )
 
 
@@ -24,6 +26,8 @@ class SimulationState:
     building_queue_free_at: int  # minutes
     research_queue_free_at: int  # minutes
     completed_actions: list[BuildingUpgradeAction]
+    research_actions: list[LibraryResearchAction] = field(default_factory=list)
+    researched_technologies: set[str] = field(default_factory=set)
 
 
 class GreedySolver:
@@ -36,6 +40,7 @@ class GreedySolver:
     3. Build other buildings last
     4. Accurately simulate resource production over time
     5. Wait for resources if needed
+    6. Research technologies in parallel when needed for building upgrades
     """
 
     def __init__(
@@ -43,11 +48,13 @@ class GreedySolver:
         buildings: dict[BuildingType, Building],
         initial_state: GameState,
         target_levels: dict[BuildingType, int],
+        technologies: dict[str, Technology] | None = None,
     ):
         """Initialize solver."""
         self.buildings = buildings
         self.initial_state = initial_state
         self.target_levels = target_levels
+        self.technologies = technologies or {}
 
     def solve(self) -> Solution | None:
         """Solve using greedy simulation with dynamic production building selection."""
@@ -108,6 +115,13 @@ class GreedySolver:
 
             costs = level_data.costs
             duration_sec = level_data.build_time_seconds
+
+            # Check technology prerequisites (e.g., Farm 15 needs Crop rotation)
+            tech_needed = self._check_technology_prerequisite(state, building, to_level)
+            if tech_needed is not None:
+                # Need to research technology first
+                self._schedule_research(state, tech_needed, upgrade_queue)
+                continue
 
             # Check storage capacity FIRST (includes food/Farm capacity)
             storage_ok, storage_needed = self._check_storage_capacity(state, costs)
@@ -212,11 +226,12 @@ class GreedySolver:
 
         return Solution(
             building_actions=state.completed_actions,
-            research_actions=[],
+            research_actions=state.research_actions,
             total_time_seconds=state.time_minutes * 60,
             final_state=GameState(
                 building_levels=state.building_levels,
                 resources=state.resources,
+                researched_technologies=state.researched_technologies,
             ),
         )
 
@@ -232,6 +247,101 @@ class GreedySolver:
             # Cap at storage limit
             cap = state.storage_caps.get(resource_type, 999999)
             state.resources[resource_type] = min(state.resources[resource_type], cap)
+
+    def _check_technology_prerequisite(
+        self,
+        state: SimulationState,
+        building: Building,
+        to_level: int,
+    ) -> str | None:
+        """
+        Check if a technology is required for this upgrade.
+
+        Returns: technology name if needed and not researched, else None
+        """
+        tech_name = building.technology_prerequisites.get(to_level)
+        if tech_name is None:
+            return None
+
+        if tech_name in state.researched_technologies:
+            return None
+
+        return tech_name
+
+    def _schedule_research(
+        self,
+        state: SimulationState,
+        tech_name: str,
+        upgrade_queue: list[tuple[BuildingType, int]],
+    ) -> None:
+        """
+        Schedule research for a technology.
+
+        This handles:
+        1. Ensuring Library is at required level
+        2. Waiting for research queue to be free
+        3. Waiting for resources
+        4. Performing the research
+        """
+        tech = self.technologies.get(tech_name)
+        if tech is None:
+            # Technology not found, skip
+            return
+
+        # Check if Library needs upgrading
+        library_level = state.building_levels.get(BuildingType.LIBRARY, 1)
+        if library_level < tech.required_library_level:
+            # Insert Library upgrade at front of queue
+            upgrade_queue.insert(0, (BuildingType.LIBRARY, tech.required_library_level))
+            return
+
+        # Wait for research queue to be free
+        if state.time_minutes < state.research_queue_free_at:
+            self._advance_time(state, state.research_queue_free_at - state.time_minutes)
+
+        # Check storage for research costs
+        storage_ok, storage_needed = self._check_storage_capacity(state, tech.costs)
+        if not storage_ok:
+            if storage_needed is not None:
+                upgrade_queue.insert(0, storage_needed)
+            return
+
+        # Wait for resources
+        can_afford, wait_time = self._can_afford_or_wait_time(state, tech.costs)
+        if not can_afford:
+            if wait_time < 0:
+                return  # Cannot afford, will retry later
+            self._advance_time(state, wait_time)
+
+        # Start research
+        start_time = state.time_minutes
+
+        # Deduct resources
+        for resource_type, cost in tech.costs.items():
+            state.resources[resource_type] -= cost
+
+        # Calculate duration
+        duration_minutes = max(1, tech.research_time_seconds // 60)
+        state.research_queue_free_at = state.time_minutes + duration_minutes
+
+        # Advance time to completion (research happens in parallel with building)
+        # Don't advance time here - let the main loop handle it
+
+        # Record research action
+        state.research_actions.append(
+            LibraryResearchAction(
+                from_level=library_level,
+                to_level=library_level,  # Library level doesn't change
+                start_time=start_time * 60,
+                end_time=(start_time + duration_minutes) * 60,
+                costs=tech.costs,
+                technologies_unlocked=[tech_name],
+            )
+        )
+
+        # Mark technology as researched (will be available after research completes)
+        # For simplicity, mark it now - the time constraint is handled by queue
+        state.researched_technologies.add(tech_name)
 
     def _select_next_upgrade(
         self,
@@ -392,13 +502,12 @@ class GreedySolver:
         Instead of completing all lumberjack upgrades before quarry,
         we interleave them: LJ→2, Q→2, OM→2, LJ→3, Q→3, OM→3, etc.
 
-        Priority order within each "round":
+        Priority order:
         1. Resource production (Lumberjack, Quarry, Ore Mine) - interleaved
-        2. Storage - as needed (handled dynamically, includes Farm for food)
-        3. Core buildings (Keep, Library, etc.)
-        4. Military (Arsenal, Fortifications, etc.)
-
-        Note: Farm is NOT in queue - it's upgraded dynamically when food runs out.
+        2. Storage (Wood/Stone/Ore Store) - interleaved
+        3. Farm (may require technology research for levels 15/25/30)
+        4. Core buildings (Keep, Library)
+        5. Military and other (Arsenal, Tavern, Market, Fortifications)
         """
         queue: list[tuple[BuildingType, int]] = []
 
@@ -421,7 +530,7 @@ class GreedySolver:
                 if btype in self.target_levels and level <= self.target_levels[btype]:
                     queue.append((btype, level))
 
-        # 2. Storage buildings - interleaved (Farm handled dynamically, not here)
+        # 2. Storage buildings - interleaved
         storage_buildings = [
             BuildingType.WOOD_STORE,
             BuildingType.STONE_STORE,
@@ -437,6 +546,13 @@ class GreedySolver:
             for btype in storage_buildings:
                 if btype in self.target_levels and level <= self.target_levels[btype]:
                     queue.append((btype, level))
+
+        # 3. Farm - added after storage, before core buildings
+        # Farm provides food capacity and may require technologies for levels 15/25/30
+        if BuildingType.FARM in self.target_levels:
+            target = self.target_levels[BuildingType.FARM]
+            for level in range(2, target + 1):
+                queue.append((BuildingType.FARM, level))
 
         # 4. Core buildings
         core_buildings = [BuildingType.KEEP, BuildingType.LIBRARY]

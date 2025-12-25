@@ -56,8 +56,12 @@ class Technology:
     """Represents a technology that can be researched in the library."""
 
     name: str
-    enables: str
+    internal_name: str
     required_library_level: int
+    costs: dict[ResourceType, int]
+    research_time_seconds: int
+    enables_building: str | None = None
+    enables_level: int | None = None
 
 
 @dataclass

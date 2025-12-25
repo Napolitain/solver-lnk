@@ -4,7 +4,13 @@ import json
 import re
 from pathlib import Path
 
-from solver_lnk.models import Building, BuildingLevel, BuildingType, ResourceType
+from solver_lnk.models import (
+    Building,
+    BuildingLevel,
+    BuildingType,
+    ResourceType,
+    Technology,
+)
 
 
 def parse_time_string(time_str: str) -> int:
@@ -233,6 +239,53 @@ def load_technologies(
     return technologies
 
 
+def load_technologies_as_objects(
+    techs_dir: Path | None = None,
+) -> dict[str, Technology]:
+    """
+    Load all technologies as Technology objects.
+
+    Returns:
+        Dict mapping technology name -> Technology object
+    """
+    raw_techs = load_technologies(techs_dir)
+
+    technologies: dict[str, Technology] = {}
+
+    for internal_name, data in raw_techs.items():
+        name = str(data.get("name", internal_name))
+        wood = data.get("wood", 0)
+        stone = data.get("stone", 0)
+        iron = data.get("iron", 0)
+        duration = data.get("duration_seconds", 0)
+        enables_level = data.get("enables_level")
+
+        tech = Technology(
+            name=name,
+            internal_name=str(internal_name),
+            required_library_level=1,  # All require Library L1
+            costs={
+                ResourceType.WOOD: int(wood) if wood else 0,
+                ResourceType.STONE: int(stone) if stone else 0,
+                ResourceType.IRON: int(iron) if iron else 0,
+                ResourceType.FOOD: 0,
+            },
+            research_time_seconds=int(duration) if duration else 0,
+            enables_building=str(data.get("enables_building"))
+            if data.get("enables_building")
+            else None,
+            enables_level=int(enables_level) if enables_level else None,
+        )
+        technologies[name] = tech
+
+    return technologies
+
+
 def get_default_buildings() -> dict[BuildingType, Building]:
     """Get default building data from JSON file."""
     return load_buildings_from_json()
+
+
+def get_default_technologies() -> dict[str, Technology]:
+    """Get default technology data from tech files."""
+    return load_technologies_as_objects()
