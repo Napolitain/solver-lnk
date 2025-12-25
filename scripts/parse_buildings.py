@@ -131,17 +131,28 @@ def main() -> None:
     output_file = Path("data/buildings.json")
 
     buildings = {}
-    simple_buildings = [
+
+    # All available buildings
+    all_buildings = [
+        # Resource production
         "lumberjack",
         "quarry",
         "ore_mine",
         "farm",
+        # Storage
         "wood_store",
         "stone_store",
         "ore_store",
+        # Core buildings
+        "keep",
+        "arsenal",
+        "library",
+        "tavern",
+        "market",
+        "fortifications",
     ]
 
-    for building_name in simple_buildings:
+    for building_name in all_buildings:
         filepath = data_dir / building_name
         if filepath.exists():
             print(f"Parsing {building_name}...")
@@ -149,9 +160,12 @@ def main() -> None:
             buildings[building_name] = building_data
             level_count = len(building_data["levels"])
             print(f"  -> {level_count} levels (1-{building_data['max_level']})")
+        else:
+            print(f"⚠️  Skipping {building_name} (file not found)")
 
     output_file.write_text(json.dumps(buildings, indent=2))
     print(f"\n✓ Saved to {output_file}")
+    print(f"  Parsed {len(buildings)} buildings")
 
 
 if __name__ == "__main__":

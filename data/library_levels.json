@@ -1,0 +1,591 @@
+{
+  "1": {
+    "costs": null,
+    "build_time_seconds": null,
+    "technologies": [
+      {
+        "name": "Longbow",
+        "enables": "Archer"
+      },
+      {
+        "name": "Crop rotation",
+        "enables": "Farm Level 15"
+      },
+      {
+        "name": "Yoke",
+        "enables": "Farm Level 25"
+      },
+      {
+        "name": "Cellar storeroom",
+        "enables": "Farm Level 30"
+      }
+    ]
+  },
+  "2": {
+    "costs": {
+      "wood": 47,
+      "stone": 97,
+      "iron": 50,
+      "food": 2
+    },
+    "build_time_seconds": 1163,
+    "technologies": [
+      {
+        "name": "Longbow",
+        "enables": "Archer"
+      },
+      {
+        "name": "Crop rotation",
+        "enables": "Farm Level 15"
+      },
+      {
+        "name": "Yoke",
+        "enables": "Farm Level 25"
+      },
+      {
+        "name": "Cellar storeroom",
+        "enables": "Farm Level 30"
+      },
+      {
+        "name": "Stirrup",
+        "enables": "Armoured horseman"
+      }
+    ]
+  },
+  "3": {
+    "costs": {
+      "wood": 73,
+      "stone": 153,
+      "iron": 80,
+      "food": 4
+    },
+    "build_time_seconds": 1860,
+    "technologies": [
+      {
+        "name": "Longbow",
+        "enables": "Archer"
+      },
+      {
+        "name": "Crop rotation",
+        "enables": "Farm Level 15"
+      },
+      {
+        "name": "Yoke",
+        "enables": "Farm Level 25"
+      },
+      {
+        "name": "Cellar storeroom",
+        "enables": "Farm Level 30"
+      },
+      {
+        "name": "Stirrup",
+        "enables": "Armoured horseman"
+      },
+      {
+        "name": "Weaponsmith",
+        "enables": "5% Attack (Units)"
+      },
+      {
+        "name": "Armoursmith",
+        "enables": "5% Defence bonus"
+      },
+      {
+        "name": "Beer tester",
+        "enables": "5% resource production"
+      }
+    ]
+  },
+  "4": {
+    "costs": {
+      "wood": 119,
+      "stone": 253,
+      "iron": 135,
+      "food": 7
+    },
+    "build_time_seconds": 3069,
+    "technologies": [
+      {
+        "name": "Longbow",
+        "enables": "Archer"
+      },
+      {
+        "name": "Crop rotation",
+        "enables": "Farm Level 15"
+      },
+      {
+        "name": "Yoke",
+        "enables": "Farm Level 25"
+      },
+      {
+        "name": "Cellar storeroom",
+        "enables": "Farm Level 30"
+      },
+      {
+        "name": "Stirrup",
+        "enables": "Armoured horseman"
+      },
+      {
+        "name": "Weaponsmith",
+        "enables": "5% Attack (Units)"
+      },
+      {
+        "name": "Armoursmith",
+        "enables": "5% Defence bonus"
+      },
+      {
+        "name": "Beer tester",
+        "enables": "5% resource production"
+      },
+      {
+        "name": "Swordsmith",
+        "enables": "Swordsman"
+      },
+      {
+        "name": "Iron hardening",
+        "enables": "5% Defence (Infantry)"
+      }
+    ]
+  },
+  "5": {
+    "costs": {
+      "wood": 198,
+      "stone": 431,
+      "iron": 233,
+      "food": 10
+    },
+    "build_time_seconds": 5217,
+    "technologies": [
+      {
+        "name": "Longbow",
+        "enables": "Archer"
+      },
+      {
+        "name": "Crop rotation",
+        "enables": "Farm Level 15"
+      },
+      {
+        "name": "Yoke",
+        "enables": "Farm Level 25"
+      },
+      {
+        "name": "Cellar storeroom",
+        "enables": "Farm Level 30"
+      },
+      {
+        "name": "Stirrup",
+        "enables": "Armoured horseman"
+      },
+      {
+        "name": "Weaponsmith",
+        "enables": "5% Attack (Units)"
+      },
+      {
+        "name": "Armoursmith",
+        "enables": "5% Defence bonus"
+      },
+      {
+        "name": "Beer tester",
+        "enables": "5% resource production"
+      },
+      {
+        "name": "Swordsmith",
+        "enables": "Swordsman"
+      },
+      {
+        "name": "Iron hardening",
+        "enables": "5% Defence (Infantry)"
+      },
+      {
+        "name": "Crossbow",
+        "enables": "Crossbowman"
+      }
+    ]
+  },
+  "6": {
+    "costs": {
+      "wood": 339,
+      "stone": 753,
+      "iron": 415,
+      "food": 14
+    },
+    "build_time_seconds": 9130,
+    "technologies": [
+      {
+        "name": "Longbow",
+        "enables": "Archer"
+      },
+      {
+        "name": "Crop rotation",
+        "enables": "Farm Level 15"
+      },
+      {
+        "name": "Yoke",
+        "enables": "Farm Level 25"
+      },
+      {
+        "name": "Cellar storeroom",
+        "enables": "Farm Level 30"
+      },
+      {
+        "name": "Stirrup",
+        "enables": "Armoured horseman"
+      },
+      {
+        "name": "Weaponsmith",
+        "enables": "5% Attack (Units)"
+      },
+      {
+        "name": "Armoursmith",
+        "enables": "5% Defence bonus"
+      },
+      {
+        "name": "Beer tester",
+        "enables": "5% resource production"
+      },
+      {
+        "name": "Swordsmith",
+        "enables": "Swordsman"
+      },
+      {
+        "name": "Iron hardening",
+        "enables": "5% Defence (Infantry)"
+      },
+      {
+        "name": "Crossbow",
+        "enables": "Crossbowman"
+      },
+      {
+        "name": "Poison arrows",
+        "enables": "5% Defence (Artillery)"
+      },
+      {
+        "name": "Horse breeding",
+        "enables": "5% Defence (Cavalry)"
+      }
+    ]
+  },
+  "7": {
+    "costs": {
+      "wood": 597,
+      "stone": 1356,
+      "iron": 758,
+      "food": 18
+    },
+    "build_time_seconds": 16434,
+    "technologies": [
+      {
+        "name": "Longbow",
+        "enables": "Archer"
+      },
+      {
+        "name": "Crop rotation",
+        "enables": "Farm Level 15"
+      },
+      {
+        "name": "Yoke",
+        "enables": "Farm Level 25"
+      },
+      {
+        "name": "Cellar storeroom",
+        "enables": "Farm Level 30"
+      },
+      {
+        "name": "Stirrup",
+        "enables": "Armoured horseman"
+      },
+      {
+        "name": "Weaponsmith",
+        "enables": "5% Attack (Units)"
+      },
+      {
+        "name": "Armoursmith",
+        "enables": "5% Defence bonus"
+      },
+      {
+        "name": "Beer tester",
+        "enables": "5% resource production"
+      },
+      {
+        "name": "Swordsmith",
+        "enables": "Swordsman"
+      },
+      {
+        "name": "Iron hardening",
+        "enables": "5% Defence (Infantry)"
+      },
+      {
+        "name": "Crossbow",
+        "enables": "Crossbowman"
+      },
+      {
+        "name": "Poison arrows",
+        "enables": "5% Defence (Artillery)"
+      },
+      {
+        "name": "Horse breeding",
+        "enables": "5% Defence (Cavalry)"
+      },
+      {
+        "name": "Weapons manufacturing",
+        "enables": "5% Attack (Infantry)"
+      },
+      {
+        "name": "Horse armour",
+        "enables": "Lancer horseman"
+      }
+    ]
+  },
+  "8": {
+    "costs": {
+      "wood": 1078,
+      "stone": 2509,
+      "iron": 1430,
+      "food": 23
+    },
+    "build_time_seconds": 30404,
+    "technologies": [
+      {
+        "name": "Longbow",
+        "enables": "Archer"
+      },
+      {
+        "name": "Crop rotation",
+        "enables": "Farm Level 15"
+      },
+      {
+        "name": "Yoke",
+        "enables": "Farm Level 25"
+      },
+      {
+        "name": "Cellar storeroom",
+        "enables": "Farm Level 30"
+      },
+      {
+        "name": "Stirrup",
+        "enables": "Armoured horseman"
+      },
+      {
+        "name": "Weaponsmith",
+        "enables": "5% Attack (Units)"
+      },
+      {
+        "name": "Armoursmith",
+        "enables": "5% Defence bonus"
+      },
+      {
+        "name": "Beer tester",
+        "enables": "5% resource production"
+      },
+      {
+        "name": "Swordsmith",
+        "enables": "Swordsman"
+      },
+      {
+        "name": "Iron hardening",
+        "enables": "5% Defence (Infantry)"
+      },
+      {
+        "name": "Crossbow",
+        "enables": "Crossbowman"
+      },
+      {
+        "name": "Poison arrows",
+        "enables": "5% Defence (Artillery)"
+      },
+      {
+        "name": "Horse breeding",
+        "enables": "5% Defence (Cavalry)"
+      },
+      {
+        "name": "Weapons manufacturing",
+        "enables": "5% Attack (Infantry)"
+      },
+      {
+        "name": "Horse armour",
+        "enables": "Lancer horseman"
+      },
+      {
+        "name": "Wheelbarrow",
+        "enables": "5% resource production"
+      },
+      {
+        "name": "Flaming arrows",
+        "enables": "5% Attack (Artillery)"
+      }
+    ]
+  },
+  "9": {
+    "costs": {
+      "wood": 2002,
+      "stone": 4766,
+      "iron": 2764,
+      "food": 28
+    },
+    "build_time_seconds": 57767,
+    "technologies": [
+      {
+        "name": "Longbow",
+        "enables": "Archer"
+      },
+      {
+        "name": "Crop rotation",
+        "enables": "Farm Level 15"
+      },
+      {
+        "name": "Yoke",
+        "enables": "Farm Level 25"
+      },
+      {
+        "name": "Cellar storeroom",
+        "enables": "Farm Level 30"
+      },
+      {
+        "name": "Stirrup",
+        "enables": "Armoured horseman"
+      },
+      {
+        "name": "Weaponsmith",
+        "enables": "5% Attack (Units)"
+      },
+      {
+        "name": "Armoursmith",
+        "enables": "5% Defence bonus"
+      },
+      {
+        "name": "Beer tester",
+        "enables": "5% resource production"
+      },
+      {
+        "name": "Swordsmith",
+        "enables": "Swordsman"
+      },
+      {
+        "name": "Iron hardening",
+        "enables": "5% Defence (Infantry)"
+      },
+      {
+        "name": "Crossbow",
+        "enables": "Crossbowman"
+      },
+      {
+        "name": "Poison arrows",
+        "enables": "5% Defence (Artillery)"
+      },
+      {
+        "name": "Horse breeding",
+        "enables": "5% Defence (Cavalry)"
+      },
+      {
+        "name": "Weapons manufacturing",
+        "enables": "5% Attack (Infantry)"
+      },
+      {
+        "name": "Horse armour",
+        "enables": "Lancer horseman"
+      },
+      {
+        "name": "Wheelbarrow",
+        "enables": "5% resource production"
+      },
+      {
+        "name": "Flaming arrows",
+        "enables": "5% Attack (Artillery)"
+      },
+      {
+        "name": "Blacksmith",
+        "enables": "5% Attack (Cavalry)"
+      }
+    ]
+  },
+  "10": {
+    "costs": {
+      "wood": 3811,
+      "stone": 9293,
+      "iron": 5483,
+      "food": 34
+    },
+    "build_time_seconds": 112646,
+    "technologies": [
+      {
+        "name": "Longbow",
+        "enables": "Archer"
+      },
+      {
+        "name": "Crop rotation",
+        "enables": "Farm Level 15"
+      },
+      {
+        "name": "Yoke",
+        "enables": "Farm Level 25"
+      },
+      {
+        "name": "Cellar storeroom",
+        "enables": "Farm Level 30"
+      },
+      {
+        "name": "Stirrup",
+        "enables": "Armoured horseman"
+      },
+      {
+        "name": "Weaponsmith",
+        "enables": "5% Attack (Units)"
+      },
+      {
+        "name": "Armoursmith",
+        "enables": "5% Defence bonus"
+      },
+      {
+        "name": "Beer tester",
+        "enables": "5% resource production"
+      },
+      {
+        "name": "Swordsmith",
+        "enables": "Swordsman"
+      },
+      {
+        "name": "Iron hardening",
+        "enables": "5% Defence (Infantry)"
+      },
+      {
+        "name": "Crossbow",
+        "enables": "Crossbowman"
+      },
+      {
+        "name": "Poison arrows",
+        "enables": "5% Defence (Artillery)"
+      },
+      {
+        "name": "Horse breeding",
+        "enables": "5% Defence (Cavalry)"
+      },
+      {
+        "name": "Weapons manufacturing",
+        "enables": "5% Attack (Infantry)"
+      },
+      {
+        "name": "Horse armour",
+        "enables": "Lancer horseman"
+      },
+      {
+        "name": "Wheelbarrow",
+        "enables": "5% resource production"
+      },
+      {
+        "name": "Flaming arrows",
+        "enables": "5% Attack (Artillery)"
+      },
+      {
+        "name": "Blacksmith",
+        "enables": "5% Attack (Cavalry)"
+      },
+      {
+        "name": "Map of area",
+        "enables": "5% Speed (Units)"
+      },
+      {
+        "name": "Cistern",
+        "enables": "5% Defence bonus"
+      }
+    ]
+  }
+}

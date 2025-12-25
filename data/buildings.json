@@ -1840,5 +1840,843 @@
         "storage_capacity": 9999.0
       }
     }
+  },
+  "keep": {
+    "building_type": "keep",
+    "max_level": 10,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 94,
+          "stone": 77,
+          "iron": 19,
+          "food": 1
+        },
+        "build_time_seconds": 1140,
+        "storage_capacity": 2000.0
+      },
+      "2": {
+        "costs": {
+          "wood": 94,
+          "stone": 77,
+          "iron": 19,
+          "food": 1
+        },
+        "build_time_seconds": 1140,
+        "storage_capacity": 4000.0
+      },
+      "3": {
+        "costs": {
+          "wood": 178,
+          "stone": 150,
+          "iron": 39,
+          "food": 2
+        },
+        "build_time_seconds": 2223,
+        "storage_capacity": 6000.0
+      },
+      "4": {
+        "costs": {
+          "wood": 333,
+          "stone": 289,
+          "iron": 75,
+          "food": 3
+        },
+        "build_time_seconds": 4224,
+        "storage_capacity": 8000.0
+      },
+      "5": {
+        "costs": {
+          "wood": 606,
+          "stone": 542,
+          "iron": 142,
+          "food": 4
+        },
+        "build_time_seconds": 7814,
+        "storage_capacity": 10000.0
+      },
+      "6": {
+        "costs": {
+          "wood": 1073,
+          "stone": 986,
+          "iron": 261,
+          "food": 5
+        },
+        "build_time_seconds": 14065,
+        "storage_capacity": 12000.0
+      },
+      "7": {
+        "costs": {
+          "wood": 1848,
+          "stone": 1746,
+          "iron": 466,
+          "food": 6
+        },
+        "build_time_seconds": 24614,
+        "storage_capacity": 14000.0
+      },
+      "8": {
+        "costs": {
+          "wood": 3090,
+          "stone": 3004,
+          "iron": 811,
+          "food": 7
+        },
+        "build_time_seconds": 41843,
+        "storage_capacity": 16000.0
+      },
+      "9": {
+        "costs": {
+          "wood": 5012,
+          "stone": 5012,
+          "iron": 1367,
+          "food": 8
+        },
+        "build_time_seconds": 69041,
+        "storage_capacity": 18000.0
+      },
+      "10": {
+        "costs": {
+          "wood": 7883,
+          "stone": 8111,
+          "iron": 2232,
+          "food": 9
+        },
+        "build_time_seconds": 110466,
+        "storage_capacity": 20000.0
+      }
+    }
+  },
+  "arsenal": {
+    "building_type": "arsenal",
+    "max_level": 30,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 32,
+          "stone": 28,
+          "iron": 21,
+          "food": 1
+        },
+        "build_time_seconds": 483
+      },
+      "2": {
+        "costs": {
+          "wood": 32,
+          "stone": 28,
+          "iron": 21,
+          "food": 1
+        },
+        "build_time_seconds": 483
+      },
+      "3": {
+        "costs": {
+          "wood": 37,
+          "stone": 33,
+          "iron": 23,
+          "food": 1
+        },
+        "build_time_seconds": 560
+      },
+      "4": {
+        "costs": {
+          "wood": 42,
+          "stone": 39,
+          "iron": 27,
+          "food": 1
+        },
+        "build_time_seconds": 650
+      },
+      "5": {
+        "costs": {
+          "wood": 49,
+          "stone": 45,
+          "iron": 33,
+          "food": 1
+        },
+        "build_time_seconds": 760
+      },
+      "6": {
+        "costs": {
+          "wood": 55,
+          "stone": 52,
+          "iron": 39,
+          "food": 2
+        },
+        "build_time_seconds": 890
+      },
+      "7": {
+        "costs": {
+          "wood": 65,
+          "stone": 62,
+          "iron": 46,
+          "food": 2
+        },
+        "build_time_seconds": 1050
+      },
+      "8": {
+        "costs": {
+          "wood": 76,
+          "stone": 74,
+          "iron": 53,
+          "food": 2
+        },
+        "build_time_seconds": 1239
+      },
+      "9": {
+        "costs": {
+          "wood": 89,
+          "stone": 89,
+          "iron": 65,
+          "food": 2
+        },
+        "build_time_seconds": 1474
+      },
+      "10": {
+        "costs": {
+          "wood": 105,
+          "stone": 107,
+          "iron": 77,
+          "food": 3
+        },
+        "build_time_seconds": 1754
+      },
+      "11": {
+        "costs": {
+          "wood": 125,
+          "stone": 129,
+          "iron": 94,
+          "food": 3
+        },
+        "build_time_seconds": 2105
+      },
+      "12": {
+        "costs": {
+          "wood": 148,
+          "stone": 155,
+          "iron": 113,
+          "food": 3
+        },
+        "build_time_seconds": 2526
+      },
+      "13": {
+        "costs": {
+          "wood": 177,
+          "stone": 189,
+          "iron": 138,
+          "food": 3
+        },
+        "build_time_seconds": 3057
+      },
+      "14": {
+        "costs": {
+          "wood": 213,
+          "stone": 230,
+          "iron": 167,
+          "food": 4
+        },
+        "build_time_seconds": 3699
+      },
+      "15": {
+        "costs": {
+          "wood": 256,
+          "stone": 281,
+          "iron": 207,
+          "food": 4
+        },
+        "build_time_seconds": 4512
+      },
+      "16": {
+        "costs": {
+          "wood": 309,
+          "stone": 346,
+          "iron": 253,
+          "food": 4
+        },
+        "build_time_seconds": 5505
+      },
+      "17": {
+        "costs": {
+          "wood": 375,
+          "stone": 427,
+          "iron": 315,
+          "food": 4
+        },
+        "build_time_seconds": 6771
+      },
+      "18": {
+        "costs": {
+          "wood": 456,
+          "stone": 528,
+          "iron": 390,
+          "food": 5
+        },
+        "build_time_seconds": 8328
+      },
+      "19": {
+        "costs": {
+          "wood": 559,
+          "stone": 657,
+          "iron": 487,
+          "food": 5
+        },
+        "build_time_seconds": 10327
+      },
+      "20": {
+        "costs": {
+          "wood": 685,
+          "stone": 820,
+          "iron": 608,
+          "food": 5
+        },
+        "build_time_seconds": 12806
+      },
+      "21": {
+        "costs": {
+          "wood": 845,
+          "stone": 1030,
+          "iron": 766,
+          "food": 5
+        },
+        "build_time_seconds": 16007
+      },
+      "22": {
+        "costs": {
+          "wood": 1043,
+          "stone": 1294,
+          "iron": 964,
+          "food": 6
+        },
+        "build_time_seconds": 20009
+      },
+      "23": {
+        "costs": {
+          "wood": 1298,
+          "stone": 1639,
+          "iron": 1223,
+          "food": 6
+        },
+        "build_time_seconds": 25211
+      },
+      "24": {
+        "costs": {
+          "wood": 1615,
+          "stone": 2076,
+          "iron": 1550,
+          "food": 6
+        },
+        "build_time_seconds": 31766
+      },
+      "25": {
+        "costs": {
+          "wood": 2024,
+          "stone": 2649,
+          "iron": 1984,
+          "food": 6
+        },
+        "build_time_seconds": 40343
+      },
+      "26": {
+        "costs": {
+          "wood": 2536,
+          "stone": 3382,
+          "iron": 2535,
+          "food": 7
+        },
+        "build_time_seconds": 51235
+      },
+      "27": {
+        "costs": {
+          "wood": 3203,
+          "stone": 4350,
+          "iron": 3268,
+          "food": 7
+        },
+        "build_time_seconds": 65581
+      },
+      "28": {
+        "costs": {
+          "wood": 4044,
+          "stone": 5595,
+          "iron": 4211,
+          "food": 7
+        },
+        "build_time_seconds": 83944
+      },
+      "29": {
+        "costs": {
+          "wood": 5146,
+          "stone": 7254,
+          "iron": 5468,
+          "food": 7
+        },
+        "build_time_seconds": 108287
+      },
+      "30": {
+        "costs": {
+          "wood": 6546,
+          "stone": 9404,
+          "iron": 7099,
+          "food": 8
+        },
+        "build_time_seconds": 139691
+      }
+    }
+  },
+  "library": {
+    "building_type": "library",
+    "max_level": 10,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 47,
+          "stone": 97,
+          "iron": 50,
+          "food": 2
+        },
+        "build_time_seconds": 1163
+      },
+      "2": {
+        "costs": {
+          "wood": 47,
+          "stone": 97,
+          "iron": 50,
+          "food": 2
+        },
+        "build_time_seconds": 1163
+      },
+      "3": {
+        "costs": {
+          "wood": 73,
+          "stone": 153,
+          "iron": 80,
+          "food": 4
+        },
+        "build_time_seconds": 1860
+      },
+      "4": {
+        "costs": {
+          "wood": 119,
+          "stone": 253,
+          "iron": 135,
+          "food": 7
+        },
+        "build_time_seconds": 3069
+      },
+      "5": {
+        "costs": {
+          "wood": 198,
+          "stone": 431,
+          "iron": 233,
+          "food": 10
+        },
+        "build_time_seconds": 5217
+      },
+      "6": {
+        "costs": {
+          "wood": 47,
+          "stone": 97,
+          "iron": 50,
+          "food": 2
+        },
+        "build_time_seconds": 1163
+      },
+      "7": {
+        "costs": {
+          "wood": 47,
+          "stone": 97,
+          "iron": 50,
+          "food": 2
+        },
+        "build_time_seconds": 1163
+      },
+      "8": {
+        "costs": {
+          "wood": 47,
+          "stone": 97,
+          "iron": 50,
+          "food": 2
+        },
+        "build_time_seconds": 1163
+      },
+      "9": {
+        "costs": {
+          "wood": 47,
+          "stone": 97,
+          "iron": 50,
+          "food": 2
+        },
+        "build_time_seconds": 1163
+      },
+      "10": {
+        "costs": {
+          "wood": 47,
+          "stone": 97,
+          "iron": 50,
+          "food": 2
+        },
+        "build_time_seconds": 1163
+      }
+    }
+  },
+  "tavern": {
+    "building_type": "tavern",
+    "max_level": 10,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 59,
+          "stone": 41,
+          "iron": 12,
+          "food": 1
+        },
+        "build_time_seconds": 672
+      },
+      "2": {
+        "costs": {
+          "wood": 59,
+          "stone": 41,
+          "iron": 12,
+          "food": 1
+        },
+        "build_time_seconds": 672
+      },
+      "3": {
+        "costs": {
+          "wood": 85,
+          "stone": 65,
+          "iron": 16,
+          "food": 2
+        },
+        "build_time_seconds": 1008
+      },
+      "4": {
+        "costs": {
+          "wood": 131,
+          "stone": 109,
+          "iron": 27,
+          "food": 3
+        },
+        "build_time_seconds": 1613
+      },
+      "5": {
+        "costs": {
+          "wood": 213,
+          "stone": 194,
+          "iron": 46,
+          "food": 4
+        },
+        "build_time_seconds": 2742
+      },
+      "6": {
+        "costs": {
+          "wood": 366,
+          "stone": 366,
+          "iron": 82,
+          "food": 5
+        },
+        "build_time_seconds": 4935
+      },
+      "7": {
+        "costs": {
+          "wood": 665,
+          "stone": 728,
+          "iron": 154,
+          "food": 6
+        },
+        "build_time_seconds": 9377
+      },
+      "8": {
+        "costs": {
+          "wood": 1268,
+          "stone": 1517,
+          "iron": 310,
+          "food": 7
+        },
+        "build_time_seconds": 18754
+      },
+      "9": {
+        "costs": {
+          "wood": 2414,
+          "stone": 3156,
+          "iron": 619,
+          "food": 8
+        },
+        "build_time_seconds": 37507
+      },
+      "10": {
+        "costs": {
+          "wood": 4580,
+          "stone": 6560,
+          "iron": 1238,
+          "food": 9
+        },
+        "build_time_seconds": 75015
+      }
+    }
+  },
+  "market": {
+    "building_type": "market",
+    "max_level": 8,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 67,
+          "stone": 37,
+          "iron": 13,
+          "food": 1
+        },
+        "build_time_seconds": 702
+      },
+      "2": {
+        "costs": {
+          "wood": 67,
+          "stone": 37,
+          "iron": 13,
+          "food": 1
+        },
+        "build_time_seconds": 702
+      },
+      "3": {
+        "costs": {
+          "wood": 128,
+          "stone": 76,
+          "iron": 28,
+          "food": 2
+        },
+        "build_time_seconds": 1404
+      },
+      "4": {
+        "costs": {
+          "wood": 249,
+          "stone": 163,
+          "iron": 62,
+          "food": 3
+        },
+        "build_time_seconds": 2878
+      },
+      "5": {
+        "costs": {
+          "wood": 499,
+          "stone": 359,
+          "iron": 139,
+          "food": 4
+        },
+        "build_time_seconds": 6044
+      },
+      "6": {
+        "costs": {
+          "wood": 1019,
+          "stone": 804,
+          "iron": 322,
+          "food": 5
+        },
+        "build_time_seconds": 12995
+      },
+      "7": {
+        "costs": {
+          "wood": 2123,
+          "stone": 1839,
+          "iron": 755,
+          "food": 6
+        },
+        "build_time_seconds": 28589
+      },
+      "8": {
+        "costs": {
+          "wood": 4510,
+          "stone": 4299,
+          "iron": 1805,
+          "food": 7
+        },
+        "build_time_seconds": 64326
+      }
+    }
+  },
+  "fortifications": {
+    "building_type": "fortifications",
+    "max_level": 20,
+    "levels": {
+      "1": {
+        "costs": {
+          "wood": 18,
+          "stone": 26,
+          "iron": 8,
+          "food": 1
+        },
+        "build_time_seconds": 314
+      },
+      "2": {
+        "costs": {
+          "wood": 18,
+          "stone": 26,
+          "iron": 8,
+          "food": 1
+        },
+        "build_time_seconds": 314
+      },
+      "3": {
+        "costs": {
+          "wood": 23,
+          "stone": 34,
+          "iron": 12,
+          "food": 1
+        },
+        "build_time_seconds": 415
+      },
+      "4": {
+        "costs": {
+          "wood": 31,
+          "stone": 45,
+          "iron": 16,
+          "food": 2
+        },
+        "build_time_seconds": 552
+      },
+      "5": {
+        "costs": {
+          "wood": 40,
+          "stone": 59,
+          "iron": 23,
+          "food": 2
+        },
+        "build_time_seconds": 740
+      },
+      "6": {
+        "costs": {
+          "wood": 52,
+          "stone": 79,
+          "iron": 33,
+          "food": 3
+        },
+        "build_time_seconds": 998
+      },
+      "7": {
+        "costs": {
+          "wood": 70,
+          "stone": 107,
+          "iron": 47,
+          "food": 3
+        },
+        "build_time_seconds": 1358
+      },
+      "8": {
+        "costs": {
+          "wood": 95,
+          "stone": 145,
+          "iron": 67,
+          "food": 4
+        },
+        "build_time_seconds": 1860
+      },
+      "9": {
+        "costs": {
+          "wood": 128,
+          "stone": 198,
+          "iron": 98,
+          "food": 4
+        },
+        "build_time_seconds": 2567
+      },
+      "10": {
+        "costs": {
+          "wood": 174,
+          "stone": 273,
+          "iron": 142,
+          "food": 5
+        },
+        "build_time_seconds": 3569
+      },
+      "11": {
+        "costs": {
+          "wood": 239,
+          "stone": 379,
+          "iron": 207,
+          "food": 5
+        },
+        "build_time_seconds": 4996
+      },
+      "12": {
+        "costs": {
+          "wood": 330,
+          "stone": 530,
+          "iron": 303,
+          "food": 6
+        },
+        "build_time_seconds": 7044
+      },
+      "13": {
+        "costs": {
+          "wood": 458,
+          "stone": 746,
+          "iron": 446,
+          "food": 6
+        },
+        "build_time_seconds": 10003
+      },
+      "14": {
+        "costs": {
+          "wood": 642,
+          "stone": 1057,
+          "iron": 661,
+          "food": 7
+        },
+        "build_time_seconds": 14304
+      },
+      "15": {
+        "costs": {
+          "wood": 904,
+          "stone": 1509,
+          "iron": 986,
+          "food": 7
+        },
+        "build_time_seconds": 20598
+      },
+      "16": {
+        "costs": {
+          "wood": 1281,
+          "stone": 2168,
+          "iron": 1479,
+          "food": 8
+        },
+        "build_time_seconds": 29868
+      },
+      "17": {
+        "costs": {
+          "wood": 1828,
+          "stone": 3137,
+          "iron": 2230,
+          "food": 8
+        },
+        "build_time_seconds": 43607
+      },
+      "18": {
+        "costs": {
+          "wood": 2624,
+          "stone": 4569,
+          "iron": 3385,
+          "food": 9
+        },
+        "build_time_seconds": 64102
+      },
+      "19": {
+        "costs": {
+          "wood": 3788,
+          "stone": 6699,
+          "iron": 5167,
+          "food": 9
+        },
+        "build_time_seconds": 94871
+      },
+      "20": {
+        "costs": {
+          "wood": 5504,
+          "stone": 9889,
+          "iron": 7931,
+          "food": 10
+        },
+        "build_time_seconds": 141358
+      }
+    }
   }
 }
