@@ -1,0 +1,16 @@
+{
+  "farm": {
+    "15": {
+      "library": 1,
+      "technology": "Crop rotation"
+    },
+    "25": {
+      "library": 1,
+      "technology": "Yoke"
+    },
+    "30": {
+      "library": 1,
+      "technology": "Cellar storeroom"
+    }
+  }
+}

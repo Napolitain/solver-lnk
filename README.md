@@ -4,15 +4,15 @@ A Python-based optimization solver for the game **Lords and Knights** using gree
 
 ## Features
 
-- **CLI with argparse**: Full command-line interface with customizable options
-- **Rich formatting**: Beautiful colored output with tables and panels
-- **Greedy Build Order Solver**: Priority-based heuristic approach
-- **Resource Production Simulation**: Tracks resource accumulation over time
+- **Resource-Aware CP-SAT Solver**: Intelligent build order with resource balance
+- **Multiple Solver Options**: CP-SAT (resource-aware), CP-SAT (basic), Greedy
+- **CLI with argparse**: Full command-line interface
+- **Rich formatting**: Beautiful colored output with tables
 - **JSON Export**: Save build plans to file
 - **Building Prerequisites**: Handles dependency chains
 - **Type-Safe**: Full type hints with ty (Astral)
 - **Code Quality**: Enforced with ruff (Astral)
-- **Extensible**: Easy to add more buildings and solver strategies
+- **Data-Driven**: All building data loaded from JSON files
 
 ## Project Structure
 
@@ -43,10 +43,13 @@ pip install -e .
 ## Usage
 
 ```bash
-# Run with default settings (CP-SAT solver, all buildings to max level)
+# Run with default (resource-aware CP-SAT - RECOMMENDED)
 uv run python main.py
 
-# Use greedy solver (faster but may not find optimal solution)
+# Use basic CP-SAT (faster but arbitrary build order)
+uv run python main.py --solver cpsat
+
+# Use greedy solver (will fail on complex problems)
 uv run python main.py --solver greedy
 
 # Quiet mode (only output completion time)
@@ -61,6 +64,14 @@ uv run python main.py --config my_castle.json
 # See all options
 uv run python main.py --help
 ```
+
+### Solver Comparison
+
+| Solver | Build Order | Time | Status |
+|--------|-------------|------|--------|
+| `cpsat-resource` | Balanced (Lumberjack→Quarry→Ore Mine→Farm) | 709h | ✅ **RECOMMENDED** |
+| `cpsat` | Arbitrary (dict order) | 675h | ⚠️ Works but poor resource balance |
+| `greedy` | Priority-based | N/A | ❌ Fails on complex problems |
 
 **Problem Types:**
 - `castle-levelup` (default): Optimize building upgrade order for castle development

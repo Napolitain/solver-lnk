@@ -1,0 +1,102 @@
+{
+  "Longbow": {
+    "name": "Longbow",
+    "enables": "Archer",
+    "required_library_level": 1
+  },
+  "Crop rotation": {
+    "name": "Crop rotation",
+    "enables": "Farm Level 15",
+    "required_library_level": 1
+  },
+  "Yoke": {
+    "name": "Yoke",
+    "enables": "Farm Level 25",
+    "required_library_level": 1
+  },
+  "Cellar storeroom": {
+    "name": "Cellar storeroom",
+    "enables": "Farm Level 30",
+    "required_library_level": 1
+  },
+  "Stirrup": {
+    "name": "Stirrup",
+    "enables": "Armoured horseman",
+    "required_library_level": 2
+  },
+  "Weaponsmith": {
+    "name": "Weaponsmith",
+    "enables": "5% Attack (Units)",
+    "required_library_level": 3
+  },
+  "Armoursmith": {
+    "name": "Armoursmith",
+    "enables": "5% Defence bonus",
+    "required_library_level": 3
+  },
+  "Beer tester": {
+    "name": "Beer tester",
+    "enables": "5% resource production",
+    "required_library_level": 3
+  },
+  "Swordsmith": {
+    "name": "Swordsmith",
+    "enables": "Swordsman",
+    "required_library_level": 4
+  },
+  "Iron hardening": {
+    "name": "Iron hardening",
+    "enables": "5% Defence (Infantry)",
+    "required_library_level": 4
+  },
+  "Crossbow": {
+    "name": "Crossbow",
+    "enables": "Crossbowman",
+    "required_library_level": 5
+  },
+  "Poison arrows": {
+    "name": "Poison arrows",
+    "enables": "5% Defence (Artillery)",
+    "required_library_level": 6
+  },
+  "Horse breeding": {
+    "name": "Horse breeding",
+    "enables": "5% Defence (Cavalry)",
+    "required_library_level": 6
+  },
+  "Weapons manufacturing": {
+    "name": "Weapons manufacturing",
+    "enables": "5% Attack (Infantry)",
+    "required_library_level": 7
+  },
+  "Horse armour": {
+    "name": "Horse armour",
+    "enables": "Lancer horseman",
+    "required_library_level": 7
+  },
+  "Wheelbarrow": {
+    "name": "Wheelbarrow",
+    "enables": "5% resource production",
+    "required_library_level": 8
+  },
+  "Flaming arrows": {
+    "name": "Flaming arrows",
+    "enables": "5% Attack (Artillery)",
+    "required_library_level": 8
+  },
+  "Blacksmith": {
+    "name": "Blacksmith",
+    "enables": "5% Attack (Cavalry)",
+    "required_library_level": 9
+  },
+  "Map of area": {
+    "name": "Map of area",
+    "enables": "5% Speed (Units)",
+    "required_library_level": 10
+  },
+  "Cistern": {
+    "name": "Cistern",
+    "enables": "5% Defence bonus",
+    "required_library_level": 10
+  }
+}
