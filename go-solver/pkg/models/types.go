@@ -1,0 +1,125 @@
+package models
+
+// ResourceType represents the different resource types in the game
+type ResourceType string
+
+const (
+	Wood  ResourceType = "wood"
+	Stone ResourceType = "stone"
+	Iron  ResourceType = "iron"
+	Food  ResourceType = "food"
+)
+
+// AllResourceTypes returns all resource types
+func AllResourceTypes() []ResourceType {
+	return []ResourceType{Wood, Stone, Iron, Food}
+}
+
+// BuildingType represents the different building types
+type BuildingType string
+
+const (
+	Lumberjack     BuildingType = "lumberjack"
+	Quarry         BuildingType = "quarry"
+	OreMine        BuildingType = "ore_mine"
+	Farm           BuildingType = "farm"
+	WoodStore      BuildingType = "wood_store"
+	StoneStore     BuildingType = "stone_store"
+	OreStore       BuildingType = "ore_store"
+	Keep           BuildingType = "keep"
+	Arsenal        BuildingType = "arsenal"
+	Library        BuildingType = "library"
+	Tavern         BuildingType = "tavern"
+	Market         BuildingType = "market"
+	Fortifications BuildingType = "fortifications"
+)
+
+// AllBuildingTypes returns all building types
+func AllBuildingTypes() []BuildingType {
+	return []BuildingType{
+		Lumberjack, Quarry, OreMine, Farm,
+		WoodStore, StoneStore, OreStore,
+		Keep, Arsenal, Library, Tavern, Market, Fortifications,
+	}
+}
+
+// Costs represents resource costs for an upgrade
+type Costs map[ResourceType]int
+
+// BuildingLevel represents data for a specific building level
+type BuildingLevel struct {
+	Costs            Costs
+	BuildTimeSeconds int
+	ProductionRate   *float64 // nil if not a production building
+	StorageCapacity  *int     // nil if not a storage building
+}
+
+// Building represents a building with all its levels
+type Building struct {
+	Type                   BuildingType
+	MaxLevel               int
+	Levels                 map[int]*BuildingLevel
+	Prerequisites          map[int]map[BuildingType]int // level -> {building: min_level}
+	TechnologyPrerequisites map[int]string              // level -> technology_name
+}
+
+// GetLevelData returns the level data for a specific level
+func (b *Building) GetLevelData(level int) *BuildingLevel {
+	if data, ok := b.Levels[level]; ok {
+		return data
+	}
+	return nil
+}
+
+// Technology represents a researchable technology
+type Technology struct {
+	Name                  string
+	InternalName          string
+	RequiredLibraryLevel  int
+	Costs                 Costs
+	ResearchTimeSeconds   int
+	EnablesBuilding       string
+	EnablesLevel          int
+}
+
+// GameState represents the current game state
+type GameState struct {
+	BuildingLevels         map[BuildingType]int
+	Resources              map[ResourceType]float64
+	ResearchedTechnologies map[string]bool
+}
+
+// NewGameState creates a new game state with defaults
+func NewGameState() *GameState {
+	return &GameState{
+		BuildingLevels:         make(map[BuildingType]int),
+		Resources:              make(map[ResourceType]float64),
+		ResearchedTechnologies: make(map[string]bool),
+	}
+}
+
+// BuildingUpgradeAction represents a building upgrade action
+type BuildingUpgradeAction struct {
+	BuildingType BuildingType
+	FromLevel    int
+	ToLevel      int
+	StartTime    int // seconds
+	EndTime      int // seconds
+	Costs        Costs
+}
+
+// ResearchAction represents a technology research action
+type ResearchAction struct {
+	TechnologyName string
+	StartTime      int // seconds
+	EndTime        int // seconds
+	Costs          Costs
+}
+
+// Solution represents a complete build order solution
+type Solution struct {
+	BuildingActions  []BuildingUpgradeAction
+	ResearchActions  []ResearchAction
+	TotalTimeSeconds int
+	FinalState       *GameState
+}
