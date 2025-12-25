@@ -1,0 +1,284 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"sort"
+	"strings"
+
+	"github.com/fatih/color"
+	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/cobra"
+
+	"github.com/napolitain/solver-lnk/pkg/loader"
+	"github.com/napolitain/solver-lnk/pkg/models"
+	"github.com/napolitain/solver-lnk/pkg/solver"
+)
+
+var (
+	dataDir string
+	quiet   bool
+)
+
+func main() {
+	rootCmd := &cobra.Command{
+		Use:   "solver",
+		Short: "Lords and Knights Build Order Optimizer",
+		Long: `A greedy simulation solver that optimizes the build order
+for Lords and Knights castle development.`,
+		Run: runSolver,
+	}
+
+	rootCmd.Flags().StringVarP(&dataDir, "data", "d", "../data", "Path to data directory")
+	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Minimal output")
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func runSolver(cmd *cobra.Command, args []string) {
+	// Colors
+	titleColor := color.New(color.FgCyan, color.Bold)
+	successColor := color.New(color.FgGreen, color.Bold)
+	infoColor := color.New(color.FgYellow)
+
+	if !quiet {
+		titleColor.Println("\n╭───────────────────────────╮")
+		titleColor.Println("│  Lords and Knights        │")
+		titleColor.Println("│  Build Order Optimizer    │")
+		titleColor.Println("│  (Go Version)             │")
+		titleColor.Println("╰───────────────────────────╯")
+		fmt.Println()
+	}
+
+	// Load buildings
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		color.Red("Error loading buildings: %v", err)
+		os.Exit(1)
+	}
+
+	// Load technologies
+	technologies, err := loader.LoadTechnologies(dataDir)
+	if err != nil {
+		color.Yellow("Warning: could not load technologies: %v", err)
+		technologies = make(map[string]*models.Technology)
+	}
+
+	if !quiet {
+		infoColor.Printf("📦 Loaded %d buildings, %d technologies\n\n", len(buildings), len(technologies))
+	}
+
+	// Define initial state
+	initialState := models.NewGameState()
+	initialState.Resources[models.Wood] = 120
+	initialState.Resources[models.Stone] = 120
+	initialState.Resources[models.Iron] = 120
+	initialState.Resources[models.Food] = 40
+
+	for _, bt := range models.AllBuildingTypes() {
+		initialState.BuildingLevels[bt] = 1
+	}
+
+	// Define targets
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack:     30,
+		models.Quarry:         30,
+		models.OreMine:        30,
+		models.Farm:           30,
+		models.WoodStore:      20,
+		models.StoneStore:     20,
+		models.OreStore:       20,
+		models.Keep:           10,
+		models.Arsenal:        30,
+		models.Library:        10,
+		models.Tavern:         10,
+		models.Market:         8,
+		models.Fortifications: 20,
+	}
+
+	if !quiet {
+		printInitialState(initialState, targetLevels)
+	}
+
+	// Solve
+	if !quiet {
+		infoColor.Println("🔄 Solving...")
+	}
+
+	s := solver.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
+
+	successColor.Printf("\n✓ Found solution with %d building upgrades and %d research tasks!\n\n",
+		len(solution.BuildingActions), len(solution.ResearchActions))
+
+	// Print build order table
+	printBuildOrder(solution)
+
+	// Print summary
+	printSummary(solution, targetLevels)
+}
+
+func printInitialState(state *models.GameState, targets map[models.BuildingType]int) {
+	infoColor := color.New(color.FgYellow)
+
+	infoColor.Println("📊 Initial State:")
+	fmt.Printf("   Resources: Wood=%0.f Stone=%0.f Iron=%0.f Food=%0.f\n",
+		state.Resources[models.Wood],
+		state.Resources[models.Stone],
+		state.Resources[models.Iron],
+		state.Resources[models.Food])
+	fmt.Println()
+
+	infoColor.Println("🎯 Targets:")
+
+	var sortedTargets []models.BuildingType
+	for bt := range targets {
+		sortedTargets = append(sortedTargets, bt)
+	}
+	sort.Slice(sortedTargets, func(i, j int) bool {
+		return string(sortedTargets[i]) < string(sortedTargets[j])
+	})
+
+	for _, bt := range sortedTargets {
+		fmt.Printf("   • %s: Level %d\n", formatBuildingName(string(bt)), targets[bt])
+	}
+	fmt.Println()
+}
+
+func printBuildOrder(solution *models.Solution) {
+	// Merge and sort all actions
+	type action struct {
+		isBuilding bool
+		startTime  int
+		endTime    int
+		name       string
+		fromLevel  int
+		toLevel    int
+		costs      models.Costs
+	}
+
+	var allActions []action
+	for _, a := range solution.BuildingActions {
+		allActions = append(allActions, action{
+			isBuilding: true,
+			startTime:  a.StartTime,
+			endTime:    a.EndTime,
+			name:       string(a.BuildingType),
+			fromLevel:  a.FromLevel,
+			toLevel:    a.ToLevel,
+			costs:      a.Costs,
+		})
+	}
+	for _, a := range solution.ResearchActions {
+		allActions = append(allActions, action{
+			isBuilding: false,
+			startTime:  a.StartTime,
+			endTime:    a.EndTime,
+			name:       a.TechnologyName,
+			costs:      a.Costs,
+		})
+	}
+
+	sort.Slice(allActions, func(i, j int) bool {
+		return allActions[i].startTime < allActions[j].startTime
+	})
+
+	// Create table with new API
+	table := tablewriter.NewTable(os.Stdout,
+		tablewriter.WithHeader([]string{"#", "Queue", "Action", "Upgrade", "Start", "End", "Duration", "Costs"}),
+	)
+
+	// Add rows
+	for i, a := range allActions {
+		queueType := "🏗️ Building"
+		upgradeStr := fmt.Sprintf("%d → %d", a.fromLevel, a.toLevel)
+		if !a.isBuilding {
+			queueType = "📚 Research"
+			upgradeStr = ""
+		}
+
+		duration := a.endTime - a.startTime
+		name := formatBuildingName(a.name)
+
+		row := []string{
+			fmt.Sprintf("%d", i+1),
+			queueType,
+			name,
+			upgradeStr,
+			formatTime(a.startTime),
+			formatTime(a.endTime),
+			formatTime(duration),
+			formatCosts(a.costs),
+		}
+		table.Append(row)
+	}
+
+	table.Render()
+}
+
+func printSummary(solution *models.Solution, targets map[models.BuildingType]int) {
+	successColor := color.New(color.FgGreen)
+	errorColor := color.New(color.FgRed)
+
+	totalHours := float64(solution.TotalTimeSeconds) / 3600
+	totalDays := totalHours / 24
+
+	fmt.Printf("\n⏱️  Total completion time: %s (%.1f hours = %.1f days)\n",
+		formatTime(solution.TotalTimeSeconds), totalHours, totalDays)
+
+	// Verify targets
+	fmt.Println("\n📋 Target verification:")
+	allOk := true
+	for bt, target := range targets {
+		final := solution.FinalState.BuildingLevels[bt]
+		if final >= target {
+			successColor.Printf("   ✅ %s: target=%d, final=%d\n", formatBuildingName(string(bt)), target, final)
+		} else {
+			errorColor.Printf("   ❌ %s: target=%d, final=%d\n", formatBuildingName(string(bt)), target, final)
+			allOk = false
+		}
+	}
+
+	if allOk {
+		successColor.Println("\n✅ All buildings reached target levels!")
+	} else {
+		errorColor.Println("\n❌ Some buildings did not reach target levels!")
+	}
+
+	// Print researched technologies
+	if len(solution.FinalState.ResearchedTechnologies) > 0 {
+		fmt.Println("\n🔬 Researched technologies:")
+		for tech := range solution.FinalState.ResearchedTechnologies {
+			fmt.Printf("   • %s\n", tech)
+		}
+	}
+}
+
+func formatTime(seconds int) string {
+	hours := seconds / 3600
+	minutes := (seconds % 3600) / 60
+	secs := seconds % 60
+	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, secs)
+}
+
+func formatCosts(costs models.Costs) string {
+	return fmt.Sprintf("W:%5d S:%5d I:%4d F:%2d",
+		costs[models.Wood],
+		costs[models.Stone],
+		costs[models.Iron],
+		costs[models.Food])
+}
+
+func formatBuildingName(name string) string {
+	name = strings.ReplaceAll(name, "_", " ")
+	words := strings.Fields(name)
+	for i, w := range words {
+		if len(w) > 0 {
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
+		}
+	}
+	return strings.Join(words, " ")
+}

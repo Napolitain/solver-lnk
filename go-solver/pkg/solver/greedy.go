@@ -11,6 +11,8 @@ type SimulationState struct {
 	BuildingLevels         map[models.BuildingType]int
 	ProductionRates        map[models.ResourceType]float64
 	StorageCaps            map[models.ResourceType]int
+	FoodUsed               int // Total workers (food) consumed by buildings
+	FoodCapacity           int // Current food capacity from Farm
 	BuildingQueueFreeAt    int
 	ResearchQueueFreeAt    int
 	CompletedActions       []models.BuildingUpgradeAction
@@ -88,6 +90,15 @@ func (s *GreedySolver) Solve() *models.Solution {
 			continue
 		}
 
+		// Check food capacity - must have enough workers available
+		foodCost := costs[models.Food]
+		if state.FoodUsed+foodCost > state.FoodCapacity {
+			// Need more Farm capacity first
+			farmLevel := state.BuildingLevels[models.Farm]
+			queue = insertAtFront(queue, queueItem{models.Farm, farmLevel + 1})
+			continue
+		}
+
 		// Check storage capacity
 		if ok, storageNeeded := s.checkStorageCapacity(state, costs); !ok {
 			if storageNeeded != nil {
@@ -112,10 +123,11 @@ func (s *GreedySolver) Solve() *models.Solution {
 		// Start upgrade
 		startTime := state.TimeMinutes
 
-		// Deduct resources
+		// Deduct resources and food
 		for resType, cost := range costs {
 			state.Resources[resType] -= float64(cost)
 		}
+		state.FoodUsed += foodCost
 
 		// Mark queue busy
 		durationMinutes := max(1, levelData.BuildTimeSeconds/60)
@@ -132,6 +144,11 @@ func (s *GreedySolver) Solve() *models.Solution {
 
 		// Update storage caps
 		s.updateStorageCaps(state, building, bType, toLevel)
+
+		// Update food capacity if Farm was upgraded
+		if bType == models.Farm {
+			state.FoodCapacity = s.getFoodCapacityForLevel(toLevel)
+		}
 
 		// Record action
 		state.CompletedActions = append(state.CompletedActions, models.BuildingUpgradeAction{
@@ -168,6 +185,8 @@ func (s *GreedySolver) initState() *SimulationState {
 		BuildingLevels:         make(map[models.BuildingType]int),
 		ProductionRates:        make(map[models.ResourceType]float64),
 		StorageCaps:            make(map[models.ResourceType]int),
+		FoodUsed:               0,
+		FoodCapacity:           0,
 		BuildingQueueFreeAt:    0,
 		ResearchQueueFreeAt:    0,
 		CompletedActions:       []models.BuildingUpgradeAction{},
@@ -192,6 +211,9 @@ func (s *GreedySolver) initState() *SimulationState {
 	// Calculate initial production rates
 	state.ProductionRates = s.calculateProductionRates(state.BuildingLevels)
 	state.StorageCaps = s.calculateStorageCaps(state.BuildingLevels)
+
+	// Calculate initial food capacity from Farm level
+	state.FoodCapacity = s.getFoodCapacityForLevel(state.BuildingLevels[models.Farm])
 
 	return state
 }
@@ -382,8 +404,6 @@ func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string,
 		if waitTime > 0 {
 			s.advanceTime(state, waitTime)
 		}
-		// If waitTime <= 0 but can't afford, we'll try again next iteration
-		// after more resources accumulate
 	}
 
 	// Re-check affordability after waiting
@@ -402,17 +422,22 @@ func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string,
 
 	// Calculate duration
 	durationMinutes := max(1, tech.ResearchTimeSeconds/60)
-	state.ResearchQueueFreeAt = state.TimeMinutes + durationMinutes
+	researchEndTime := state.TimeMinutes + durationMinutes
+	state.ResearchQueueFreeAt = researchEndTime
 
 	// Record action
 	state.ResearchActions = append(state.ResearchActions, models.ResearchAction{
 		TechnologyName: techName,
 		StartTime:      startTime * 60,
-		EndTime:        (startTime + durationMinutes) * 60,
+		EndTime:        researchEndTime * 60,
 		Costs:          tech.Costs,
 	})
 
-	// Mark as researched
+	// Wait until research completes before marking as researched
+	// This ensures buildings that require this tech wait for it
+	s.advanceTime(state, durationMinutes)
+
+	// NOW mark as researched (after completion)
 	state.ResearchedTechnologies[techName] = true
 }
 
@@ -597,4 +622,26 @@ func removeFromQueue(queue []queueItem, idx int) []queueItem {
 
 func insertAtFront(queue []queueItem, item queueItem) []queueItem {
 	return append([]queueItem{item}, queue...)
+}
+
+// getFoodCapacityForLevel returns food (worker) capacity for a given Farm level
+func (s *GreedySolver) getFoodCapacityForLevel(farmLevel int) int {
+	// Get from building data
+	if farm, ok := s.Buildings[models.Farm]; ok {
+		if levelData := farm.GetLevelData(farmLevel); levelData != nil && levelData.StorageCapacity != nil {
+			return *levelData.StorageCapacity
+		}
+	}
+	// Fallback defaults
+	capacities := map[int]int{
+		1: 40, 2: 50, 3: 62, 4: 77, 5: 96, 6: 119, 7: 148, 8: 184,
+		9: 228, 10: 283, 11: 350, 12: 432, 13: 532, 14: 654, 15: 803,
+		16: 983, 17: 1202, 18: 1468, 19: 1790, 20: 2183, 21: 2659,
+		22: 3236, 23: 3935, 24: 4781, 25: 5806, 26: 7048, 27: 8550,
+		28: 10367, 29: 12564, 30: 15223,
+	}
+	if cap, ok := capacities[farmLevel]; ok {
+		return cap
+	}
+	return 40
 }
