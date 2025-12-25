@@ -17,9 +17,6 @@ from solver_lnk.models import (
     Solution,
 )
 from solver_lnk.solvers.cpsat_dual_queue_solver import CPSATDualQueueSolver
-from solver_lnk.solvers.cpsat_resource_solver import CPSATResourceSolver
-from solver_lnk.solvers.cpsat_solver import CPSATBuildOrderSolver
-from solver_lnk.solvers.greedy_solver import GreedyBuildOrderSolver
 from solver_lnk.utils.data_loader import get_default_buildings
 
 console = Console()
@@ -292,41 +289,14 @@ def main() -> None:
 
         console.print("\n[bold magenta]Solving...[/bold magenta]")
 
-    # Solve with selected solver
-    if args.solver == "greedy":
-        solver = GreedyBuildOrderSolver(
-            buildings=buildings,
-            initial_state=initial_state,
-            target_levels=target_levels,
-        )
-        solution_list = solver.solve()
-        solution_obj = None
-    elif args.solver == "cpsat":
-        solver = CPSATBuildOrderSolver(
-            buildings=buildings,
-            initial_state=initial_state,
-            target_levels=target_levels,
-        )
-        solution_list = solver.solve()
-        solution_obj = None
-    elif args.solver == "cpsat-resource":
-        solver = CPSATResourceSolver(
-            buildings=buildings,
-            initial_state=initial_state,
-            target_levels=target_levels,
-            time_interval=60,  # 1 minute intervals for better accuracy
-        )
-        solution_list = solver.solve()
-        solution_obj = None
-    else:  # cpsat-dual-queue (default)
-        solver = CPSATDualQueueSolver(
-            buildings=buildings,
-            initial_state=initial_state,
-            target_levels=target_levels,
-            time_scale_minutes=10,
-        )
-        solution_obj = solver.solve()
-        solution_list = None
+    # Solve with CP-SAT dual queue solver
+    solver = CPSATDualQueueSolver(
+        buildings=buildings,
+        initial_state=initial_state,
+        target_levels=target_levels,
+        time_scale_minutes=1,
+    )
+    solution_obj = solver.solve()
 
     # Handle solution display
     if solution_obj:  # New dual-queue solution
@@ -348,75 +318,49 @@ def main() -> None:
         else:
             print(format_time(solution_obj.total_time_seconds))
 
-    elif solution_list:  # Old-style solution list
-        if not args.quiet:
-            console.print(
-                f"\n[bold green]✓ Found solution with {len(solution_list)} "
-                f"upgrades![/bold green]\n"
-            )
-
-            table = create_build_order_table(solution_list)
-            console.print(table)
-
-            total_time = max(a.end_time for a in solution_list)
-            console.print(
-                f"\n[bold]Total completion time:[/bold] "
-                f"[cyan]{format_time(total_time)}[/cyan]"
-            )
-
-            for building_type in target_levels:
-                final_level = max(
-                    (
-                        a.to_level
-                        for a in solution_list
-                        if a.building_type == building_type
-                    ),
-                    default=0,
-                )
-                if final_level > 0:
-                    building = buildings.get(building_type)
-                    if building:
-                        level_data = building.get_level_data(final_level)
-                        if level_data and level_data.production_rate:
-                            name = building_type.value.replace("_", " ").title()
-                            console.print(
-                                f"[bold]Final {name} production:[/bold] "
-                                f"[green]{level_data.production_rate:.0f}/hour[/green]"
-                            )
-        else:
-            total_time = max(a.end_time for a in solution_list)
-            print(format_time(total_time))
-
-        if args.export:
-            export_data = {
-                "problem": args.problem,
-                "initial_state": {
-                    "buildings": {
-                        k.value: v for k, v in initial_state.building_levels.items()
-                    },
-                    "resources": {
-                        k.value: v for k, v in initial_state.resources.items()
-                    },
-                },
-                "targets": {k.value: v for k, v in target_levels.items()},
-                "solution": [
-                    {
-                        "building": a.building_type.value,
-                        "from_level": a.from_level,
-                        "to_level": a.to_level,
-                        "start_time": a.start_time,
-                        "end_time": a.end_time,
-                        "costs": {k.value: v for k, v in a.costs.items()},
-                    }
-                    for a in solution_list
-                ],
-                "total_time": max(a.end_time for a in solution_list),
-            }
-
-            args.export.write_text(json.dumps(export_data, indent=2))
-            console.print(f"\n[green]✓ Exported to {args.export}[/green]")
     else:
-        console.print("[red]✗ No solution found[/red]")
+        if not args.quiet:
+            console.print("\n[bold red]✗ No solution found[/bold red]")
+        else:
+            print("No solution found")
+
+    if args.export and solution_obj:
+        export_data = {
+            "problem": args.problem,
+            "initial_state": {
+                "buildings": {
+                    k.value: v for k, v in initial_state.building_levels.items()
+                },
+                "resources": {k.value: v for k, v in initial_state.resources.items()},
+            },
+            "targets": {k.value: v for k, v in target_levels.items()},
+            "building_actions": [
+                {
+                    "building": a.building_type.value,
+                    "from_level": a.from_level,
+                    "to_level": a.to_level,
+                    "start_time": a.start_time,
+                    "end_time": a.end_time,
+                    "costs": {k.value: v for k, v in a.costs.items()},
+                }
+                for a in solution_obj.building_actions
+            ],
+            "research_actions": [
+                {
+                    "from_level": a.from_level,
+                    "to_level": a.to_level,
+                    "start_time": a.start_time,
+                    "end_time": a.end_time,
+                    "costs": {k.value: v for k, v in a.costs.items()},
+                    "technologies": a.technologies_unlocked,
+                }
+                for a in solution_obj.research_actions
+            ],
+            "total_time": solution_obj.total_time_seconds,
+        }
+
+        args.export.write_text(json.dumps(export_data, indent=2))
+        console.print(f"\n[green]✓ Exported to {args.export}[/green]")
 
 
 if __name__ == "__main__":
