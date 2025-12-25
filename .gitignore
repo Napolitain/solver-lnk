@@ -8,10 +8,3 @@ solver
 *.swp
 *.swo
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Test artifacts
-*.test
-coverage.out
