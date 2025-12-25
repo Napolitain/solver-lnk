@@ -294,7 +294,7 @@ def main() -> None:
         buildings=buildings,
         initial_state=initial_state,
         target_levels=target_levels,
-        time_scale_minutes=1,
+        time_step_minutes=60,
     )
     solution_obj = solver.solve()
 
