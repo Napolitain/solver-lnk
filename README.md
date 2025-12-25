@@ -1,142 +1,131 @@
 # Lords and Knights Build Order Optimizer
 
-A Python-based optimization solver for the game **Lords and Knights** using greedy heuristics and OR-Tools.
+A Go-based optimization solver for the game **Lords and Knights** using greedy simulation heuristics.
 
 ## Features
 
-- **Resource-Aware CP-SAT Solver**: Intelligent build order with resource balance
-- **Multiple Solver Options**: CP-SAT (resource-aware), CP-SAT (basic), Greedy
-- **CLI with argparse**: Full command-line interface
-- **Rich formatting**: Beautiful colored output with tables
-- **JSON Export**: Save build plans to file
-- **Building Prerequisites**: Handles dependency chains
-- **Type-Safe**: Full type hints with ty (Astral)
-- **Code Quality**: Enforced with ruff (Astral)
-- **Data-Driven**: All building data loaded from JSON files
+- **Greedy Simulation Solver**: Smart build order with resource accumulation over time
+- **Dual Queue System**: Separate building queue and research queue (parallel execution)
+- **Technology Prerequisites**: Library research unlocks higher building levels (e.g., Farm 15/25/30)
+- **CLI with Cobra**: Full command-line interface with flags
+- **Pretty Tables**: Beautiful colored output with tablewriter
+- **Data-Driven**: All building and technology data loaded from JSON files
+- **Tested**: Includes unit tests for constraint validation
 
 ## Project Structure
 
 ```
 solver-lnk/
-├── solver_lnk/
-│   ├── models/          # Data models (buildings, resources, game state)
-│   ├── solvers/         # Optimization solvers (greedy, future: CP-SAT)
-│   └── utils/           # Helper functions and data loaders
-├── data/                # Game data files (to be added)
-├── main.py              # Example usage
-├── pyproject.toml       # Project configuration
-└── ruff.toml            # Linter configuration
+├── cmd/solver/          # Main entry point
+├── pkg/
+│   ├── models/          # Data models (buildings, resources, technologies)
+│   ├── solver/          # Greedy simulation solver
+│   └── loader/          # JSON data loaders
+├── data/                # Game data files
+│   ├── buildings/       # Building upgrade costs and times
+│   └── technologies/    # Technology research data
+├── go.mod               # Go module configuration
+└── go.sum               # Dependency checksums
 ```
 
 ## Installation
 
-Requires Python 3.13+
+Requires Go 1.21+
 
 ```bash
-# Using uv (recommended)
-uv sync
+# Build the solver
+go build -o solver ./cmd/solver/
 
-# Or with pip
-pip install -e .
+# Or run directly
+go run ./cmd/solver/
 ```
 
 ## Usage
 
 ```bash
-# Run with default (resource-aware CP-SAT - RECOMMENDED)
-uv run python main.py
+# Run with default settings
+./solver -d data
 
-# Use basic CP-SAT (faster but arbitrary build order)
-uv run python main.py --solver cpsat
-
-# Use greedy solver (will fail on complex problems)
-uv run python main.py --solver greedy
-
-# Quiet mode (only output completion time)
-uv run python main.py --quiet
-
-# Export solution to JSON
-uv run python main.py --export build_plan.json
-
-# Load custom configuration
-uv run python main.py --config my_castle.json
+# Quiet mode (minimal output)
+./solver -d data --quiet
 
 # See all options
-uv run python main.py --help
+./solver --help
 ```
 
-### Solver Comparison
+### Example Output
 
-| Solver | Build Order | Time | Status |
-|--------|-------------|------|--------|
-| `cpsat-resource` | Balanced (Lumberjack→Quarry→Ore Mine→Farm) | 709h | ✅ **RECOMMENDED** |
-| `cpsat` | Arbitrary (dict order) | 675h | ⚠️ Works but poor resource balance |
-| `greedy` | Priority-based | N/A | ❌ Fails on complex problems |
-
-**Problem Types:**
-- `castle-levelup` (default): Optimize building upgrade order for castle development
-
-**Configuration JSON format:**
-```json
-{
-  "initial_buildings": {
-    "lumberjack": 0
-  },
-  "initial_resources": {
-    "wood": 1000,
-    "stone": 1000,
-    "iron": 500,
-    "food": 100
-  },
-  "target_levels": {
-    "lumberjack": 15
-  }
-}
 ```
+╭───────────────────────────╮
+│  Lords and Knights        │
+│  Build Order Optimizer    │
+│  (Go Version)             │
+╰───────────────────────────╯
 
-## Development
+📦 Loaded 13 buildings, 3 technologies
 
-```bash
-# Lint code
-uv run ruff check .
+🔄 Solving...
 
-# Format code
-uv run ruff format .
+✓ Found solution with 255 building upgrades and 3 research tasks!
 
-# Type check
-uv run ty check .
+┌─────┬─────────────┬──────────────────┬─────────┬────────────┬────────────┬──────────┬─────────────────────────────┐
+│  #  │    QUEUE    │      ACTION      │ UPGRADE │   START    │    END     │ DURATION │            COSTS            │
+├─────┼─────────────┼──────────────────┼─────────┼────────────┼────────────┼──────────┼─────────────────────────────┤
+│ 1   │ 🏗️ Building │ Lumberjack       │ 1 → 2   │ 00:00:00   │ 00:06:00   │ 00:06:00 │ W:   31 S:   26 I:   7 F: 2 │
+│ 2   │ 🏗️ Building │ Quarry           │ 1 → 2   │ 00:06:00   │ 00:11:00   │ 00:05:00 │ W:   20 S:   25 I:  12 F: 1 │
+...
 ```
 
 ## How It Works
 
-### Greedy Solver Strategy
+### Greedy Simulation Strategy
 
-1. **Priority-based**: Buildings are ranked by priority (Lumberjack → Quarry → Mine → Farm → Storage → Core → Military)
-2. **Resource Simulation**: Tracks resource production and accumulation over time
-3. **Wait-and-Build**: If can't afford next priority upgrade, simulates waiting for resources
-4. **Sequential Execution**: One build at a time (configurable for multiple queues later)
+1. **Priority-based**: Buildings are ranked by priority:
+   - Lumberjack (wood production) → Quarry (stone) → Ore Mine (iron)
+   - Storage buildings when capacity needed
+   - Core buildings (Keep, Library) and military last
 
-### Priority Order
+2. **Resource Simulation**: Tracks resource production and accumulation over real time
+   - Production rates based on building levels
+   - Storage capacity limits enforced
 
-```python
-LUMBERJACK:     Priority 1  # Wood production first
-QUARRY:         Priority 2  # Stone second
-MINE:           Priority 3  # Iron third
-FARM:           Priority 4  # Food fourth
-WOOD_STORE:     Priority 10 # Storage as needed
-...
+3. **Wait-and-Build**: If can't afford next priority upgrade, waits for resources to accumulate
+
+4. **Technology Prerequisites**: 
+   - Farm Level 15 requires "Crop Rotation" research
+   - Farm Level 25 requires "Yoke" research  
+   - Farm Level 30 requires "Cellar Storeroom" research
+
+### Dual Queue System
+
+The game has two parallel construction queues:
+- **Building Queue**: All regular buildings (can only build one at a time)
+- **Research Queue**: Library upgrades + Technology research (independent from buildings)
+
+## Development
+
+```bash
+# Run tests
+go test ./...
+
+# Build
+go build -o solver ./cmd/solver/
+
+# Run
+./solver -d data
 ```
 
 ## Roadmap
 
-- [ ] Add more building types (Quarry, Mine, Farm, Castle, etc.)
-- [ ] Implement storage overflow checks
-- [ ] Add prerequisite constraints (e.g., Castle level required)
-- [ ] Support multiple build queues
-- [ ] JSON data loader for building stats
-- [ ] OR-Tools CP-SAT solver for optimal solutions
+- [x] Greedy simulation solver with resource accumulation
+- [x] Storage capacity constraints
+- [x] Farm-only-when-needed logic
+- [x] Technology prerequisites (Library research)
+- [x] Dual queue system (building + research)
+- [ ] Export build plans to JSON
+- [ ] Custom target configurations
 - [ ] Web interface for visualization
-- [ ] Export build plans to CSV/JSON
+- [ ] CP-SAT solver for optimal solutions
 
 ## License
 
