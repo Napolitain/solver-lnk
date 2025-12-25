@@ -505,9 +505,12 @@ class GreedySolver:
         Priority order:
         1. Resource production (Lumberjack, Quarry, Ore Mine) - interleaved
         2. Storage (Wood/Stone/Ore Store) - interleaved
-        3. Farm (may require technology research for levels 15/25/30)
-        4. Core buildings (Keep, Library)
-        5. Military and other (Arsenal, Tavern, Market, Fortifications)
+        3. Core buildings (Keep, Library)
+        4. Military and other (Arsenal, Tavern, Market, Fortifications)
+        5. Farm - at END (most upgrades happen dynamically when food runs out)
+
+        Note: Farm upgrades are inserted dynamically when food capacity is needed.
+        The Farm entries at the end ensure we reach target level.
         """
         queue: list[tuple[BuildingType, int]] = []
 
@@ -547,14 +550,10 @@ class GreedySolver:
                 if btype in self.target_levels and level <= self.target_levels[btype]:
                     queue.append((btype, level))
 
-        # 3. Farm - added after storage, before core buildings
-        # Farm provides food capacity and may require technologies for levels 15/25/30
-        if BuildingType.FARM in self.target_levels:
-            target = self.target_levels[BuildingType.FARM]
-            for level in range(2, target + 1):
-                queue.append((BuildingType.FARM, level))
+        # Note: Farm is NOT added here - it's upgraded dynamically when food runs out
+        # Remaining Farm levels (to reach target) are added at the END of the queue
 
-        # 4. Core buildings
+        # 3. Core buildings
         core_buildings = [BuildingType.KEEP, BuildingType.LIBRARY]
         for btype in core_buildings:
             if btype in self.target_levels:
@@ -562,7 +561,7 @@ class GreedySolver:
                 for level in range(2, target + 1):
                     queue.append((btype, level))
 
-        # 5. Military and other buildings
+        # 4. Military and other buildings
         other_buildings = [
             BuildingType.ARSENAL,
             BuildingType.TAVERN,
@@ -574,6 +573,14 @@ class GreedySolver:
                 target = self.target_levels[btype]
                 for level in range(2, target + 1):
                     queue.append((btype, level))
+
+        # 5. Farm - added at END to finish remaining levels after other buildings
+        # Most Farm upgrades happen dynamically when food runs out
+        # This ensures we reach the target level even if not all were triggered
+        if BuildingType.FARM in self.target_levels:
+            target = self.target_levels[BuildingType.FARM]
+            for level in range(2, target + 1):
+                queue.append((BuildingType.FARM, level))
 
         return queue
 
