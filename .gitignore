@@ -1,5 +1,5 @@
 # Go build artifacts
-/solver
+/castle
 *.exe
 coverage.out
 

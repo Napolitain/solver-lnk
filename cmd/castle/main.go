@@ -22,8 +22,8 @@ var (
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "solver",
-		Short: "Lords and Knights Build Order Optimizer",
+		Use:   "castle",
+		Short: "Lords and Knights Castle Build Order Optimizer",
 		Long: `A greedy simulation solver that optimizes the build order
 for Lords and Knights castle development.`,
 		Run: runSolver,
