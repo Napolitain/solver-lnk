@@ -39,20 +39,46 @@ func (s *Solution) MinDefense() int {
 
 // Solver finds optimal army composition
 type Solver struct {
-	Units             []*Unit
-	FoodCapacity      int
+	Units              []*Unit
+	FoodCapacity       int
 	RequiredThroughput float64
-	RoundTripFields   int
+	RoundTripFields    int
 }
 
 // NewSolver creates a new units solver with default constants
 func NewSolver() *Solver {
 	return &Solver{
-		Units:             AllUnits(),
-		FoodCapacity:      MaxFoodCapacity,
+		Units:              AllUnits(),
+		FoodCapacity:       MaxFoodCapacity,
 		RequiredThroughput: ResourceProductionPerHour,
-		RoundTripFields:   RoundTripFields,
+		RoundTripFields:    RoundTripFields,
 	}
+}
+
+// NewSolverWithConfig creates a solver from config
+func NewSolverWithConfig(config interface{}) *Solver {
+	s := NewSolver()
+
+	// Type assert to access config fields
+	type unitsConfig interface {
+		GetFoodAvailable() int
+		GetResourceProductionPerHour() int
+		GetMarketDistanceFields() int
+	}
+
+	if c, ok := config.(unitsConfig); ok {
+		if food := c.GetFoodAvailable(); food > 0 {
+			s.FoodCapacity = food
+		}
+		if prod := c.GetResourceProductionPerHour(); prod > 0 {
+			s.RequiredThroughput = float64(prod)
+		}
+		if dist := c.GetMarketDistanceFields(); dist > 0 {
+			s.RoundTripFields = dist * 2
+		}
+	}
+
+	return s
 }
 
 // Solve finds the optimal army composition
