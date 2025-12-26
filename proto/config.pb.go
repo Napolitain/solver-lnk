@@ -592,6 +592,355 @@ func (x *UnitsConfig) GetExistingUnits() []*UnitCount {
 	return nil
 }
 
+// Target levels for buildings
+type TargetLevels struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Targets       []*BuildingLevel       `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TargetLevels) Reset() {
+	*x = TargetLevels{}
+	mi := &file_proto_config_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TargetLevels) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TargetLevels) ProtoMessage() {}
+
+func (x *TargetLevels) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_config_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TargetLevels.ProtoReflect.Descriptor instead.
+func (*TargetLevels) Descriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *TargetLevels) GetTargets() []*BuildingLevel {
+	if x != nil {
+		return x.Targets
+	}
+	return nil
+}
+
+// Request to solve castle build order
+type SolveRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CastleConfig  *CastleConfig          `protobuf:"bytes,1,opt,name=castle_config,json=castleConfig,proto3" json:"castle_config,omitempty"`
+	TargetLevels  *TargetLevels          `protobuf:"bytes,2,opt,name=target_levels,json=targetLevels,proto3" json:"target_levels,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SolveRequest) Reset() {
+	*x = SolveRequest{}
+	mi := &file_proto_config_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SolveRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SolveRequest) ProtoMessage() {}
+
+func (x *SolveRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_config_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SolveRequest.ProtoReflect.Descriptor instead.
+func (*SolveRequest) Descriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SolveRequest) GetCastleConfig() *CastleConfig {
+	if x != nil {
+		return x.CastleConfig
+	}
+	return nil
+}
+
+func (x *SolveRequest) GetTargetLevels() *TargetLevels {
+	if x != nil {
+		return x.TargetLevels
+	}
+	return nil
+}
+
+// A single building upgrade action
+type BuildingAction struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	BuildingType     BuildingType           `protobuf:"varint,1,opt,name=building_type,json=buildingType,proto3,enum=config.BuildingType" json:"building_type,omitempty"`
+	FromLevel        int32                  `protobuf:"varint,2,opt,name=from_level,json=fromLevel,proto3" json:"from_level,omitempty"`
+	ToLevel          int32                  `protobuf:"varint,3,opt,name=to_level,json=toLevel,proto3" json:"to_level,omitempty"`
+	StartTimeSeconds int32                  `protobuf:"varint,4,opt,name=start_time_seconds,json=startTimeSeconds,proto3" json:"start_time_seconds,omitempty"`
+	EndTimeSeconds   int32                  `protobuf:"varint,5,opt,name=end_time_seconds,json=endTimeSeconds,proto3" json:"end_time_seconds,omitempty"`
+	Costs            []*Resource            `protobuf:"bytes,6,rep,name=costs,proto3" json:"costs,omitempty"`
+	FoodUsed         int32                  `protobuf:"varint,7,opt,name=food_used,json=foodUsed,proto3" json:"food_used,omitempty"`
+	FoodCapacity     int32                  `protobuf:"varint,8,opt,name=food_capacity,json=foodCapacity,proto3" json:"food_capacity,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *BuildingAction) Reset() {
+	*x = BuildingAction{}
+	mi := &file_proto_config_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuildingAction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuildingAction) ProtoMessage() {}
+
+func (x *BuildingAction) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_config_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuildingAction.ProtoReflect.Descriptor instead.
+func (*BuildingAction) Descriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *BuildingAction) GetBuildingType() BuildingType {
+	if x != nil {
+		return x.BuildingType
+	}
+	return BuildingType_BUILDING_UNKNOWN
+}
+
+func (x *BuildingAction) GetFromLevel() int32 {
+	if x != nil {
+		return x.FromLevel
+	}
+	return 0
+}
+
+func (x *BuildingAction) GetToLevel() int32 {
+	if x != nil {
+		return x.ToLevel
+	}
+	return 0
+}
+
+func (x *BuildingAction) GetStartTimeSeconds() int32 {
+	if x != nil {
+		return x.StartTimeSeconds
+	}
+	return 0
+}
+
+func (x *BuildingAction) GetEndTimeSeconds() int32 {
+	if x != nil {
+		return x.EndTimeSeconds
+	}
+	return 0
+}
+
+func (x *BuildingAction) GetCosts() []*Resource {
+	if x != nil {
+		return x.Costs
+	}
+	return nil
+}
+
+func (x *BuildingAction) GetFoodUsed() int32 {
+	if x != nil {
+		return x.FoodUsed
+	}
+	return 0
+}
+
+func (x *BuildingAction) GetFoodCapacity() int32 {
+	if x != nil {
+		return x.FoodCapacity
+	}
+	return 0
+}
+
+// A single research action
+type ResearchAction struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Technology       Technology             `protobuf:"varint,1,opt,name=technology,proto3,enum=config.Technology" json:"technology,omitempty"`
+	StartTimeSeconds int32                  `protobuf:"varint,2,opt,name=start_time_seconds,json=startTimeSeconds,proto3" json:"start_time_seconds,omitempty"`
+	EndTimeSeconds   int32                  `protobuf:"varint,3,opt,name=end_time_seconds,json=endTimeSeconds,proto3" json:"end_time_seconds,omitempty"`
+	Costs            []*Resource            `protobuf:"bytes,4,rep,name=costs,proto3" json:"costs,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ResearchAction) Reset() {
+	*x = ResearchAction{}
+	mi := &file_proto_config_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResearchAction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResearchAction) ProtoMessage() {}
+
+func (x *ResearchAction) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_config_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResearchAction.ProtoReflect.Descriptor instead.
+func (*ResearchAction) Descriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ResearchAction) GetTechnology() Technology {
+	if x != nil {
+		return x.Technology
+	}
+	return Technology_TECH_UNKNOWN
+}
+
+func (x *ResearchAction) GetStartTimeSeconds() int32 {
+	if x != nil {
+		return x.StartTimeSeconds
+	}
+	return 0
+}
+
+func (x *ResearchAction) GetEndTimeSeconds() int32 {
+	if x != nil {
+		return x.EndTimeSeconds
+	}
+	return 0
+}
+
+func (x *ResearchAction) GetCosts() []*Resource {
+	if x != nil {
+		return x.Costs
+	}
+	return nil
+}
+
+// Response from solver
+type SolveResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Full build order
+	BuildingActions []*BuildingAction `protobuf:"bytes,1,rep,name=building_actions,json=buildingActions,proto3" json:"building_actions,omitempty"`
+	ResearchActions []*ResearchAction `protobuf:"bytes,2,rep,name=research_actions,json=researchActions,proto3" json:"research_actions,omitempty"`
+	// Next immediate action to execute (first in list)
+	NextAction *BuildingAction `protobuf:"bytes,3,opt,name=next_action,json=nextAction,proto3" json:"next_action,omitempty"`
+	// Total time to complete all targets (seconds)
+	TotalTimeSeconds int32 `protobuf:"varint,4,opt,name=total_time_seconds,json=totalTimeSeconds,proto3" json:"total_time_seconds,omitempty"`
+	// Strategy used
+	Strategy      string `protobuf:"bytes,5,opt,name=strategy,proto3" json:"strategy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SolveResponse) Reset() {
+	*x = SolveResponse{}
+	mi := &file_proto_config_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SolveResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SolveResponse) ProtoMessage() {}
+
+func (x *SolveResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_config_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SolveResponse.ProtoReflect.Descriptor instead.
+func (*SolveResponse) Descriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *SolveResponse) GetBuildingActions() []*BuildingAction {
+	if x != nil {
+		return x.BuildingActions
+	}
+	return nil
+}
+
+func (x *SolveResponse) GetResearchActions() []*ResearchAction {
+	if x != nil {
+		return x.ResearchActions
+	}
+	return nil
+}
+
+func (x *SolveResponse) GetNextAction() *BuildingAction {
+	if x != nil {
+		return x.NextAction
+	}
+	return nil
+}
+
+func (x *SolveResponse) GetTotalTimeSeconds() int32 {
+	if x != nil {
+		return x.TotalTimeSeconds
+	}
+	return 0
+}
+
+func (x *SolveResponse) GetStrategy() string {
+	if x != nil {
+		return x.Strategy
+	}
+	return ""
+}
+
 var File_proto_config_proto protoreflect.FileDescriptor
 
 const file_proto_config_proto_rawDesc = "" +
@@ -614,7 +963,36 @@ const file_proto_config_proto_rawDesc = "" +
 	"\x0efood_available\x18\x01 \x01(\x05R\rfoodAvailable\x12?\n" +
 	"\x1cresource_production_per_hour\x18\x02 \x01(\x05R\x19resourceProductionPerHour\x124\n" +
 	"\x16market_distance_fields\x18\x03 \x01(\x05R\x14marketDistanceFields\x128\n" +
-	"\x0eexisting_units\x18\x04 \x03(\v2\x11.config.UnitCountR\rexistingUnits*\xd8\x01\n" +
+	"\x0eexisting_units\x18\x04 \x03(\v2\x11.config.UnitCountR\rexistingUnits\"?\n" +
+	"\fTargetLevels\x12/\n" +
+	"\atargets\x18\x01 \x03(\v2\x15.config.BuildingLevelR\atargets\"\x84\x01\n" +
+	"\fSolveRequest\x129\n" +
+	"\rcastle_config\x18\x01 \x01(\v2\x14.config.CastleConfigR\fcastleConfig\x129\n" +
+	"\rtarget_levels\x18\x02 \x01(\v2\x14.config.TargetLevelsR\ftargetLevels\"\xc7\x02\n" +
+	"\x0eBuildingAction\x129\n" +
+	"\rbuilding_type\x18\x01 \x01(\x0e2\x14.config.BuildingTypeR\fbuildingType\x12\x1d\n" +
+	"\n" +
+	"from_level\x18\x02 \x01(\x05R\tfromLevel\x12\x19\n" +
+	"\bto_level\x18\x03 \x01(\x05R\atoLevel\x12,\n" +
+	"\x12start_time_seconds\x18\x04 \x01(\x05R\x10startTimeSeconds\x12(\n" +
+	"\x10end_time_seconds\x18\x05 \x01(\x05R\x0eendTimeSeconds\x12&\n" +
+	"\x05costs\x18\x06 \x03(\v2\x10.config.ResourceR\x05costs\x12\x1b\n" +
+	"\tfood_used\x18\a \x01(\x05R\bfoodUsed\x12#\n" +
+	"\rfood_capacity\x18\b \x01(\x05R\ffoodCapacity\"\xc4\x01\n" +
+	"\x0eResearchAction\x122\n" +
+	"\n" +
+	"technology\x18\x01 \x01(\x0e2\x12.config.TechnologyR\n" +
+	"technology\x12,\n" +
+	"\x12start_time_seconds\x18\x02 \x01(\x05R\x10startTimeSeconds\x12(\n" +
+	"\x10end_time_seconds\x18\x03 \x01(\x05R\x0eendTimeSeconds\x12&\n" +
+	"\x05costs\x18\x04 \x03(\v2\x10.config.ResourceR\x05costs\"\x98\x02\n" +
+	"\rSolveResponse\x12A\n" +
+	"\x10building_actions\x18\x01 \x03(\v2\x16.config.BuildingActionR\x0fbuildingActions\x12A\n" +
+	"\x10research_actions\x18\x02 \x03(\v2\x16.config.ResearchActionR\x0fresearchActions\x127\n" +
+	"\vnext_action\x18\x03 \x01(\v2\x16.config.BuildingActionR\n" +
+	"nextAction\x12,\n" +
+	"\x12total_time_seconds\x18\x04 \x01(\x05R\x10totalTimeSeconds\x12\x1a\n" +
+	"\bstrategy\x18\x05 \x01(\tR\bstrategy*\xd8\x01\n" +
 	"\fBuildingType\x12\x14\n" +
 	"\x10BUILDING_UNKNOWN\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -666,7 +1044,10 @@ const file_proto_config_proto_rawDesc = "" +
 	"\x04WOOD\x10\x01\x12\t\n" +
 	"\x05STONE\x10\x02\x12\b\n" +
 	"\x04IRON\x10\x03\x12\b\n" +
-	"\x04FOOD\x10\x04B(Z&github.com/napolitain/solver-lnk/protob\x06proto3"
+	"\x04FOOD\x10\x042\x8a\x01\n" +
+	"\x13CastleSolverService\x124\n" +
+	"\x05Solve\x12\x14.config.SolveRequest\x1a\x15.config.SolveResponse\x12=\n" +
+	"\rGetNextAction\x12\x14.config.SolveRequest\x1a\x16.config.BuildingActionB(Z&github.com/napolitain/solver-lnk/protob\x06proto3"
 
 var (
 	file_proto_config_proto_rawDescOnce sync.Once
@@ -681,31 +1062,50 @@ func file_proto_config_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_config_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_proto_config_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_proto_config_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_proto_config_proto_goTypes = []any{
-	(BuildingType)(0),     // 0: config.BuildingType
-	(Technology)(0),       // 1: config.Technology
-	(UnitType)(0),         // 2: config.UnitType
-	(ResourceType)(0),     // 3: config.ResourceType
-	(*BuildingLevel)(nil), // 4: config.BuildingLevel
-	(*Resource)(nil),      // 5: config.Resource
-	(*UnitCount)(nil),     // 6: config.UnitCount
-	(*CastleConfig)(nil),  // 7: config.CastleConfig
-	(*UnitsConfig)(nil),   // 8: config.UnitsConfig
+	(BuildingType)(0),      // 0: config.BuildingType
+	(Technology)(0),        // 1: config.Technology
+	(UnitType)(0),          // 2: config.UnitType
+	(ResourceType)(0),      // 3: config.ResourceType
+	(*BuildingLevel)(nil),  // 4: config.BuildingLevel
+	(*Resource)(nil),       // 5: config.Resource
+	(*UnitCount)(nil),      // 6: config.UnitCount
+	(*CastleConfig)(nil),   // 7: config.CastleConfig
+	(*UnitsConfig)(nil),    // 8: config.UnitsConfig
+	(*TargetLevels)(nil),   // 9: config.TargetLevels
+	(*SolveRequest)(nil),   // 10: config.SolveRequest
+	(*BuildingAction)(nil), // 11: config.BuildingAction
+	(*ResearchAction)(nil), // 12: config.ResearchAction
+	(*SolveResponse)(nil),  // 13: config.SolveResponse
 }
 var file_proto_config_proto_depIdxs = []int32{
-	0, // 0: config.BuildingLevel.type:type_name -> config.BuildingType
-	3, // 1: config.Resource.type:type_name -> config.ResourceType
-	2, // 2: config.UnitCount.type:type_name -> config.UnitType
-	4, // 3: config.CastleConfig.building_levels:type_name -> config.BuildingLevel
-	5, // 4: config.CastleConfig.resources:type_name -> config.Resource
-	1, // 5: config.CastleConfig.researched_technologies:type_name -> config.Technology
-	6, // 6: config.UnitsConfig.existing_units:type_name -> config.UnitCount
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	0,  // 0: config.BuildingLevel.type:type_name -> config.BuildingType
+	3,  // 1: config.Resource.type:type_name -> config.ResourceType
+	2,  // 2: config.UnitCount.type:type_name -> config.UnitType
+	4,  // 3: config.CastleConfig.building_levels:type_name -> config.BuildingLevel
+	5,  // 4: config.CastleConfig.resources:type_name -> config.Resource
+	1,  // 5: config.CastleConfig.researched_technologies:type_name -> config.Technology
+	6,  // 6: config.UnitsConfig.existing_units:type_name -> config.UnitCount
+	4,  // 7: config.TargetLevels.targets:type_name -> config.BuildingLevel
+	7,  // 8: config.SolveRequest.castle_config:type_name -> config.CastleConfig
+	9,  // 9: config.SolveRequest.target_levels:type_name -> config.TargetLevels
+	0,  // 10: config.BuildingAction.building_type:type_name -> config.BuildingType
+	5,  // 11: config.BuildingAction.costs:type_name -> config.Resource
+	1,  // 12: config.ResearchAction.technology:type_name -> config.Technology
+	5,  // 13: config.ResearchAction.costs:type_name -> config.Resource
+	11, // 14: config.SolveResponse.building_actions:type_name -> config.BuildingAction
+	12, // 15: config.SolveResponse.research_actions:type_name -> config.ResearchAction
+	11, // 16: config.SolveResponse.next_action:type_name -> config.BuildingAction
+	10, // 17: config.CastleSolverService.Solve:input_type -> config.SolveRequest
+	10, // 18: config.CastleSolverService.GetNextAction:input_type -> config.SolveRequest
+	13, // 19: config.CastleSolverService.Solve:output_type -> config.SolveResponse
+	11, // 20: config.CastleSolverService.GetNextAction:output_type -> config.BuildingAction
+	19, // [19:21] is the sub-list for method output_type
+	17, // [17:19] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_proto_config_proto_init() }
@@ -719,9 +1119,9 @@ func file_proto_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_config_proto_rawDesc), len(file_proto_config_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   5,
+			NumMessages:   10,
 			NumExtensions: 0,
-			NumServices:   0,
+			NumServices:   1,
 		},
 		GoTypes:           file_proto_config_proto_goTypes,
 		DependencyIndexes: file_proto_config_proto_depIdxs,
