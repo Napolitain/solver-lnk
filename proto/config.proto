@@ -101,3 +101,59 @@ message UnitsConfig {
   // Existing units (optional)
   repeated UnitCount existing_units = 4;
 }
+
+// Target levels for buildings
+message TargetLevels {
+  repeated BuildingLevel targets = 1;
+}
+
+// Request to solve castle build order
+message SolveRequest {
+  CastleConfig castle_config = 1;
+  TargetLevels target_levels = 2;
+}
+
+// A single building upgrade action
+message BuildingAction {
+  BuildingType building_type = 1;
+  int32 from_level = 2;
+  int32 to_level = 3;
+  int32 start_time_seconds = 4;
+  int32 end_time_seconds = 5;
+  repeated Resource costs = 6;
+  int32 food_used = 7;
+  int32 food_capacity = 8;
+}
+
+// A single research action
+message ResearchAction {
+  Technology technology = 1;
+  int32 start_time_seconds = 2;
+  int32 end_time_seconds = 3;
+  repeated Resource costs = 4;
+}
+
+// Response from solver
+message SolveResponse {
+  // Full build order
+  repeated BuildingAction building_actions = 1;
+  repeated ResearchAction research_actions = 2;
+  
+  // Next immediate action to execute (first in list)
+  BuildingAction next_action = 3;
+  
+  // Total time to complete all targets (seconds)
+  int32 total_time_seconds = 4;
+  
+  // Strategy used
+  string strategy = 5;
+}
+
+// Castle Solver Service
+service CastleSolverService {
+  // Solve returns the optimal build order for a castle
+  rpc Solve(SolveRequest) returns (SolveResponse);
+  
+  // GetNextAction returns only the next immediate action (lightweight)
+  rpc GetNextAction(SolveRequest) returns (BuildingAction);
+}
