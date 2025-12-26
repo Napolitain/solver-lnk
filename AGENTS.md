@@ -16,7 +16,7 @@
 ### Implementation Details
 **Solver**: `pkg/solver/greedy.go`
 **Approach**: Simulation-based with event-driven resource accumulation
-**Language**: Go 1.21+
+**Language**: Go 1.25+
 **Status**: ✅ WORKING AND ACCURATE
 
 ## Technology Stack
@@ -44,6 +44,8 @@ go fmt ./...
 ```
 
 ## Key Game Mechanics
+
+For more details refer to RULES.md file.
 
 1. **Resources**: Wood, Stone, Iron produced by buildings
 2. **Food**: ABSOLUTE capacity from Farm - consumed by upgrades

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/napolitain/solver-lnk/pkg/models"
+	"github.com/napolitain/solver-lnk/internal/models"
 )
 
 // BuildingJSON represents the JSON structure for buildings
