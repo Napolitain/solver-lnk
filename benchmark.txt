@@ -1,10 +1,20 @@
-❯ poop "uv run main.py"
-Benchmark 1 (22 runs): uv run main.py
+❯ poop ./castle
+Benchmark 1 (215 runs): ./castle
   measurement          mean ± σ            min … max           outliers
-  wall_time           229ms ± 5.05ms     222ms …  239ms          0 ( 0%)        
-  peak_rss           44.0MB ±  407KB    43.3MB … 44.9MB          0 ( 0%)        
-  cpu_cycles          952M  ± 8.17M      941M  …  968M           0 ( 0%)        
-  instructions       1.29G  ± 1.05M     1.28G  … 1.29G           0 ( 0%)        
-  cache_references   55.2M  ± 2.32M     48.3M  … 57.6M           2 ( 9%)        
-  cache_misses        759K  ± 94.4K      607K  …  918K           0 ( 0%)        
-  branch_misses      9.38M  ± 28.4K     9.33M  … 9.43M           0 ( 0%)        
+  wall_time          23.1ms ±  845us    20.4ms … 25.1ms         26 (12%)        
+  peak_rss           12.9MB ±  186KB    12.5MB … 13.5MB          1 ( 0%)        
+  cpu_cycles         84.4M  ± 3.04M     76.2M  … 94.1M          48 (22%)        
+  instructions        184M  ± 7.01M      165M  …  196M          47 (22%)        
+  cache_references   1.55M  ±  102K     1.42M  … 1.95M          19 ( 9%)        
+  cache_misses       56.6K  ± 15.9K     27.5K  …  129K           2 ( 1%)        
+  branch_misses       269K  ± 9.78K      242K  …  299K          42 (20%)        
+❯ poop ./units
+Benchmark 1 (1748 runs): ./units
+  measurement          mean ± σ            min … max           outliers
+  wall_time          2.83ms ±  144us    2.56ms … 3.90ms         96 ( 5%)        
+  peak_rss           8.77MB ± 50.7KB    8.56MB … 9.08MB        391 (22%)        
+  cpu_cycles         4.65M  ±  104K     4.47M  … 6.93M         125 ( 7%)        
+  instructions       6.97M  ± 22.4K     6.91M  … 7.17M         328 (19%)        
+  cache_references    176K  ± 6.57K      159K  …  246K          11 ( 1%)        
+  cache_misses       5.02K  ± 1.69K     2.55K  … 38.7K          35 ( 2%)        
+  branch_misses      26.8K  ±  349      24.4K  … 28.1K         146 ( 8%)        
