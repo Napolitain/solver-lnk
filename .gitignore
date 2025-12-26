@@ -1,5 +1,5 @@
 # Go build artifacts
-solver
+/solver
 *.exe
 coverage.out
 
