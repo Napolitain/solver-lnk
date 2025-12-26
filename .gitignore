@@ -1,6 +1,7 @@
 # Go build artifacts
 solver
 *.exe
+coverage.out
 
 # IDE
 .idea/
