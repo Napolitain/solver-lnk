@@ -55,27 +55,18 @@ func NewSolver() *Solver {
 	}
 }
 
-// NewSolverWithConfig creates a solver from config
-func NewSolverWithConfig(config interface{}) *Solver {
+// NewSolverWithConfig creates a solver from protobuf config
+func NewSolverWithConfig(food, resourceProd, marketDist int32) *Solver {
 	s := NewSolver()
 
-	// Type assert to access config fields
-	type unitsConfig interface {
-		GetFoodAvailable() int
-		GetResourceProductionPerHour() int
-		GetMarketDistanceFields() int
+	if food > 0 {
+		s.FoodCapacity = int(food)
 	}
-
-	if c, ok := config.(unitsConfig); ok {
-		if food := c.GetFoodAvailable(); food > 0 {
-			s.FoodCapacity = food
-		}
-		if prod := c.GetResourceProductionPerHour(); prod > 0 {
-			s.RequiredThroughput = float64(prod)
-		}
-		if dist := c.GetMarketDistanceFields(); dist > 0 {
-			s.RoundTripFields = dist * 2
-		}
+	if resourceProd > 0 {
+		s.RequiredThroughput = float64(resourceProd)
+	}
+	if marketDist > 0 {
+		s.RoundTripFields = int(marketDist) * 2
 	}
 
 	return s

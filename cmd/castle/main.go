@@ -83,12 +83,12 @@ func runSolver(cmd *cobra.Command, args []string) {
 			color.Red("Error loading config: %v", err)
 			os.Exit(1)
 		}
-		if err := config.Validate(); err != nil {
+		if err := models.ValidateCastleConfig(config); err != nil {
 			color.Red("Invalid config: %v", err)
 			os.Exit(1)
 		}
-		initialState = config.ToGameState()
-		targetLevels = config.GetTargetLevels()
+		initialState = models.CastleConfigToGameState(config)
+		targetLevels = models.GetTargetLevels()
 		if !quiet {
 			infoColor.Printf("📄 Loaded config from %s\n\n", configFile)
 		}
