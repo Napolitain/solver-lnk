@@ -21,22 +21,456 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Building types enum
+type BuildingType int32
+
+const (
+	BuildingType_BUILDING_UNKNOWN BuildingType = 0
+	BuildingType_LUMBERJACK       BuildingType = 1
+	BuildingType_QUARRY           BuildingType = 2
+	BuildingType_ORE_MINE         BuildingType = 3
+	BuildingType_FARM             BuildingType = 4
+	BuildingType_WOOD_STORE       BuildingType = 5
+	BuildingType_STONE_STORE      BuildingType = 6
+	BuildingType_ORE_STORE        BuildingType = 7
+	BuildingType_KEEP             BuildingType = 8
+	BuildingType_ARSENAL          BuildingType = 9
+	BuildingType_LIBRARY          BuildingType = 10
+	BuildingType_TAVERN           BuildingType = 11
+	BuildingType_MARKET           BuildingType = 12
+	BuildingType_FORTIFICATIONS   BuildingType = 13
+)
+
+// Enum value maps for BuildingType.
+var (
+	BuildingType_name = map[int32]string{
+		0:  "BUILDING_UNKNOWN",
+		1:  "LUMBERJACK",
+		2:  "QUARRY",
+		3:  "ORE_MINE",
+		4:  "FARM",
+		5:  "WOOD_STORE",
+		6:  "STONE_STORE",
+		7:  "ORE_STORE",
+		8:  "KEEP",
+		9:  "ARSENAL",
+		10: "LIBRARY",
+		11: "TAVERN",
+		12: "MARKET",
+		13: "FORTIFICATIONS",
+	}
+	BuildingType_value = map[string]int32{
+		"BUILDING_UNKNOWN": 0,
+		"LUMBERJACK":       1,
+		"QUARRY":           2,
+		"ORE_MINE":         3,
+		"FARM":             4,
+		"WOOD_STORE":       5,
+		"STONE_STORE":      6,
+		"ORE_STORE":        7,
+		"KEEP":             8,
+		"ARSENAL":          9,
+		"LIBRARY":          10,
+		"TAVERN":           11,
+		"MARKET":           12,
+		"FORTIFICATIONS":   13,
+	}
+)
+
+func (x BuildingType) Enum() *BuildingType {
+	p := new(BuildingType)
+	*p = x
+	return p
+}
+
+func (x BuildingType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BuildingType) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_config_proto_enumTypes[0].Descriptor()
+}
+
+func (BuildingType) Type() protoreflect.EnumType {
+	return &file_proto_config_proto_enumTypes[0]
+}
+
+func (x BuildingType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BuildingType.Descriptor instead.
+func (BuildingType) EnumDescriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{0}
+}
+
+// Technology types enum
+type Technology int32
+
+const (
+	Technology_TECH_UNKNOWN     Technology = 0
+	Technology_LONGBOW          Technology = 1
+	Technology_CROP_ROTATION    Technology = 2
+	Technology_YOKE             Technology = 3
+	Technology_CELLAR_STOREROOM Technology = 4
+	Technology_STIRRUP          Technology = 5
+	Technology_CROSSBOW         Technology = 6
+	Technology_SWORDSMITH       Technology = 7
+	Technology_HORSE_ARMOUR     Technology = 8
+)
+
+// Enum value maps for Technology.
+var (
+	Technology_name = map[int32]string{
+		0: "TECH_UNKNOWN",
+		1: "LONGBOW",
+		2: "CROP_ROTATION",
+		3: "YOKE",
+		4: "CELLAR_STOREROOM",
+		5: "STIRRUP",
+		6: "CROSSBOW",
+		7: "SWORDSMITH",
+		8: "HORSE_ARMOUR",
+	}
+	Technology_value = map[string]int32{
+		"TECH_UNKNOWN":     0,
+		"LONGBOW":          1,
+		"CROP_ROTATION":    2,
+		"YOKE":             3,
+		"CELLAR_STOREROOM": 4,
+		"STIRRUP":          5,
+		"CROSSBOW":         6,
+		"SWORDSMITH":       7,
+		"HORSE_ARMOUR":     8,
+	}
+)
+
+func (x Technology) Enum() *Technology {
+	p := new(Technology)
+	*p = x
+	return p
+}
+
+func (x Technology) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Technology) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_config_proto_enumTypes[1].Descriptor()
+}
+
+func (Technology) Type() protoreflect.EnumType {
+	return &file_proto_config_proto_enumTypes[1]
+}
+
+func (x Technology) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Technology.Descriptor instead.
+func (Technology) EnumDescriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{1}
+}
+
+// Unit types enum
+type UnitType int32
+
+const (
+	UnitType_UNIT_UNKNOWN UnitType = 0
+	UnitType_SPEARMAN     UnitType = 1
+	UnitType_SWORDSMAN    UnitType = 2
+	UnitType_ARCHER       UnitType = 3
+	UnitType_CROSSBOWMAN  UnitType = 4
+	UnitType_HORSEMAN     UnitType = 5
+	UnitType_LANCER       UnitType = 6
+	UnitType_HANDCART     UnitType = 7
+	UnitType_OXCART       UnitType = 8
+)
+
+// Enum value maps for UnitType.
+var (
+	UnitType_name = map[int32]string{
+		0: "UNIT_UNKNOWN",
+		1: "SPEARMAN",
+		2: "SWORDSMAN",
+		3: "ARCHER",
+		4: "CROSSBOWMAN",
+		5: "HORSEMAN",
+		6: "LANCER",
+		7: "HANDCART",
+		8: "OXCART",
+	}
+	UnitType_value = map[string]int32{
+		"UNIT_UNKNOWN": 0,
+		"SPEARMAN":     1,
+		"SWORDSMAN":    2,
+		"ARCHER":       3,
+		"CROSSBOWMAN":  4,
+		"HORSEMAN":     5,
+		"LANCER":       6,
+		"HANDCART":     7,
+		"OXCART":       8,
+	}
+)
+
+func (x UnitType) Enum() *UnitType {
+	p := new(UnitType)
+	*p = x
+	return p
+}
+
+func (x UnitType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (UnitType) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_config_proto_enumTypes[2].Descriptor()
+}
+
+func (UnitType) Type() protoreflect.EnumType {
+	return &file_proto_config_proto_enumTypes[2]
+}
+
+func (x UnitType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use UnitType.Descriptor instead.
+func (UnitType) EnumDescriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{2}
+}
+
+// Resource types enum
+type ResourceType int32
+
+const (
+	ResourceType_RESOURCE_UNKNOWN ResourceType = 0
+	ResourceType_WOOD             ResourceType = 1
+	ResourceType_STONE            ResourceType = 2
+	ResourceType_IRON             ResourceType = 3
+	ResourceType_FOOD             ResourceType = 4
+)
+
+// Enum value maps for ResourceType.
+var (
+	ResourceType_name = map[int32]string{
+		0: "RESOURCE_UNKNOWN",
+		1: "WOOD",
+		2: "STONE",
+		3: "IRON",
+		4: "FOOD",
+	}
+	ResourceType_value = map[string]int32{
+		"RESOURCE_UNKNOWN": 0,
+		"WOOD":             1,
+		"STONE":            2,
+		"IRON":             3,
+		"FOOD":             4,
+	}
+)
+
+func (x ResourceType) Enum() *ResourceType {
+	p := new(ResourceType)
+	*p = x
+	return p
+}
+
+func (x ResourceType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ResourceType) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_config_proto_enumTypes[3].Descriptor()
+}
+
+func (ResourceType) Type() protoreflect.EnumType {
+	return &file_proto_config_proto_enumTypes[3]
+}
+
+func (x ResourceType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ResourceType.Descriptor instead.
+func (ResourceType) EnumDescriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{3}
+}
+
+// Building level in config
+type BuildingLevel struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          BuildingType           `protobuf:"varint,1,opt,name=type,proto3,enum=config.BuildingType" json:"type,omitempty"`
+	Level         int32                  `protobuf:"varint,2,opt,name=level,proto3" json:"level,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BuildingLevel) Reset() {
+	*x = BuildingLevel{}
+	mi := &file_proto_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuildingLevel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuildingLevel) ProtoMessage() {}
+
+func (x *BuildingLevel) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_config_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuildingLevel.ProtoReflect.Descriptor instead.
+func (*BuildingLevel) Descriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *BuildingLevel) GetType() BuildingType {
+	if x != nil {
+		return x.Type
+	}
+	return BuildingType_BUILDING_UNKNOWN
+}
+
+func (x *BuildingLevel) GetLevel() int32 {
+	if x != nil {
+		return x.Level
+	}
+	return 0
+}
+
+// Resource amount
+type Resource struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          ResourceType           `protobuf:"varint,1,opt,name=type,proto3,enum=config.ResourceType" json:"type,omitempty"`
+	Amount        float64                `protobuf:"fixed64,2,opt,name=amount,proto3" json:"amount,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Resource) Reset() {
+	*x = Resource{}
+	mi := &file_proto_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Resource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Resource) ProtoMessage() {}
+
+func (x *Resource) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_config_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Resource.ProtoReflect.Descriptor instead.
+func (*Resource) Descriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Resource) GetType() ResourceType {
+	if x != nil {
+		return x.Type
+	}
+	return ResourceType_RESOURCE_UNKNOWN
+}
+
+func (x *Resource) GetAmount() float64 {
+	if x != nil {
+		return x.Amount
+	}
+	return 0
+}
+
+// Unit count
+type UnitCount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          UnitType               `protobuf:"varint,1,opt,name=type,proto3,enum=config.UnitType" json:"type,omitempty"`
+	Count         int32                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnitCount) Reset() {
+	*x = UnitCount{}
+	mi := &file_proto_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnitCount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnitCount) ProtoMessage() {}
+
+func (x *UnitCount) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_config_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnitCount.ProtoReflect.Descriptor instead.
+func (*UnitCount) Descriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *UnitCount) GetType() UnitType {
+	if x != nil {
+		return x.Type
+	}
+	return UnitType_UNIT_UNKNOWN
+}
+
+func (x *UnitCount) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
 // CastleConfig represents input configuration for castle solver
 type CastleConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Current building levels (ALL buildings must be specified)
-	BuildingLevels map[string]int32 `protobuf:"bytes,1,rep,name=building_levels,json=buildingLevels,proto3" json:"building_levels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	BuildingLevels []*BuildingLevel `protobuf:"bytes,1,rep,name=building_levels,json=buildingLevels,proto3" json:"building_levels,omitempty"`
 	// Current resources
-	Resources map[string]float64 `protobuf:"bytes,2,rep,name=resources,proto3" json:"resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed64,2,opt,name=value"`
+	Resources []*Resource `protobuf:"bytes,2,rep,name=resources,proto3" json:"resources,omitempty"`
 	// Already researched technologies
-	ResearchedTechnologies []string `protobuf:"bytes,3,rep,name=researched_technologies,json=researchedTechnologies,proto3" json:"researched_technologies,omitempty"`
+	ResearchedTechnologies []Technology `protobuf:"varint,3,rep,packed,name=researched_technologies,json=researchedTechnologies,proto3,enum=config.Technology" json:"researched_technologies,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CastleConfig) Reset() {
 	*x = CastleConfig{}
-	mi := &file_proto_config_proto_msgTypes[0]
+	mi := &file_proto_config_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -48,7 +482,7 @@ func (x *CastleConfig) String() string {
 func (*CastleConfig) ProtoMessage() {}
 
 func (x *CastleConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[0]
+	mi := &file_proto_config_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -61,24 +495,24 @@ func (x *CastleConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CastleConfig.ProtoReflect.Descriptor instead.
 func (*CastleConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{0}
+	return file_proto_config_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *CastleConfig) GetBuildingLevels() map[string]int32 {
+func (x *CastleConfig) GetBuildingLevels() []*BuildingLevel {
 	if x != nil {
 		return x.BuildingLevels
 	}
 	return nil
 }
 
-func (x *CastleConfig) GetResources() map[string]float64 {
+func (x *CastleConfig) GetResources() []*Resource {
 	if x != nil {
 		return x.Resources
 	}
 	return nil
 }
 
-func (x *CastleConfig) GetResearchedTechnologies() []string {
+func (x *CastleConfig) GetResearchedTechnologies() []Technology {
 	if x != nil {
 		return x.ResearchedTechnologies
 	}
@@ -95,14 +529,14 @@ type UnitsConfig struct {
 	// Market distance in fields (default: 25)
 	MarketDistanceFields int32 `protobuf:"varint,3,opt,name=market_distance_fields,json=marketDistanceFields,proto3" json:"market_distance_fields,omitempty"`
 	// Existing units (optional)
-	ExistingUnits map[string]int32 `protobuf:"bytes,4,rep,name=existing_units,json=existingUnits,proto3" json:"existing_units,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	ExistingUnits []*UnitCount `protobuf:"bytes,4,rep,name=existing_units,json=existingUnits,proto3" json:"existing_units,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UnitsConfig) Reset() {
 	*x = UnitsConfig{}
-	mi := &file_proto_config_proto_msgTypes[1]
+	mi := &file_proto_config_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -114,7 +548,7 @@ func (x *UnitsConfig) String() string {
 func (*UnitsConfig) ProtoMessage() {}
 
 func (x *UnitsConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[1]
+	mi := &file_proto_config_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -127,7 +561,7 @@ func (x *UnitsConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnitsConfig.ProtoReflect.Descriptor instead.
 func (*UnitsConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{1}
+	return file_proto_config_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UnitsConfig) GetFoodAvailable() int32 {
@@ -151,7 +585,7 @@ func (x *UnitsConfig) GetMarketDistanceFields() int32 {
 	return 0
 }
 
-func (x *UnitsConfig) GetExistingUnits() map[string]int32 {
+func (x *UnitsConfig) GetExistingUnits() []*UnitCount {
 	if x != nil {
 		return x.ExistingUnits
 	}
@@ -162,25 +596,77 @@ var File_proto_config_proto protoreflect.FileDescriptor
 
 const file_proto_config_proto_rawDesc = "" +
 	"\n" +
-	"\x12proto/config.proto\x12\x06config\"\xde\x02\n" +
-	"\fCastleConfig\x12Q\n" +
-	"\x0fbuilding_levels\x18\x01 \x03(\v2(.config.CastleConfig.BuildingLevelsEntryR\x0ebuildingLevels\x12A\n" +
-	"\tresources\x18\x02 \x03(\v2#.config.CastleConfig.ResourcesEntryR\tresources\x127\n" +
-	"\x17researched_technologies\x18\x03 \x03(\tR\x16researchedTechnologies\x1aA\n" +
-	"\x13BuildingLevelsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\x1a<\n" +
-	"\x0eResourcesEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x01R\x05value:\x028\x01\"\xbc\x02\n" +
+	"\x12proto/config.proto\x12\x06config\"O\n" +
+	"\rBuildingLevel\x12(\n" +
+	"\x04type\x18\x01 \x01(\x0e2\x14.config.BuildingTypeR\x04type\x12\x14\n" +
+	"\x05level\x18\x02 \x01(\x05R\x05level\"L\n" +
+	"\bResource\x12(\n" +
+	"\x04type\x18\x01 \x01(\x0e2\x14.config.ResourceTypeR\x04type\x12\x16\n" +
+	"\x06amount\x18\x02 \x01(\x01R\x06amount\"G\n" +
+	"\tUnitCount\x12$\n" +
+	"\x04type\x18\x01 \x01(\x0e2\x10.config.UnitTypeR\x04type\x12\x14\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\"\xcb\x01\n" +
+	"\fCastleConfig\x12>\n" +
+	"\x0fbuilding_levels\x18\x01 \x03(\v2\x15.config.BuildingLevelR\x0ebuildingLevels\x12.\n" +
+	"\tresources\x18\x02 \x03(\v2\x10.config.ResourceR\tresources\x12K\n" +
+	"\x17researched_technologies\x18\x03 \x03(\x0e2\x12.config.TechnologyR\x16researchedTechnologies\"\xe5\x01\n" +
 	"\vUnitsConfig\x12%\n" +
 	"\x0efood_available\x18\x01 \x01(\x05R\rfoodAvailable\x12?\n" +
 	"\x1cresource_production_per_hour\x18\x02 \x01(\x05R\x19resourceProductionPerHour\x124\n" +
-	"\x16market_distance_fields\x18\x03 \x01(\x05R\x14marketDistanceFields\x12M\n" +
-	"\x0eexisting_units\x18\x04 \x03(\v2&.config.UnitsConfig.ExistingUnitsEntryR\rexistingUnits\x1a@\n" +
-	"\x12ExistingUnitsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01B(Z&github.com/napolitain/solver-lnk/protob\x06proto3"
+	"\x16market_distance_fields\x18\x03 \x01(\x05R\x14marketDistanceFields\x128\n" +
+	"\x0eexisting_units\x18\x04 \x03(\v2\x11.config.UnitCountR\rexistingUnits*\xd8\x01\n" +
+	"\fBuildingType\x12\x14\n" +
+	"\x10BUILDING_UNKNOWN\x10\x00\x12\x0e\n" +
+	"\n" +
+	"LUMBERJACK\x10\x01\x12\n" +
+	"\n" +
+	"\x06QUARRY\x10\x02\x12\f\n" +
+	"\bORE_MINE\x10\x03\x12\b\n" +
+	"\x04FARM\x10\x04\x12\x0e\n" +
+	"\n" +
+	"WOOD_STORE\x10\x05\x12\x0f\n" +
+	"\vSTONE_STORE\x10\x06\x12\r\n" +
+	"\tORE_STORE\x10\a\x12\b\n" +
+	"\x04KEEP\x10\b\x12\v\n" +
+	"\aARSENAL\x10\t\x12\v\n" +
+	"\aLIBRARY\x10\n" +
+	"\x12\n" +
+	"\n" +
+	"\x06TAVERN\x10\v\x12\n" +
+	"\n" +
+	"\x06MARKET\x10\f\x12\x12\n" +
+	"\x0eFORTIFICATIONS\x10\r*\x9b\x01\n" +
+	"\n" +
+	"Technology\x12\x10\n" +
+	"\fTECH_UNKNOWN\x10\x00\x12\v\n" +
+	"\aLONGBOW\x10\x01\x12\x11\n" +
+	"\rCROP_ROTATION\x10\x02\x12\b\n" +
+	"\x04YOKE\x10\x03\x12\x14\n" +
+	"\x10CELLAR_STOREROOM\x10\x04\x12\v\n" +
+	"\aSTIRRUP\x10\x05\x12\f\n" +
+	"\bCROSSBOW\x10\x06\x12\x0e\n" +
+	"\n" +
+	"SWORDSMITH\x10\a\x12\x10\n" +
+	"\fHORSE_ARMOUR\x10\b*\x8a\x01\n" +
+	"\bUnitType\x12\x10\n" +
+	"\fUNIT_UNKNOWN\x10\x00\x12\f\n" +
+	"\bSPEARMAN\x10\x01\x12\r\n" +
+	"\tSWORDSMAN\x10\x02\x12\n" +
+	"\n" +
+	"\x06ARCHER\x10\x03\x12\x0f\n" +
+	"\vCROSSBOWMAN\x10\x04\x12\f\n" +
+	"\bHORSEMAN\x10\x05\x12\n" +
+	"\n" +
+	"\x06LANCER\x10\x06\x12\f\n" +
+	"\bHANDCART\x10\a\x12\n" +
+	"\n" +
+	"\x06OXCART\x10\b*M\n" +
+	"\fResourceType\x12\x14\n" +
+	"\x10RESOURCE_UNKNOWN\x10\x00\x12\b\n" +
+	"\x04WOOD\x10\x01\x12\t\n" +
+	"\x05STONE\x10\x02\x12\b\n" +
+	"\x04IRON\x10\x03\x12\b\n" +
+	"\x04FOOD\x10\x04B(Z&github.com/napolitain/solver-lnk/protob\x06proto3"
 
 var (
 	file_proto_config_proto_rawDescOnce sync.Once
@@ -194,23 +680,32 @@ func file_proto_config_proto_rawDescGZIP() []byte {
 	return file_proto_config_proto_rawDescData
 }
 
+var file_proto_config_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_proto_config_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_proto_config_proto_goTypes = []any{
-	(*CastleConfig)(nil), // 0: config.CastleConfig
-	(*UnitsConfig)(nil),  // 1: config.UnitsConfig
-	nil,                  // 2: config.CastleConfig.BuildingLevelsEntry
-	nil,                  // 3: config.CastleConfig.ResourcesEntry
-	nil,                  // 4: config.UnitsConfig.ExistingUnitsEntry
+	(BuildingType)(0),     // 0: config.BuildingType
+	(Technology)(0),       // 1: config.Technology
+	(UnitType)(0),         // 2: config.UnitType
+	(ResourceType)(0),     // 3: config.ResourceType
+	(*BuildingLevel)(nil), // 4: config.BuildingLevel
+	(*Resource)(nil),      // 5: config.Resource
+	(*UnitCount)(nil),     // 6: config.UnitCount
+	(*CastleConfig)(nil),  // 7: config.CastleConfig
+	(*UnitsConfig)(nil),   // 8: config.UnitsConfig
 }
 var file_proto_config_proto_depIdxs = []int32{
-	2, // 0: config.CastleConfig.building_levels:type_name -> config.CastleConfig.BuildingLevelsEntry
-	3, // 1: config.CastleConfig.resources:type_name -> config.CastleConfig.ResourcesEntry
-	4, // 2: config.UnitsConfig.existing_units:type_name -> config.UnitsConfig.ExistingUnitsEntry
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0, // 0: config.BuildingLevel.type:type_name -> config.BuildingType
+	3, // 1: config.Resource.type:type_name -> config.ResourceType
+	2, // 2: config.UnitCount.type:type_name -> config.UnitType
+	4, // 3: config.CastleConfig.building_levels:type_name -> config.BuildingLevel
+	5, // 4: config.CastleConfig.resources:type_name -> config.Resource
+	1, // 5: config.CastleConfig.researched_technologies:type_name -> config.Technology
+	6, // 6: config.UnitsConfig.existing_units:type_name -> config.UnitCount
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_proto_config_proto_init() }
@@ -223,13 +718,14 @@ func file_proto_config_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_config_proto_rawDesc), len(file_proto_config_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      4,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_proto_config_proto_goTypes,
 		DependencyIndexes: file_proto_config_proto_depIdxs,
+		EnumInfos:         file_proto_config_proto_enumTypes,
 		MessageInfos:      file_proto_config_proto_msgTypes,
 	}.Build()
 	File_proto_config_proto = out.File
