@@ -38,7 +38,7 @@ func runSolver(cmd *cobra.Command, args []string) {
 
 	// Print constants
 	fmt.Println("📊 Castle Status (Maxed):")
-	fmt.Printf("   Food capacity: %d (Farm 30)\n", units.MaxFoodCapacity)
+	fmt.Printf("   Food for units: %d (5000 - 735 used by buildings)\n", units.MaxFoodCapacity)
 	fmt.Printf("   Resource production: %d/hour (LJ30 + Q30 + OM30)\n", units.ResourceProductionPerHour)
 	fmt.Printf("   Market distance: %d fields (Keep 10)\n", units.MarketDistanceFields)
 	fmt.Printf("   Exchange rate: 50 resources = 1 silver\n")
