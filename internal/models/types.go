@@ -56,11 +56,11 @@ type BuildingLevel struct {
 
 // Building represents a building with all its levels
 type Building struct {
-	Type                   BuildingType
-	MaxLevel               int
-	Levels                 map[int]*BuildingLevel
-	Prerequisites          map[int]map[BuildingType]int // level -> {building: min_level}
-	TechnologyPrerequisites map[int]string              // level -> technology_name
+	Type                    BuildingType
+	MaxLevel                int
+	Levels                  map[int]*BuildingLevel
+	Prerequisites           map[int]map[BuildingType]int // level -> {building: min_level}
+	TechnologyPrerequisites map[int]string               // level -> technology_name
 }
 
 // GetLevelData returns the level data for a specific level
@@ -73,13 +73,13 @@ func (b *Building) GetLevelData(level int) *BuildingLevel {
 
 // Technology represents a researchable technology
 type Technology struct {
-	Name                  string
-	InternalName          string
-	RequiredLibraryLevel  int
-	Costs                 Costs
-	ResearchTimeSeconds   int
-	EnablesBuilding       string
-	EnablesLevel          int
+	Name                 string
+	InternalName         string
+	RequiredLibraryLevel int
+	Costs                Costs
+	ResearchTimeSeconds  int
+	EnablesBuilding      string
+	EnablesLevel         int
 }
 
 // GameState represents the current game state

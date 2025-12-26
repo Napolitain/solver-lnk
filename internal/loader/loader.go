@@ -15,8 +15,8 @@ import (
 
 // BuildingJSON represents the JSON structure for buildings
 type BuildingJSON struct {
-	BuildingType string                      `json:"building_type"`
-	MaxLevel     int                         `json:"max_level"`
+	BuildingType string                       `json:"building_type"`
+	MaxLevel     int                          `json:"max_level"`
 	Levels       map[string]BuildingLevelJSON `json:"levels"`
 }
 
@@ -46,10 +46,10 @@ func LoadBuildings(dataDir string) (map[models.BuildingType]*models.Building, er
 	for name, raw := range rawBuildings {
 		bType := models.BuildingType(name)
 		building := &models.Building{
-			Type:                   bType,
-			MaxLevel:               raw.MaxLevel,
-			Levels:                 make(map[int]*models.BuildingLevel),
-			Prerequisites:          make(map[int]map[models.BuildingType]int),
+			Type:                    bType,
+			MaxLevel:                raw.MaxLevel,
+			Levels:                  make(map[int]*models.BuildingLevel),
+			Prerequisites:           make(map[int]map[models.BuildingType]int),
 			TechnologyPrerequisites: make(map[int]string),
 		}
 
