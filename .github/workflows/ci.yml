@@ -21,7 +21,7 @@ jobs:
         run: go mod download
 
       - name: Build
-        run: go build -v ./cmd/solver
+        run: go build -v ./cmd/castle
 
       - name: Run tests with coverage
         run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
