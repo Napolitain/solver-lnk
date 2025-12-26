@@ -51,7 +51,11 @@ func runSolver(cmd *cobra.Command, args []string) {
 			color.Red("Error loading config: %v", err)
 			os.Exit(1)
 		}
-		solver = units.NewSolverWithConfig(config)
+		solver = units.NewSolverWithConfig(
+			config.FoodAvailable,
+			config.ResourceProductionPerHour,
+			config.MarketDistanceFields,
+		)
 		infoColor.Printf("📄 Loaded config from %s\n\n", configFile)
 	} else {
 		solver = units.NewSolver()

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package config;
+
+option go_package = "github.com/napolitain/solver-lnk/proto";
+
+// CastleConfig represents input configuration for castle solver
+message CastleConfig {
+  // Current building levels (ALL buildings must be specified)
+  map<string, int32> building_levels = 1;
+
+  // Current resources
+  map<string, double> resources = 2;
+
+  // Already researched technologies
+  repeated string researched_technologies = 3;
+}
+
+// UnitsConfig represents input configuration for units solver
+message UnitsConfig {
+  // Available food for units (default: 4265)
+  int32 food_available = 1;
+
+  // Resource production per hour (default: 1161)
+  int32 resource_production_per_hour = 2;
+
+  // Market distance in fields (default: 25)
+  int32 market_distance_fields = 3;
+
+  // Existing units (optional)
+  map<string, int32> existing_units = 4;
+}
