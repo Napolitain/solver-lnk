@@ -255,6 +255,8 @@ func (s *GreedySolver) Solve() *models.Solution {
 			StartTime:    startTime * 60,
 			EndTime:      state.TimeMinutes * 60,
 			Costs:        costs,
+			FoodUsed:     state.FoodUsed,
+			FoodCapacity: state.FoodCapacity,
 		})
 
 		// Remove from queue if target reached

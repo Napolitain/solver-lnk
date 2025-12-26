@@ -165,25 +165,29 @@ func printInitialState(state *models.GameState, targets map[models.BuildingType]
 func printBuildOrder(solution *models.Solution) {
 	// Merge and sort all actions
 	type action struct {
-		isBuilding bool
-		startTime  int
-		endTime    int
-		name       string
-		fromLevel  int
-		toLevel    int
-		costs      models.Costs
+		isBuilding   bool
+		startTime    int
+		endTime      int
+		name         string
+		fromLevel    int
+		toLevel      int
+		costs        models.Costs
+		foodUsed     int
+		foodCapacity int
 	}
 
 	var allActions []action
 	for _, a := range solution.BuildingActions {
 		allActions = append(allActions, action{
-			isBuilding: true,
-			startTime:  a.StartTime,
-			endTime:    a.EndTime,
-			name:       string(a.BuildingType),
-			fromLevel:  a.FromLevel,
-			toLevel:    a.ToLevel,
-			costs:      a.Costs,
+			isBuilding:   true,
+			startTime:    a.StartTime,
+			endTime:      a.EndTime,
+			name:         string(a.BuildingType),
+			fromLevel:    a.FromLevel,
+			toLevel:      a.ToLevel,
+			costs:        a.Costs,
+			foodUsed:     a.FoodUsed,
+			foodCapacity: a.FoodCapacity,
 		})
 	}
 	for _, a := range solution.ResearchActions {
@@ -202,16 +206,19 @@ func printBuildOrder(solution *models.Solution) {
 
 	// Create table with new API
 	table := tablewriter.NewTable(os.Stdout,
-		tablewriter.WithHeader([]string{"#", "Queue", "Action", "Upgrade", "Start", "End", "Duration", "Costs"}),
+		tablewriter.WithHeader([]string{"#", "Queue", "Action", "Upgrade", "Start", "End", "Duration", "Costs", "Food"}),
 	)
 
 	// Add rows
 	for i, a := range allActions {
 		queueType := "🏗️ Building"
 		upgradeStr := fmt.Sprintf("%d → %d", a.fromLevel, a.toLevel)
+		foodStr := fmt.Sprintf("%d/%d", a.foodUsed, a.foodCapacity)
 		if !a.isBuilding {
-			queueType = "📚 Research"
+			queueType := "📚 Research"
 			upgradeStr = ""
+			foodStr = ""
+			_ = queueType
 		}
 
 		duration := a.endTime - a.startTime
@@ -226,6 +233,7 @@ func printBuildOrder(solution *models.Solution) {
 			formatTime(a.endTime),
 			formatTime(duration),
 			formatCosts(a.costs),
+			foodStr,
 		}
 		table.Append(row)
 	}
@@ -242,6 +250,14 @@ func printSummary(solution *models.Solution, targets map[models.BuildingType]int
 
 	fmt.Printf("\n⏱️  Total completion time: %s (%.1f hours = %.1f days)\n",
 		formatTime(solution.TotalTimeSeconds), totalHours, totalDays)
+
+	// Show final food status
+	if len(solution.BuildingActions) > 0 {
+		lastAction := solution.BuildingActions[len(solution.BuildingActions)-1]
+		remaining := lastAction.FoodCapacity - lastAction.FoodUsed
+		fmt.Printf("\n🍞 Food: %d/%d used (%d remaining for units)\n",
+			lastAction.FoodUsed, lastAction.FoodCapacity, remaining)
+	}
 
 	// Verify targets
 	fmt.Println("\n📋 Target verification:")

@@ -106,6 +106,8 @@ type BuildingUpgradeAction struct {
 	StartTime    int // seconds
 	EndTime      int // seconds
 	Costs        Costs
+	FoodUsed     int // Total food used after this action
+	FoodCapacity int // Food capacity after this action
 }
 
 // ResearchAction represents a technology research action
