@@ -7,11 +7,11 @@ import (
 
 // Constants for maxed castle
 const (
-	MaxFoodCapacity       = 15223         // Farm level 30
-	ResourceProductionPerHour = 1161      // 387 + 387 + 387 (LJ30 + Q30 + OM30)
-	MarketDistanceFields  = 25            // Keep level 10
-	RoundTripFields       = 50            // 2 × 25
-	SilverPerResource     = 0.02          // 1:50 exchange rate
+	MaxFoodCapacity           = 5000  // Farm level 30 (subjects)
+	ResourceProductionPerHour = 1161  // 387 + 387 + 387 (LJ30 + Q30 + OM30)
+	MarketDistanceFields      = 25    // Keep level 10
+	RoundTripFields           = 50    // 2 × 25
+	SilverPerResource         = 0.02  // 1:50 exchange rate
 )
 
 // Solution represents an army composition
