@@ -8,8 +8,11 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
+	"github.com/napolitain/solver-lnk/internal/models"
 	"github.com/napolitain/solver-lnk/internal/units"
 )
+
+var configFile string
 
 func main() {
 	rootCmd := &cobra.Command{
@@ -20,6 +23,8 @@ sufficient trading capacity to convert all resource production to silver.`,
 		Run: runSolver,
 	}
 
+	rootCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to JSON config file")
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -29,6 +34,7 @@ sufficient trading capacity to convert all resource production to silver.`,
 func runSolver(cmd *cobra.Command, args []string) {
 	titleColor := color.New(color.FgCyan, color.Bold)
 	successColor := color.New(color.FgGreen, color.Bold)
+	infoColor := color.New(color.FgYellow)
 
 	titleColor.Println("\n╭───────────────────────────╮")
 	titleColor.Println("│  Lords and Knights        │")
@@ -36,35 +42,49 @@ func runSolver(cmd *cobra.Command, args []string) {
 	titleColor.Println("╰───────────────────────────╯")
 	fmt.Println()
 
+	// Load config or use defaults
+	var solver *units.Solver
+
+	if configFile != "" {
+		config, err := models.LoadUnitsConfig(configFile)
+		if err != nil {
+			color.Red("Error loading config: %v", err)
+			os.Exit(1)
+		}
+		solver = units.NewSolverWithConfig(config)
+		infoColor.Printf("📄 Loaded config from %s\n\n", configFile)
+	} else {
+		solver = units.NewSolver()
+	}
+
 	// Print constants
-	fmt.Println("📊 Castle Status (Maxed):")
-	fmt.Printf("   Food for units: %d (5000 - 735 used by buildings)\n", units.MaxFoodCapacity)
-	fmt.Printf("   Resource production: %d/hour (LJ30 + Q30 + OM30)\n", units.ResourceProductionPerHour)
-	fmt.Printf("   Market distance: %d fields (Keep 10)\n", units.MarketDistanceFields)
+	fmt.Println("📊 Castle Status:")
+	fmt.Printf("   Food for units: %d\n", solver.FoodCapacity)
+	fmt.Printf("   Resource production: %.0f/hour\n", solver.RequiredThroughput)
+	fmt.Printf("   Market distance: %d fields\n", solver.RoundTripFields/2)
 	fmt.Printf("   Exchange rate: 50 resources = 1 silver\n")
 	fmt.Println()
 
 	// Show unit stats
 	fmt.Println("📋 Available Units:")
-	printUnitStats()
+	printUnitStats(solver)
 
 	// Solve
 	fmt.Println("\n🔄 Optimizing army composition...")
-	solver := units.NewSolver()
 	solution := solver.Solve()
 
 	// Print results
 	successColor.Println("\n✓ Optimal composition found!")
-	printSolution(solution)
+	printSolution(solution, solver)
 }
 
-func printUnitStats() {
+func printUnitStats(solver *units.Solver) {
 	table := tablewriter.NewTable(os.Stdout,
 		tablewriter.WithHeader([]string{"Unit", "Food", "Speed", "Capacity", "Throughput/h", "Def Cav", "Def Inf", "Def Art", "Total Def"}),
 	)
 
 	for _, u := range units.AllUnits() {
-		throughput := u.ThroughputPerHour(units.RoundTripFields)
+		throughput := u.ThroughputPerHour(solver.RoundTripFields)
 		row := []string{
 			u.Name,
 			fmt.Sprintf("%d", u.FoodCost),
@@ -81,9 +101,9 @@ func printUnitStats() {
 	table.Render()
 }
 
-func printSolution(solution *units.Solution) {
+func printSolution(solution *units.Solution, solver *units.Solver) {
 	fmt.Println("\n📦 Army Composition:")
-	
+
 	table := tablewriter.NewTable(os.Stdout,
 		tablewriter.WithHeader([]string{"Unit", "Count", "Food Used", "Throughput/h", "Def Cav", "Def Inf", "Def Art"}),
 	)
@@ -91,7 +111,7 @@ func printSolution(solution *units.Solution) {
 	for _, u := range units.AllUnits() {
 		count := solution.UnitCounts[u.Name]
 		if count > 0 {
-			throughput := float64(count) * u.ThroughputPerHour(units.RoundTripFields)
+			throughput := float64(count) * u.ThroughputPerHour(solver.RoundTripFields)
 			row := []string{
 				u.Name,
 				fmt.Sprintf("%d", count),
@@ -107,10 +127,10 @@ func printSolution(solution *units.Solution) {
 	table.Render()
 
 	fmt.Println("\n📊 Summary:")
-	fmt.Printf("   Total food used: %d / %d\n", solution.TotalFood, units.MaxFoodCapacity)
-	fmt.Printf("   Trading throughput: %.0f / %d resources/hour\n", 
-		solution.TotalThroughput, units.ResourceProductionPerHour)
-	fmt.Printf("   Silver income: %.2f/hour (%.1f/day)\n", 
+	fmt.Printf("   Total food used: %d / %d\n", solution.TotalFood, solver.FoodCapacity)
+	fmt.Printf("   Trading throughput: %.0f / %.0f resources/hour\n",
+		solution.TotalThroughput, solver.RequiredThroughput)
+	fmt.Printf("   Silver income: %.2f/hour (%.1f/day)\n",
 		solution.SilverPerHour, solution.SilverPerHour*24)
 
 	fmt.Println("\n🛡️  Defense Totals:")

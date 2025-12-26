@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	dataDir string
-	quiet   bool
+	dataDir    string
+	configFile string
+	quiet      bool
 )
 
 func main() {
@@ -30,6 +31,7 @@ for Lords and Knights castle development.`,
 	}
 
 	rootCmd.Flags().StringVarP(&dataDir, "data", "d", "data", "Path to data directory")
+	rootCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to JSON config file")
 	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Minimal output")
 
 	if err := rootCmd.Execute(); err != nil {
@@ -71,32 +73,49 @@ func runSolver(cmd *cobra.Command, args []string) {
 		infoColor.Printf("📦 Loaded %d buildings, %d technologies\n\n", len(buildings), len(technologies))
 	}
 
-	// Define initial state
-	initialState := models.NewGameState()
-	initialState.Resources[models.Wood] = 120
-	initialState.Resources[models.Stone] = 120
-	initialState.Resources[models.Iron] = 120
-	initialState.Resources[models.Food] = 40
+	// Load config or use defaults
+	var initialState *models.GameState
+	var targetLevels map[models.BuildingType]int
 
-	for _, bt := range models.AllBuildingTypes() {
-		initialState.BuildingLevels[bt] = 1
-	}
+	if configFile != "" {
+		config, err := models.LoadCastleConfig(configFile)
+		if err != nil {
+			color.Red("Error loading config: %v", err)
+			os.Exit(1)
+		}
+		initialState = config.ToGameState()
+		targetLevels = config.GetTargetLevels()
+		if !quiet {
+			infoColor.Printf("📄 Loaded config from %s\n\n", configFile)
+		}
+	} else {
+		// Default initial state
+		initialState = models.NewGameState()
+		initialState.Resources[models.Wood] = 120
+		initialState.Resources[models.Stone] = 120
+		initialState.Resources[models.Iron] = 120
+		initialState.Resources[models.Food] = 40
 
-	// Define targets
-	targetLevels := map[models.BuildingType]int{
-		models.Lumberjack:     30,
-		models.Quarry:         30,
-		models.OreMine:        30,
-		models.Farm:           30,
-		models.WoodStore:      20,
-		models.StoneStore:     20,
-		models.OreStore:       20,
-		models.Keep:           10,
-		models.Arsenal:        30,
-		models.Library:        10,
-		models.Tavern:         10,
-		models.Market:         8,
-		models.Fortifications: 20,
+		for _, bt := range models.AllBuildingTypes() {
+			initialState.BuildingLevels[bt] = 1
+		}
+
+		// Default targets
+		targetLevels = map[models.BuildingType]int{
+			models.Lumberjack:     30,
+			models.Quarry:         30,
+			models.OreMine:        30,
+			models.Farm:           30,
+			models.WoodStore:      20,
+			models.StoneStore:     20,
+			models.OreStore:       20,
+			models.Keep:           10,
+			models.Arsenal:        30,
+			models.Library:        10,
+			models.Tavern:         10,
+			models.Market:         8,
+			models.Fortifications: 20,
+		}
 	}
 
 	if !quiet {
