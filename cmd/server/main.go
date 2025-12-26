@@ -185,6 +185,40 @@ func buildingActionToProto(action models.BuildingUpgradeAction) *pb.BuildingActi
 	}
 }
 
+// techNameToProto converts technology name string to proto Technology enum
+func techNameToProto(name string) pb.Technology {
+	switch name {
+	case "longbow":
+		return pb.Technology_LONGBOW
+	case "crop_rotation":
+		return pb.Technology_CROP_ROTATION
+	case "yoke":
+		return pb.Technology_YOKE
+	case "cellar_storeroom":
+		return pb.Technology_CELLAR_STOREROOM
+	case "stirrup":
+		return pb.Technology_STIRRUP
+	case "crossbow":
+		return pb.Technology_CROSSBOW
+	case "swordsmith":
+		return pb.Technology_SWORDSMITH
+	case "horse_armour":
+		return pb.Technology_HORSE_ARMOUR
+	default:
+		return pb.Technology_TECH_UNKNOWN
+	}
+}
+
+// researchActionToProto converts model ResearchAction to proto ResearchAction
+func researchActionToProto(action models.ResearchAction) *pb.ResearchAction {
+	return &pb.ResearchAction{
+		Technology:       techNameToProto(action.TechnologyName),
+		StartTimeSeconds: int32(action.StartTime),
+		EndTimeSeconds:   int32(action.EndTime),
+		Costs:            costsToProtoResources(action.Costs),
+	}
+}
+
 // Solve implements the Solve RPC
 func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResponse, error) {
 	log.Printf("Received Solve request")
@@ -226,12 +260,23 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 		response.BuildingActions = append(response.BuildingActions, buildingActionToProto(action))
 	}
 
+	// Add research actions
+	for _, action := range solution.ResearchActions {
+		response.ResearchActions = append(response.ResearchActions, researchActionToProto(action))
+	}
+
 	// Set next action (first in list)
 	if len(solution.BuildingActions) > 0 {
 		response.NextAction = buildingActionToProto(solution.BuildingActions[0])
 	}
 
-	log.Printf("Returning solution with %d actions, strategy: %s", len(response.BuildingActions), response.Strategy)
+	// Set next research action (first in list)
+	if len(solution.ResearchActions) > 0 {
+		response.NextResearchAction = researchActionToProto(solution.ResearchActions[0])
+	}
+
+	log.Printf("Returning solution with %d building actions, %d research actions, strategy: %s",
+		len(response.BuildingActions), len(response.ResearchActions), response.Strategy)
 	return response, nil
 }
 
