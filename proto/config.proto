@@ -4,16 +4,87 @@ package config;
 
 option go_package = "github.com/napolitain/solver-lnk/proto";
 
+// Building types enum
+enum BuildingType {
+  BUILDING_UNKNOWN = 0;
+  LUMBERJACK = 1;
+  QUARRY = 2;
+  ORE_MINE = 3;
+  FARM = 4;
+  WOOD_STORE = 5;
+  STONE_STORE = 6;
+  ORE_STORE = 7;
+  KEEP = 8;
+  ARSENAL = 9;
+  LIBRARY = 10;
+  TAVERN = 11;
+  MARKET = 12;
+  FORTIFICATIONS = 13;
+}
+
+// Technology types enum
+enum Technology {
+  TECH_UNKNOWN = 0;
+  LONGBOW = 1;
+  CROP_ROTATION = 2;
+  YOKE = 3;
+  CELLAR_STOREROOM = 4;
+  STIRRUP = 5;
+  CROSSBOW = 6;
+  SWORDSMITH = 7;
+  HORSE_ARMOUR = 8;
+}
+
+// Unit types enum
+enum UnitType {
+  UNIT_UNKNOWN = 0;
+  SPEARMAN = 1;
+  SWORDSMAN = 2;
+  ARCHER = 3;
+  CROSSBOWMAN = 4;
+  HORSEMAN = 5;
+  LANCER = 6;
+  HANDCART = 7;
+  OXCART = 8;
+}
+
+// Resource types enum
+enum ResourceType {
+  RESOURCE_UNKNOWN = 0;
+  WOOD = 1;
+  STONE = 2;
+  IRON = 3;
+  FOOD = 4;
+}
+
+// Building level in config
+message BuildingLevel {
+  BuildingType type = 1;
+  int32 level = 2;
+}
+
+// Resource amount
+message Resource {
+  ResourceType type = 1;
+  double amount = 2;
+}
+
+// Unit count
+message UnitCount {
+  UnitType type = 1;
+  int32 count = 2;
+}
+
 // CastleConfig represents input configuration for castle solver
 message CastleConfig {
   // Current building levels (ALL buildings must be specified)
-  map<string, int32> building_levels = 1;
+  repeated BuildingLevel building_levels = 1;
 
   // Current resources
-  map<string, double> resources = 2;
+  repeated Resource resources = 2;
 
   // Already researched technologies
-  repeated string researched_technologies = 3;
+  repeated Technology researched_technologies = 3;
 }
 
 // UnitsConfig represents input configuration for units solver
@@ -28,5 +99,5 @@ message UnitsConfig {
   int32 market_distance_fields = 3;
 
   // Existing units (optional)
-  map<string, int32> existing_units = 4;
+  repeated UnitCount existing_units = 4;
 }

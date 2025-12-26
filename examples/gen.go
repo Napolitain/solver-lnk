@@ -13,27 +13,27 @@ import (
 func main() {
 	// Castle midgame example
 	castle := &pb.CastleConfig{
-		BuildingLevels: map[string]int32{
-			"lumberjack":     15,
-			"quarry":         12,
-			"ore_mine":       10,
-			"farm":           8,
-			"wood_store":     1,
-			"stone_store":    1,
-			"ore_store":      1,
-			"keep":           1,
-			"arsenal":        1,
-			"library":        1,
-			"tavern":         1,
-			"market":         1,
-			"fortifications": 1,
+		BuildingLevels: []*pb.BuildingLevel{
+			{Type: pb.BuildingType_LUMBERJACK, Level: 15},
+			{Type: pb.BuildingType_QUARRY, Level: 12},
+			{Type: pb.BuildingType_ORE_MINE, Level: 10},
+			{Type: pb.BuildingType_FARM, Level: 8},
+			{Type: pb.BuildingType_WOOD_STORE, Level: 1},
+			{Type: pb.BuildingType_STONE_STORE, Level: 1},
+			{Type: pb.BuildingType_ORE_STORE, Level: 1},
+			{Type: pb.BuildingType_KEEP, Level: 1},
+			{Type: pb.BuildingType_ARSENAL, Level: 1},
+			{Type: pb.BuildingType_LIBRARY, Level: 1},
+			{Type: pb.BuildingType_TAVERN, Level: 1},
+			{Type: pb.BuildingType_MARKET, Level: 1},
+			{Type: pb.BuildingType_FORTIFICATIONS, Level: 1},
 		},
-		Resources: map[string]float64{
-			"wood":  500,
-			"stone": 400,
-			"iron":  300,
+		Resources: []*pb.Resource{
+			{Type: pb.ResourceType_WOOD, Amount: 500},
+			{Type: pb.ResourceType_STONE, Amount: 400},
+			{Type: pb.ResourceType_IRON, Amount: 300},
 		},
-		ResearchedTechnologies: []string{},
+		ResearchedTechnologies: []pb.Technology{},
 	}
 
 	data, _ := proto.Marshal(castle)
