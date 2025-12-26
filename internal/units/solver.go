@@ -7,7 +7,7 @@ import (
 
 // Constants for maxed castle
 const (
-	MaxFoodCapacity           = 5000  // Farm level 30 (subjects)
+	MaxFoodCapacity           = 4265  // Remaining after buildings (5000 - 735)
 	ResourceProductionPerHour = 1161  // 387 + 387 + 387 (LJ30 + Q30 + OM30)
 	MarketDistanceFields      = 25    // Keep level 10
 	RoundTripFields           = 50    // 2 × 25
