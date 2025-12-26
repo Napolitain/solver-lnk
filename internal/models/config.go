@@ -2,22 +2,20 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
 // CastleConfig represents input configuration for castle solver
 type CastleConfig struct {
-	// Current building levels (optional, defaults to 1)
-	BuildingLevels map[string]int `json:"building_levels,omitempty"`
+	// Current building levels (ALL buildings must be specified)
+	BuildingLevels map[string]int `json:"building_levels"`
 
-	// Current resources (optional, defaults to 120 each)
+	// Current resources
 	Resources map[string]float64 `json:"resources,omitempty"`
 
 	// Already researched technologies
 	ResearchedTechnologies []string `json:"researched_technologies,omitempty"`
-
-	// Target levels (optional, uses defaults if not specified)
-	TargetLevels map[string]int `json:"target_levels,omitempty"`
 }
 
 // UnitsConfig represents input configuration for units solver
@@ -84,10 +82,7 @@ func (c *UnitsConfig) GetMarketDistanceFields() int {
 func (c *CastleConfig) ToGameState() *GameState {
 	state := NewGameState()
 
-	// Set building levels (default to 1)
-	for _, bt := range AllBuildingTypes() {
-		state.BuildingLevels[bt] = 1
-	}
+	// Set building levels from config (all must be specified)
 	for name, level := range c.BuildingLevels {
 		state.BuildingLevels[BuildingType(name)] = level
 	}
@@ -110,9 +105,26 @@ func (c *CastleConfig) ToGameState() *GameState {
 	return state
 }
 
-// GetTargetLevels returns target levels with defaults
+// Validate checks that all required buildings are specified
+func (c *CastleConfig) Validate() error {
+	required := []string{
+		"lumberjack", "quarry", "ore_mine", "farm",
+		"wood_store", "stone_store", "ore_store",
+		"keep", "arsenal", "library", "tavern", "market", "fortifications",
+	}
+
+	for _, name := range required {
+		if _, ok := c.BuildingLevels[name]; !ok {
+			return fmt.Errorf("missing building level for: %s", name)
+		}
+	}
+
+	return nil
+}
+
+// GetTargetLevels returns fixed target levels (always max)
 func (c *CastleConfig) GetTargetLevels() map[BuildingType]int {
-	defaults := map[BuildingType]int{
+	return map[BuildingType]int{
 		Lumberjack:     30,
 		Quarry:         30,
 		OreMine:        30,
@@ -127,12 +139,4 @@ func (c *CastleConfig) GetTargetLevels() map[BuildingType]int {
 		Market:         8,
 		Fortifications: 20,
 	}
-
-	if len(c.TargetLevels) > 0 {
-		for name, level := range c.TargetLevels {
-			defaults[BuildingType(name)] = level
-		}
-	}
-
-	return defaults
 }

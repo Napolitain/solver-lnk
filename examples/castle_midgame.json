@@ -3,28 +3,21 @@
     "lumberjack": 15,
     "quarry": 12,
     "ore_mine": 10,
-    "farm": 8
+    "farm": 8,
+    "wood_store": 1,
+    "stone_store": 1,
+    "ore_store": 1,
+    "keep": 1,
+    "arsenal": 1,
+    "library": 1,
+    "tavern": 1,
+    "market": 1,
+    "fortifications": 1
   },
   "resources": {
     "wood": 500,
     "stone": 400,
-    "iron": 300,
-    "food": 40
+    "iron": 300
   },
-  "researched_technologies": [],
-  "target_levels": {
-    "lumberjack": 30,
-    "quarry": 30,
-    "ore_mine": 30,
-    "farm": 30,
-    "wood_store": 20,
-    "stone_store": 20,
-    "ore_store": 20,
-    "keep": 10,
-    "arsenal": 30,
-    "library": 10,
-    "tavern": 10,
-    "market": 8,
-    "fortifications": 20
-  }
+  "researched_technologies": []
 }
