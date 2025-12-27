@@ -9,6 +9,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/napolitain/solver-lnk/internal/converter"
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
 	"github.com/napolitain/solver-lnk/internal/solver"
@@ -28,205 +29,13 @@ type server struct {
 	technologies map[string]*models.Technology
 }
 
-// protoToModelBuildingType converts proto BuildingType to model BuildingType
-func protoToModelBuildingType(bt pb.BuildingType) models.BuildingType {
-	switch bt {
-	case pb.BuildingType_LUMBERJACK:
-		return models.Lumberjack
-	case pb.BuildingType_QUARRY:
-		return models.Quarry
-	case pb.BuildingType_ORE_MINE:
-		return models.OreMine
-	case pb.BuildingType_FARM:
-		return models.Farm
-	case pb.BuildingType_WOOD_STORE:
-		return models.WoodStore
-	case pb.BuildingType_STONE_STORE:
-		return models.StoneStore
-	case pb.BuildingType_ORE_STORE:
-		return models.OreStore
-	case pb.BuildingType_KEEP:
-		return models.Keep
-	case pb.BuildingType_ARSENAL:
-		return models.Arsenal
-	case pb.BuildingType_LIBRARY:
-		return models.Library
-	case pb.BuildingType_TAVERN:
-		return models.Tavern
-	case pb.BuildingType_MARKET:
-		return models.Market
-	case pb.BuildingType_FORTIFICATIONS:
-		return models.Fortifications
-	default:
-		return models.Keep
-	}
-}
-
-// modelToProtoBuildingType converts model BuildingType to proto BuildingType
-func modelToProtoBuildingType(bt models.BuildingType) pb.BuildingType {
-	switch bt {
-	case models.Lumberjack:
-		return pb.BuildingType_LUMBERJACK
-	case models.Quarry:
-		return pb.BuildingType_QUARRY
-	case models.OreMine:
-		return pb.BuildingType_ORE_MINE
-	case models.Farm:
-		return pb.BuildingType_FARM
-	case models.WoodStore:
-		return pb.BuildingType_WOOD_STORE
-	case models.StoneStore:
-		return pb.BuildingType_STONE_STORE
-	case models.OreStore:
-		return pb.BuildingType_ORE_STORE
-	case models.Keep:
-		return pb.BuildingType_KEEP
-	case models.Arsenal:
-		return pb.BuildingType_ARSENAL
-	case models.Library:
-		return pb.BuildingType_LIBRARY
-	case models.Tavern:
-		return pb.BuildingType_TAVERN
-	case models.Market:
-		return pb.BuildingType_MARKET
-	case models.Fortifications:
-		return pb.BuildingType_FORTIFICATIONS
-	default:
-		return pb.BuildingType_BUILDING_UNKNOWN
-	}
-}
-
-// protoToModelResourceType converts proto ResourceType to model ResourceType
-func protoToModelResourceType(rt pb.ResourceType) models.ResourceType {
-	switch rt {
-	case pb.ResourceType_WOOD:
-		return models.Wood
-	case pb.ResourceType_STONE:
-		return models.Stone
-	case pb.ResourceType_IRON:
-		return models.Iron
-	case pb.ResourceType_FOOD:
-		return models.Food
-	default:
-		return models.Wood
-	}
-}
-
-// modelToProtoResourceType converts model ResourceType to proto ResourceType
-func modelToProtoResourceType(rt models.ResourceType) pb.ResourceType {
-	switch rt {
-	case models.Wood:
-		return pb.ResourceType_WOOD
-	case models.Stone:
-		return pb.ResourceType_STONE
-	case models.Iron:
-		return pb.ResourceType_IRON
-	case models.Food:
-		return pb.ResourceType_FOOD
-	default:
-		return pb.ResourceType_RESOURCE_UNKNOWN
-	}
-}
-
-// costsToProtoResources converts model Costs to proto Resources
-func costsToProtoResources(costs models.Costs) []*pb.Resource {
-	var resources []*pb.Resource
-	for rt, amount := range costs {
-		resources = append(resources, &pb.Resource{
-			Type:   modelToProtoResourceType(rt),
-			Amount: float64(amount),
-		})
-	}
-	return resources
-}
-
-// protoRequestToGameState converts proto SolveRequest to internal GameState
-func protoRequestToGameState(req *pb.SolveRequest) *models.GameState {
-	state := models.NewGameState()
-
-	if req.CastleConfig != nil {
-		// Building levels
-		for _, bl := range req.CastleConfig.BuildingLevels {
-			state.BuildingLevels[protoToModelBuildingType(bl.Type)] = int(bl.Level)
-		}
-
-		// Resources
-		for _, r := range req.CastleConfig.Resources {
-			state.Resources[protoToModelResourceType(r.Type)] = r.Amount
-		}
-
-		// TODO: researched technologies
-	}
-
-	return state
-}
-
-// protoTargetsToModelTargets converts proto TargetLevels to model targets
-func protoTargetsToModelTargets(targets *pb.TargetLevels) map[models.BuildingType]int {
-	result := make(map[models.BuildingType]int)
-	if targets != nil {
-		for _, t := range targets.Targets {
-			result[protoToModelBuildingType(t.Type)] = int(t.Level)
-		}
-	}
-	return result
-}
-
-// buildingActionToProto converts model BuildingUpgradeAction to proto BuildingAction
-func buildingActionToProto(action models.BuildingUpgradeAction) *pb.BuildingAction {
-	return &pb.BuildingAction{
-		BuildingType:     modelToProtoBuildingType(action.BuildingType),
-		FromLevel:        int32(action.FromLevel),
-		ToLevel:          int32(action.ToLevel),
-		StartTimeSeconds: int32(action.StartTime),
-		EndTimeSeconds:   int32(action.EndTime),
-		Costs:            costsToProtoResources(action.Costs),
-		FoodUsed:         int32(action.FoodUsed),
-		FoodCapacity:     int32(action.FoodCapacity),
-	}
-}
-
-// techNameToProto converts technology name string to proto Technology enum
-func techNameToProto(name string) pb.Technology {
-	switch name {
-	case "longbow":
-		return pb.Technology_LONGBOW
-	case "crop_rotation":
-		return pb.Technology_CROP_ROTATION
-	case "yoke":
-		return pb.Technology_YOKE
-	case "cellar_storeroom":
-		return pb.Technology_CELLAR_STOREROOM
-	case "stirrup":
-		return pb.Technology_STIRRUP
-	case "crossbow":
-		return pb.Technology_CROSSBOW
-	case "swordsmith":
-		return pb.Technology_SWORDSMITH
-	case "horse_armour":
-		return pb.Technology_HORSE_ARMOUR
-	default:
-		return pb.Technology_TECH_UNKNOWN
-	}
-}
-
-// researchActionToProto converts model ResearchAction to proto ResearchAction
-func researchActionToProto(action models.ResearchAction) *pb.ResearchAction {
-	return &pb.ResearchAction{
-		Technology:       techNameToProto(action.TechnologyName),
-		StartTimeSeconds: int32(action.StartTime),
-		EndTimeSeconds:   int32(action.EndTime),
-		Costs:            costsToProtoResources(action.Costs),
-	}
-}
-
 // Solve implements the Solve RPC
 func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResponse, error) {
 	log.Printf("Received Solve request")
 
 	// Convert proto to internal types
-	initialState := protoRequestToGameState(req)
-	targetLevels := protoTargetsToModelTargets(req.TargetLevels)
+	initialState := converter.ProtoRequestToGameState(req)
+	targetLevels := converter.ProtoTargetsToModelTargets(req.TargetLevels)
 
 	// Use default targets if none provided
 	if len(targetLevels) == 0 {
@@ -258,22 +67,22 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 
 	// Add building actions
 	for _, action := range solution.BuildingActions {
-		response.BuildingActions = append(response.BuildingActions, buildingActionToProto(action))
+		response.BuildingActions = append(response.BuildingActions, converter.BuildingActionToProto(action))
 	}
 
 	// Add research actions
 	for _, action := range solution.ResearchActions {
-		response.ResearchActions = append(response.ResearchActions, researchActionToProto(action))
+		response.ResearchActions = append(response.ResearchActions, converter.ResearchActionToProto(action))
 	}
 
 	// Set next action (first in list)
 	if len(solution.BuildingActions) > 0 {
-		response.NextAction = buildingActionToProto(solution.BuildingActions[0])
+		response.NextAction = converter.BuildingActionToProto(solution.BuildingActions[0])
 	}
 
 	// Set next research action (first in list)
 	if len(solution.ResearchActions) > 0 {
-		response.NextResearchAction = researchActionToProto(solution.ResearchActions[0])
+		response.NextResearchAction = converter.ResearchActionToProto(solution.ResearchActions[0])
 	}
 
 	// Check if build order is complete (no more building actions needed)
@@ -304,37 +113,12 @@ func (s *server) GetNextAction(ctx context.Context, req *pb.SolveRequest) (*pb.B
 	return response.NextAction, nil
 }
 
-// unitNameToProto converts unit name string to proto UnitType enum
-func unitNameToProto(name string) pb.UnitType {
-	switch name {
-	case "spearman":
-		return pb.UnitType_SPEARMAN
-	case "swordsman":
-		return pb.UnitType_SWORDSMAN
-	case "archer":
-		return pb.UnitType_ARCHER
-	case "crossbowman":
-		return pb.UnitType_CROSSBOWMAN
-	case "horseman":
-		return pb.UnitType_HORSEMAN
-	case "lancer":
-		return pb.UnitType_LANCER
-	case "handcart":
-		return pb.UnitType_HANDCART
-	case "oxcart":
-		return pb.UnitType_OXCART
-	default:
-		return pb.UnitType_UNIT_UNKNOWN
-	}
-}
-
 // generateUnitsRecommendation creates a units recommendation based on current castle state
 func (s *server) generateUnitsRecommendation(state *models.GameState) *pb.UnitsRecommendation {
 	// Calculate food available for units based on Farm level
-	// Farm capacity minus food used by buildings
 	farmLevel := state.BuildingLevels[models.Farm]
 	farmBuilding := s.buildings[models.Farm]
-	
+
 	var foodCapacity int
 	if farmBuilding != nil {
 		if levelData := farmBuilding.GetLevelData(farmLevel); levelData != nil && levelData.StorageCapacity != nil {
@@ -342,10 +126,10 @@ func (s *server) generateUnitsRecommendation(state *models.GameState) *pb.UnitsR
 		}
 	}
 	if foodCapacity == 0 {
-		foodCapacity = units.MaxFoodCapacity // fallback default
+		foodCapacity = units.MaxFoodCapacity
 	}
-	
-	// Calculate food used by buildings (sum of all building food costs)
+
+	// Calculate food used by buildings
 	foodUsedByBuildings := 0
 	for bt, level := range state.BuildingLevels {
 		if building, ok := s.buildings[bt]; ok {
@@ -358,12 +142,12 @@ func (s *server) generateUnitsRecommendation(state *models.GameState) *pb.UnitsR
 			}
 		}
 	}
-	
+
 	foodAvailable := foodCapacity - foodUsedByBuildings
 	if foodAvailable < 0 {
 		foodAvailable = 0
 	}
-	
+
 	// Calculate resource production per hour
 	resourceProdPerHour := 0.0
 	productionBuildings := map[models.BuildingType]bool{
@@ -381,40 +165,40 @@ func (s *server) generateUnitsRecommendation(state *models.GameState) *pb.UnitsR
 			}
 		}
 	}
-	
+
 	// Market distance based on Keep level (default 25 for Keep 10)
 	marketDistance := int32(25)
-	
+
 	// Create units solver and solve
 	unitsSolver := units.NewSolverWithConfig(int32(foodAvailable), int32(resourceProdPerHour), marketDistance)
 	solution := unitsSolver.Solve()
-	
+
 	// Convert to proto
 	recommendation := &pb.UnitsRecommendation{
-		TotalFood:           int32(solution.TotalFood),
-		TotalThroughput:     solution.TotalThroughput,
-		DefenseVsCavalry:    int32(solution.DefenseVsCavalry),
-		DefenseVsInfantry:   int32(solution.DefenseVsInfantry),
-		DefenseVsArtillery:  int32(solution.DefenseVsArtillery),
-		SilverPerHour:       solution.SilverPerHour,
-		BuildOrderComplete:  true,
+		TotalFood:          int32(solution.TotalFood),
+		TotalThroughput:    solution.TotalThroughput,
+		DefenseVsCavalry:   int32(solution.DefenseVsCavalry),
+		DefenseVsInfantry:  int32(solution.DefenseVsInfantry),
+		DefenseVsArtillery: int32(solution.DefenseVsArtillery),
+		SilverPerHour:      solution.SilverPerHour,
+		BuildOrderComplete: true,
 	}
-	
+
 	// Add unit counts
 	for _, u := range units.AllUnits() {
 		count := solution.UnitCounts[u.Name]
 		if count > 0 {
 			recommendation.UnitCounts = append(recommendation.UnitCounts, &pb.UnitCount{
-				Type:  unitNameToProto(u.Name),
+				Type:  converter.UnitNameToProto(u.Name),
 				Count: int32(count),
 			})
 		}
 	}
-	
+
 	log.Printf("Units recommendation: %d food, %.0f throughput, defense (cav/inf/art): %d/%d/%d",
 		recommendation.TotalFood, recommendation.TotalThroughput,
 		recommendation.DefenseVsCavalry, recommendation.DefenseVsInfantry, recommendation.DefenseVsArtillery)
-	
+
 	return recommendation
 }
 
