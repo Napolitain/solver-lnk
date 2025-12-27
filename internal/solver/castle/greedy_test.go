@@ -1,4 +1,4 @@
-package solver_test
+package castle_test
 
 import (
 	"sort"
@@ -6,17 +6,17 @@ import (
 
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
-	"github.com/napolitain/solver-lnk/internal/solver"
+	"github.com/napolitain/solver-lnk/internal/solver/castle"
 )
 
-const dataDir = "../../data"
+const dataDir = "../../../data"
 
 // Current best known completion time in seconds (52.2 days = 1252.1 hours)
 // This is used to catch performance regressions
 // Adding 1% margin for timing variance
 const maxAllowedTimeSeconds = 1265 * 3600 // ~52.7 days with margin
 
-func setupSolver(t *testing.T) (*solver.GreedySolver, map[models.BuildingType]int) {
+func setupSolver(t *testing.T) (*castle.GreedySolver, map[models.BuildingType]int) {
 	t.Helper()
 
 	buildings, err := loader.LoadBuildings(dataDir)
@@ -55,7 +55,7 @@ func setupSolver(t *testing.T) (*solver.GreedySolver, map[models.BuildingType]in
 		models.Fortifications: 20,
 	}
 
-	s := solver.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
 	return s, targetLevels
 }
 
@@ -105,7 +105,7 @@ func setupFullSolver(t *testing.T) (map[models.BuildingType]*models.Building, ma
 func TestPerformanceRegression(t *testing.T) {
 	buildings, technologies, initialState, targetLevels := setupFullSolver(t)
 
-	solution, bestStrategy, _ := solver.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
+	solution, bestStrategy, _ := castle.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
 
 	days := float64(solution.TotalTimeSeconds) / 3600 / 24
 	hours := float64(solution.TotalTimeSeconds) / 3600
@@ -123,7 +123,7 @@ func TestPerformanceRegression(t *testing.T) {
 func TestStrategyComparison(t *testing.T) {
 	buildings, technologies, initialState, targetLevels := setupFullSolver(t)
 
-	solution, bestStrategy, results := solver.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
+	solution, bestStrategy, results := castle.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
 
 	// Should have tried multiple strategies
 	if len(results) < 3 {
@@ -417,8 +417,8 @@ func TestResourceQueueInterleaving(t *testing.T) {
 	buildings, technologies, initialState, targetLevels := setupFullSolver(t)
 
 	// Test W+2/Q+1 strategy - should interleave LJ, Q while maintaining lead over OM
-	strategy := solver.ResourceStrategy{WoodLead: 2, QuarryLead: 1}
-	s := solver.NewGreedySolverWithStrategy(buildings, technologies, initialState, targetLevels, strategy)
+	strategy := castle.ResourceStrategy{WoodLead: 2, QuarryLead: 1}
+	s := castle.NewGreedySolverWithStrategy(buildings, technologies, initialState, targetLevels, strategy)
 	solution := s.Solve()
 
 	// Check first few actions follow expected pattern
@@ -473,7 +473,7 @@ func TestSmallTargets(t *testing.T) {
 		models.OreMine:    5,
 	}
 
-	s := solver.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
 	solution := s.Solve()
 
 	// Verify targets reached
@@ -494,8 +494,8 @@ func TestSmallTargets(t *testing.T) {
 func TestRoundRobinStrategy(t *testing.T) {
 	buildings, technologies, initialState, targetLevels := setupFullSolver(t)
 
-	strategy := solver.ResourceStrategy{WoodLead: 0, QuarryLead: 0}
-	s := solver.NewGreedySolverWithStrategy(buildings, technologies, initialState, targetLevels, strategy)
+	strategy := castle.ResourceStrategy{WoodLead: 0, QuarryLead: 0}
+	s := castle.NewGreedySolverWithStrategy(buildings, technologies, initialState, targetLevels, strategy)
 	solution := s.Solve()
 
 	// Should complete and reach all targets
@@ -516,8 +516,8 @@ func TestRoundRobinStrategy(t *testing.T) {
 func TestHighLeadStrategy(t *testing.T) {
 	buildings, technologies, initialState, targetLevels := setupFullSolver(t)
 
-	strategy := solver.ResourceStrategy{WoodLead: 5, QuarryLead: 5}
-	s := solver.NewGreedySolverWithStrategy(buildings, technologies, initialState, targetLevels, strategy)
+	strategy := castle.ResourceStrategy{WoodLead: 5, QuarryLead: 5}
+	s := castle.NewGreedySolverWithStrategy(buildings, technologies, initialState, targetLevels, strategy)
 	solution := s.Solve()
 
 	// Should still complete
@@ -531,13 +531,13 @@ func TestHighLeadStrategy(t *testing.T) {
 // TestStrategyString tests the String() method of ResourceStrategy
 func TestStrategyString(t *testing.T) {
 	tests := []struct {
-		strategy solver.ResourceStrategy
+		strategy castle.ResourceStrategy
 		expected string
 	}{
-		{solver.ResourceStrategy{WoodLead: 0, QuarryLead: 0}, "RoundRobin"},
-		{solver.ResourceStrategy{WoodLead: 1, QuarryLead: 0}, "W+1/Q+0"},
-		{solver.ResourceStrategy{WoodLead: 2, QuarryLead: 1}, "W+2/Q+1"},
-		{solver.ResourceStrategy{WoodLead: 5, QuarryLead: 5}, "W+5/Q+5"},
+		{castle.ResourceStrategy{WoodLead: 0, QuarryLead: 0}, "RoundRobin"},
+		{castle.ResourceStrategy{WoodLead: 1, QuarryLead: 0}, "W+1/Q+0"},
+		{castle.ResourceStrategy{WoodLead: 2, QuarryLead: 1}, "W+2/Q+1"},
+		{castle.ResourceStrategy{WoodLead: 5, QuarryLead: 5}, "W+5/Q+5"},
 	}
 
 	for _, tt := range tests {
@@ -583,7 +583,7 @@ func TestStorageUpgradeTriggered(t *testing.T) {
 		models.Farm:       15,
 	}
 
-	s := solver.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
 	solution := s.Solve()
 
 	// Verify storage buildings were upgraded
@@ -638,7 +638,7 @@ func TestIdleTimeWhenWaitingForResources(t *testing.T) {
 		models.OreMine:    5,
 	}
 
-	s := solver.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
 	solution := s.Solve()
 
 	// First action should have a delayed start (waiting for resources)
@@ -696,7 +696,7 @@ func TestFoodCapacityTriggersUpgrade(t *testing.T) {
 		models.Farm:       10, // Must upgrade to get more worker capacity
 	}
 
-	s := solver.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
 	solution := s.Solve()
 
 	// Farm should be upgraded to provide worker capacity
@@ -747,7 +747,7 @@ func TestEnoughCapacityNoStorageUpgrade(t *testing.T) {
 		models.OreMine:    3,
 	}
 
-	s := solver.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
 	solution := s.Solve()
 
 	// Storage buildings should not be upgraded (not in targets, not needed)
