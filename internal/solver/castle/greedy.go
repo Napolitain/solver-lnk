@@ -223,8 +223,19 @@ func (s *GreedySolver) Solve() *models.Solution {
 		// Deduct resources and food
 		for resType, cost := range costs {
 			state.Resources[resType] -= float64(cost)
+			// Invariant: resources should never go negative
+			if state.Resources[resType] < -0.001 { // Small tolerance for float precision
+				panic(fmt.Sprintf("BUG: resource %s went negative (%.2f) after deducting %d for %s level %d",
+					resType, state.Resources[resType], cost, bType, toLevel))
+			}
 		}
 		state.FoodUsed += foodCost
+
+		// Invariant: food used should never exceed capacity
+		if state.FoodUsed > state.FoodCapacity {
+			panic(fmt.Sprintf("BUG: food used %d exceeds capacity %d after %s level %d",
+				state.FoodUsed, state.FoodCapacity, bType, toLevel))
+		}
 
 		// Mark queue busy
 		durationMinutes := max(1, levelData.BuildTimeSeconds/60)
@@ -517,6 +528,11 @@ func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string,
 	// Deduct resources
 	for rt, cost := range tech.Costs {
 		state.Resources[rt] -= float64(cost)
+		// Invariant: resources should never go negative
+		if state.Resources[rt] < -0.001 {
+			panic(fmt.Sprintf("BUG: resource %s went negative (%.2f) after deducting %d for research %s",
+				rt, state.Resources[rt], cost, techName))
+		}
 	}
 
 	// Calculate duration
