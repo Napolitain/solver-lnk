@@ -790,3 +790,146 @@ func getStorageCapacity(level int, resourceType string) int {
 	}
 	return 999999
 }
+
+// ============================================================================
+// Edge Case Tests
+// ============================================================================
+
+func TestSolverAllBuildingsAlreadyAtTarget(t *testing.T) {
+buildings, err := loader.LoadBuildings(dataDir)
+if err != nil {
+t.Fatalf("Failed to load buildings: %v", err)
+}
+
+technologies, err := loader.LoadTechnologies(dataDir)
+if err != nil {
+t.Fatalf("Failed to load technologies: %v", err)
+}
+
+initialState := models.NewGameState()
+initialState.Resources[models.Wood] = 1000
+initialState.Resources[models.Stone] = 1000
+initialState.Resources[models.Iron] = 1000
+initialState.Resources[models.Food] = 100
+
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack: 5,
+models.Quarry:     5,
+}
+
+initialState.BuildingLevels[models.Lumberjack] = 5
+initialState.BuildingLevels[models.Quarry] = 5
+
+s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+solution := s.Solve()
+
+if len(solution.BuildingActions) != 0 {
+t.Errorf("Expected empty build order when all targets met, got %d actions", len(solution.BuildingActions))
+}
+
+if solution.TotalTimeSeconds != 0 {
+t.Errorf("Expected 0 time when nothing to build, got %d", solution.TotalTimeSeconds)
+}
+}
+
+func TestSolverSingleBuildingUpgrade(t *testing.T) {
+buildings, err := loader.LoadBuildings(dataDir)
+if err != nil {
+t.Fatalf("Failed to load buildings: %v", err)
+}
+
+technologies, err := loader.LoadTechnologies(dataDir)
+if err != nil {
+t.Fatalf("Failed to load technologies: %v", err)
+}
+
+initialState := models.NewGameState()
+initialState.Resources[models.Wood] = 10000
+initialState.Resources[models.Stone] = 10000
+initialState.Resources[models.Iron] = 10000
+initialState.Resources[models.Food] = 1000
+
+initialState.BuildingLevels[models.Lumberjack] = 1
+
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack: 2,
+}
+
+s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+solution := s.Solve()
+
+if len(solution.BuildingActions) != 1 {
+t.Errorf("Expected 1 action, got %d", len(solution.BuildingActions))
+}
+
+if len(solution.BuildingActions) > 0 {
+action := solution.BuildingActions[0]
+if action.BuildingType != models.Lumberjack {
+t.Errorf("Expected Lumberjack upgrade, got %s", action.BuildingType)
+}
+if action.FromLevel != 1 || action.ToLevel != 2 {
+t.Errorf("Expected 1->2 upgrade, got %d->%d", action.FromLevel, action.ToLevel)
+}
+}
+}
+
+func TestSolverZeroResources(t *testing.T) {
+buildings, err := loader.LoadBuildings(dataDir)
+if err != nil {
+t.Fatalf("Failed to load buildings: %v", err)
+}
+
+technologies, err := loader.LoadTechnologies(dataDir)
+if err != nil {
+t.Fatalf("Failed to load technologies: %v", err)
+}
+
+initialState := models.NewGameState()
+initialState.Resources[models.Wood] = 0
+initialState.Resources[models.Stone] = 0
+initialState.Resources[models.Iron] = 0
+initialState.Resources[models.Food] = 0
+
+for _, bt := range models.AllBuildingTypes() {
+initialState.BuildingLevels[bt] = 1
+}
+
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack: 5,
+}
+
+s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+solution := s.Solve()
+
+if solution == nil {
+t.Fatal("Expected non-nil solution")
+}
+
+if solution.FinalState.BuildingLevels[models.Lumberjack] < 5 {
+t.Errorf("Failed to reach target: got level %d", solution.FinalState.BuildingLevels[models.Lumberjack])
+}
+}
+
+func TestSolverEmptyTargets(t *testing.T) {
+buildings, err := loader.LoadBuildings(dataDir)
+if err != nil {
+t.Fatalf("Failed to load buildings: %v", err)
+}
+
+technologies, err := loader.LoadTechnologies(dataDir)
+if err != nil {
+t.Fatalf("Failed to load technologies: %v", err)
+}
+
+initialState := models.NewGameState()
+initialState.Resources[models.Wood] = 1000
+
+targetLevels := map[models.BuildingType]int{}
+
+s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+solution := s.Solve()
+
+if len(solution.BuildingActions) != 0 {
+t.Errorf("Expected empty build order for empty targets, got %d actions", len(solution.BuildingActions))
+}
+}
