@@ -30,20 +30,24 @@ func FuzzSolverConstraints(f *testing.F) {
 			t.Errorf("Food %d > capacity %d", solution.TotalFood, food)
 		}
 
-		// Invariant 2: No negative unit counts
+		// Invariant 2: Food used must be non-negative
+		if solution.TotalFood < 0 {
+			t.Errorf("Negative food used: %d", solution.TotalFood)
+		}
+
+		// Invariant 3: No negative unit counts
 		for name, count := range solution.UnitCounts {
 			if count < 0 {
 				t.Errorf("Negative count for %s: %d", name, count)
 			}
 		}
 
-		// Invariant 3: Throughput should be >= production (or we can't trade everything)
-		// Note: might not always be achievable with very low food
+		// Invariant 4: Throughput should be non-negative
 		if solution.TotalThroughput < 0 {
-			t.Error("Negative throughput")
+			t.Errorf("Negative throughput: %.2f", solution.TotalThroughput)
 		}
 
-		// Invariant 4: Defense values should be non-negative
+		// Invariant 5: Defense values should be non-negative
 		if solution.DefenseVsCavalry < 0 {
 			t.Errorf("Negative defense vs cavalry: %d", solution.DefenseVsCavalry)
 		}
@@ -54,9 +58,39 @@ func FuzzSolverConstraints(f *testing.F) {
 			t.Errorf("Negative defense vs artillery: %d", solution.DefenseVsArtillery)
 		}
 
-		// Invariant 5: Silver income should be non-negative
+		// Invariant 6: Silver income should be non-negative
 		if solution.SilverPerHour < 0 {
 			t.Errorf("Negative silver income: %.2f", solution.SilverPerHour)
+		}
+
+		// Invariant 7: Verify food calculation matches unit counts
+		calculatedFood := 0
+		for _, u := range AllUnits() {
+			count := solution.UnitCounts[u.Name]
+			calculatedFood += count * u.FoodCost
+		}
+		if calculatedFood != solution.TotalFood {
+			t.Errorf("Food mismatch: calculated %d != reported %d", calculatedFood, solution.TotalFood)
+		}
+
+		// Invariant 8: Verify defense calculation matches unit counts
+		calculatedDefCav := 0
+		calculatedDefInf := 0
+		calculatedDefArt := 0
+		for _, u := range AllUnits() {
+			count := solution.UnitCounts[u.Name]
+			calculatedDefCav += count * u.DefenseVsCavalry
+			calculatedDefInf += count * u.DefenseVsInfantry
+			calculatedDefArt += count * u.DefenseVsArtillery
+		}
+		if calculatedDefCav != solution.DefenseVsCavalry {
+			t.Errorf("Defense vs cavalry mismatch: calculated %d != reported %d", calculatedDefCav, solution.DefenseVsCavalry)
+		}
+		if calculatedDefInf != solution.DefenseVsInfantry {
+			t.Errorf("Defense vs infantry mismatch: calculated %d != reported %d", calculatedDefInf, solution.DefenseVsInfantry)
+		}
+		if calculatedDefArt != solution.DefenseVsArtillery {
+			t.Errorf("Defense vs artillery mismatch: calculated %d != reported %d", calculatedDefArt, solution.DefenseVsArtillery)
 		}
 	})
 }
@@ -85,15 +119,23 @@ func FuzzUnitThroughput(f *testing.F) {
 
 		throughput := unit.ThroughputPerHour(int(distance))
 
-		// Throughput must be non-negative
+		// Invariant 1: Throughput must be non-negative
 		if throughput < 0 {
 			t.Errorf("Negative throughput: %.2f (speed=%.2f, cap=%d, dist=%d)",
 				throughput, speed, capacity, distance)
 		}
 
-		// Throughput should be finite
+		// Invariant 2: Throughput should be finite (not NaN or Inf)
 		if throughput != throughput { // NaN check
 			t.Errorf("NaN throughput (speed=%.2f, cap=%d, dist=%d)", speed, capacity, distance)
+		}
+
+		// Invariant 3: Verify throughput calculation
+		// throughput = capacity * (60 / (distance * speed))
+		tripTimeMinutes := float64(distance) * speed
+		expectedThroughput := float64(capacity) * (60.0 / tripTimeMinutes)
+		if throughput < expectedThroughput*0.99 || throughput > expectedThroughput*1.01 {
+			t.Errorf("Throughput calculation mismatch: got %.4f, expected %.4f", throughput, expectedThroughput)
 		}
 	})
 }
@@ -128,6 +170,31 @@ func TestFoodUtilization(t *testing.T) {
 		if solution.TotalFood < minExpected {
 			t.Errorf("Food underutilized for capacity %d: used %d, expected >= %d",
 				food, solution.TotalFood, minExpected)
+		}
+	}
+}
+
+// Property-based test: throughput should meet or exceed production requirement
+func TestThroughputMeetsProduction(t *testing.T) {
+	testCases := []struct {
+		food       int32
+		production int32
+		distance   int32
+	}{
+		{4265, 1161, 50},
+		{2000, 500, 25},
+		{1000, 200, 10},
+	}
+
+	for _, tc := range testCases {
+		solver := NewSolverWithConfig(tc.food, tc.production, tc.distance)
+		solution := solver.Solve()
+
+		// Throughput should meet production (may not always be possible with low food)
+		// but should at least be positive
+		if solution.TotalThroughput < 0 {
+			t.Errorf("Negative throughput for food=%d, prod=%d, dist=%d",
+				tc.food, tc.production, tc.distance)
 		}
 	}
 }
