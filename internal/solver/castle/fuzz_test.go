@@ -54,17 +54,18 @@ func FuzzSolverResources(f *testing.F) {
 		s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
 		solution := s.Solve()
 
-		// Invariants that must hold
+		// Invariant 1: Solution should never be nil
 		if solution == nil {
 			t.Error("Solution should never be nil")
 			return
 		}
 
+		// Invariant 2: Time should never be negative
 		if solution.TotalTimeSeconds < 0 {
 			t.Errorf("Time should never be negative: %d", solution.TotalTimeSeconds)
 		}
 
-		// All actions should have valid times
+		// Invariant 3: All actions should have valid times
 		for i, action := range solution.BuildingActions {
 			if action.StartTime < 0 {
 				t.Errorf("Action %d has negative start time: %d", i, action.StartTime)
@@ -74,12 +75,68 @@ func FuzzSolverResources(f *testing.F) {
 			}
 		}
 
-		// Final state should reach targets
+		// Invariant 4: Food used should never exceed food capacity
+		for i, action := range solution.BuildingActions {
+			if action.FoodUsed > action.FoodCapacity {
+				t.Errorf("Action %d: food used %d > capacity %d (building %s %d->%d)",
+					i, action.FoodUsed, action.FoodCapacity,
+					action.BuildingType, action.FromLevel, action.ToLevel)
+			}
+			if action.FoodUsed < 0 {
+				t.Errorf("Action %d: negative food used %d", i, action.FoodUsed)
+			}
+			if action.FoodCapacity < 0 {
+				t.Errorf("Action %d: negative food capacity %d", i, action.FoodCapacity)
+			}
+		}
+
+		// Invariant 5: Costs should be non-negative
+		for i, action := range solution.BuildingActions {
+			for rt, cost := range action.Costs {
+				if cost < 0 {
+					t.Errorf("Action %d: negative cost for %s: %d", i, rt, cost)
+				}
+			}
+		}
+
+		// Invariant 6: Building levels should increase correctly
+		for i, action := range solution.BuildingActions {
+			if action.ToLevel != action.FromLevel+1 {
+				t.Errorf("Action %d: invalid level change %d->%d (should be +1)",
+					i, action.FromLevel, action.ToLevel)
+			}
+			if action.FromLevel < 0 || action.ToLevel < 0 {
+				t.Errorf("Action %d: negative levels %d->%d", i, action.FromLevel, action.ToLevel)
+			}
+		}
+
+		// Invariant 7: Final state should reach targets
 		if solution.FinalState.BuildingLevels[models.Lumberjack] < 5 {
 			t.Errorf("Lumberjack should reach target 5, got %d", solution.FinalState.BuildingLevels[models.Lumberjack])
 		}
 		if solution.FinalState.BuildingLevels[models.Quarry] < 5 {
 			t.Errorf("Quarry should reach target 5, got %d", solution.FinalState.BuildingLevels[models.Quarry])
+		}
+
+		// Invariant 8: Building level sequence should be consistent
+		levelTracker := make(map[models.BuildingType]int)
+		for bt := range initialState.BuildingLevels {
+			levelTracker[bt] = initialState.BuildingLevels[bt]
+		}
+		for i, action := range solution.BuildingActions {
+			expectedFrom := levelTracker[action.BuildingType]
+			if action.FromLevel != expectedFrom {
+				t.Errorf("Action %d: %s from level %d but tracker says %d",
+					i, action.BuildingType, action.FromLevel, expectedFrom)
+			}
+			levelTracker[action.BuildingType] = action.ToLevel
+		}
+
+		// Invariant 9: Final state resources should be non-negative
+		for rt, amt := range solution.FinalState.Resources {
+			if amt < 0 {
+				t.Errorf("Final state has negative %s: %.2f", rt, amt)
+			}
 		}
 	})
 }
@@ -144,14 +201,35 @@ func FuzzSolverBuildingLevels(f *testing.F) {
 			return
 		}
 
-		// All actions should have valid structure
+		// Invariant: Food used <= Food capacity at every step
+		for i, action := range solution.BuildingActions {
+			if action.FoodUsed > action.FoodCapacity {
+				t.Errorf("Action %d: food %d > capacity %d", i, action.FoodUsed, action.FoodCapacity)
+			}
+		}
+
+		// Invariant: All actions should have valid structure
 		for i, action := range solution.BuildingActions {
 			if action.EndTime < action.StartTime {
 				t.Errorf("Action %d: end %d < start %d", i, action.EndTime, action.StartTime)
 			}
-			if action.ToLevel <= action.FromLevel {
-				t.Errorf("Action %d: toLevel %d <= fromLevel %d", i, action.ToLevel, action.FromLevel)
+			if action.ToLevel != action.FromLevel+1 {
+				t.Errorf("Action %d: toLevel %d != fromLevel %d + 1", i, action.ToLevel, action.FromLevel)
 			}
+		}
+
+		// Invariant: Building level sequence should be consistent
+		levelTracker := make(map[models.BuildingType]int)
+		for bt, lvl := range initialState.BuildingLevels {
+			levelTracker[bt] = lvl
+		}
+		for i, action := range solution.BuildingActions {
+			expectedFrom := levelTracker[action.BuildingType]
+			if action.FromLevel != expectedFrom {
+				t.Errorf("Action %d: %s from level %d but tracker says %d",
+					i, action.BuildingType, action.FromLevel, expectedFrom)
+			}
+			levelTracker[action.BuildingType] = action.ToLevel
 		}
 	})
 }
