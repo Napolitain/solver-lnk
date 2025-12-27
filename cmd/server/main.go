@@ -12,6 +12,7 @@ import (
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
 	"github.com/napolitain/solver-lnk/internal/solver"
+	"github.com/napolitain/solver-lnk/internal/units"
 	pb "github.com/napolitain/solver-lnk/proto"
 )
 
@@ -275,6 +276,13 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 		response.NextResearchAction = researchActionToProto(solution.ResearchActions[0])
 	}
 
+	// Check if build order is complete (no more building actions needed)
+	buildOrderComplete := len(solution.BuildingActions) == 0
+	if buildOrderComplete {
+		log.Printf("Build order complete - generating units recommendation")
+		response.UnitsRecommendation = s.generateUnitsRecommendation(initialState)
+	}
+
 	log.Printf("Returning solution with %d building actions, %d research actions, strategy: %s",
 		len(response.BuildingActions), len(response.ResearchActions), response.Strategy)
 	return response, nil
@@ -294,6 +302,120 @@ func (s *server) GetNextAction(ctx context.Context, req *pb.SolveRequest) (*pb.B
 	}
 
 	return response.NextAction, nil
+}
+
+// unitNameToProto converts unit name string to proto UnitType enum
+func unitNameToProto(name string) pb.UnitType {
+	switch name {
+	case "spearman":
+		return pb.UnitType_SPEARMAN
+	case "swordsman":
+		return pb.UnitType_SWORDSMAN
+	case "archer":
+		return pb.UnitType_ARCHER
+	case "crossbowman":
+		return pb.UnitType_CROSSBOWMAN
+	case "horseman":
+		return pb.UnitType_HORSEMAN
+	case "lancer":
+		return pb.UnitType_LANCER
+	case "handcart":
+		return pb.UnitType_HANDCART
+	case "oxcart":
+		return pb.UnitType_OXCART
+	default:
+		return pb.UnitType_UNIT_UNKNOWN
+	}
+}
+
+// generateUnitsRecommendation creates a units recommendation based on current castle state
+func (s *server) generateUnitsRecommendation(state *models.GameState) *pb.UnitsRecommendation {
+	// Calculate food available for units based on Farm level
+	// Farm capacity minus food used by buildings
+	farmLevel := state.BuildingLevels[models.Farm]
+	farmBuilding := s.buildings[models.Farm]
+	
+	var foodCapacity int
+	if farmBuilding != nil {
+		if levelData := farmBuilding.GetLevelData(farmLevel); levelData != nil && levelData.StorageCapacity != nil {
+			foodCapacity = *levelData.StorageCapacity
+		}
+	}
+	if foodCapacity == 0 {
+		foodCapacity = units.MaxFoodCapacity // fallback default
+	}
+	
+	// Calculate food used by buildings (sum of all building food costs)
+	foodUsedByBuildings := 0
+	for bt, level := range state.BuildingLevels {
+		if building, ok := s.buildings[bt]; ok {
+			for l := 1; l <= level; l++ {
+				if levelData := building.GetLevelData(l); levelData != nil {
+					if cost, ok := levelData.Costs[models.Food]; ok {
+						foodUsedByBuildings += cost
+					}
+				}
+			}
+		}
+	}
+	
+	foodAvailable := foodCapacity - foodUsedByBuildings
+	if foodAvailable < 0 {
+		foodAvailable = 0
+	}
+	
+	// Calculate resource production per hour
+	resourceProdPerHour := 0.0
+	productionBuildings := map[models.BuildingType]bool{
+		models.Lumberjack: true,
+		models.Quarry:     true,
+		models.OreMine:    true,
+	}
+	for bt, level := range state.BuildingLevels {
+		if !productionBuildings[bt] {
+			continue
+		}
+		if building, ok := s.buildings[bt]; ok {
+			if levelData := building.GetLevelData(level); levelData != nil && levelData.ProductionRate != nil {
+				resourceProdPerHour += *levelData.ProductionRate
+			}
+		}
+	}
+	
+	// Market distance based on Keep level (default 25 for Keep 10)
+	marketDistance := int32(25)
+	
+	// Create units solver and solve
+	unitsSolver := units.NewSolverWithConfig(int32(foodAvailable), int32(resourceProdPerHour), marketDistance)
+	solution := unitsSolver.Solve()
+	
+	// Convert to proto
+	recommendation := &pb.UnitsRecommendation{
+		TotalFood:           int32(solution.TotalFood),
+		TotalThroughput:     solution.TotalThroughput,
+		DefenseVsCavalry:    int32(solution.DefenseVsCavalry),
+		DefenseVsInfantry:   int32(solution.DefenseVsInfantry),
+		DefenseVsArtillery:  int32(solution.DefenseVsArtillery),
+		SilverPerHour:       solution.SilverPerHour,
+		BuildOrderComplete:  true,
+	}
+	
+	// Add unit counts
+	for _, u := range units.AllUnits() {
+		count := solution.UnitCounts[u.Name]
+		if count > 0 {
+			recommendation.UnitCounts = append(recommendation.UnitCounts, &pb.UnitCount{
+				Type:  unitNameToProto(u.Name),
+				Count: int32(count),
+			})
+		}
+	}
+	
+	log.Printf("Units recommendation: %d food, %.0f throughput, defense (cav/inf/art): %d/%d/%d",
+		recommendation.TotalFood, recommendation.TotalThroughput,
+		recommendation.DefenseVsCavalry, recommendation.DefenseVsInfantry, recommendation.DefenseVsArtillery)
+	
+	return recommendation
 }
 
 func main() {
