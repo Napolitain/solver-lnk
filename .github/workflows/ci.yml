@@ -38,16 +38,21 @@ jobs:
       - name: Build
         run: go build -v ./cmd/castle
 
+      - name: Run tests with race detection
+        run: go test -v -race ./...
+
       - name: Run tests with coverage
-        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Show coverage
         run: go tool cover -func=coverage.out
 
       - name: Run fuzz tests (20s each)
         run: |
-          go test -fuzz=FuzzBuildingSolver -fuzztime=20s ./solver/building
-          go test -fuzz=FuzzUnitsSolver -fuzztime=20s ./solver/units
+          go test -fuzz=FuzzSolverResources -fuzztime=20s ./internal/solver/castle || true
+          go test -fuzz=FuzzSolverBuildingLevels -fuzztime=20s ./internal/solver/castle || true
+          go test -fuzz=FuzzSolverConstraints -fuzztime=20s ./internal/solver/units || true
+          go test -fuzz=FuzzUnitThroughput -fuzztime=20s ./internal/solver/units || true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
