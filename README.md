@@ -33,6 +33,9 @@ solver-lnk/
 Requires Go 1.21+
 
 ```bash
+# Build the protos
+protoc --go_out=. --go-grpc_out=. --go_opt=module=github.com/napolitain/solver-lnk --go-grpc_opt=module=github.com/napolitain/solver-lnk proto/config.proto
+
 # Build the solver
 go build -o solver ./cmd/solver/
 
