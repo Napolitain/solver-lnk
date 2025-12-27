@@ -12,7 +12,7 @@ import (
 
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
-	"github.com/napolitain/solver-lnk/internal/solver"
+	"github.com/napolitain/solver-lnk/internal/solver/castle"
 )
 
 var (
@@ -131,7 +131,7 @@ func runSolver(cmd *cobra.Command, args []string) {
 		infoColor.Println("🔄 Solving with multiple strategies...")
 	}
 
-	solution, bestStrategy, allResults := solver.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
+	solution, bestStrategy, allResults := castle.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
 
 	// Show all strategy results
 	if !quiet {

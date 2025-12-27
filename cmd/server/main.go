@@ -12,8 +12,8 @@ import (
 	"github.com/napolitain/solver-lnk/internal/converter"
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
-	"github.com/napolitain/solver-lnk/internal/solver"
-	"github.com/napolitain/solver-lnk/internal/units"
+	"github.com/napolitain/solver-lnk/internal/solver/castle"
+	"github.com/napolitain/solver-lnk/internal/solver/units"
 	pb "github.com/napolitain/solver-lnk/proto"
 )
 
@@ -57,7 +57,7 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 	}
 
 	// Run solver
-	solution, bestStrategy, _ := solver.SolveAllStrategies(s.buildings, s.technologies, initialState, targetLevels)
+	solution, bestStrategy, _ := castle.SolveAllStrategies(s.buildings, s.technologies, initialState, targetLevels)
 
 	// Convert solution to proto
 	response := &pb.SolveResponse{

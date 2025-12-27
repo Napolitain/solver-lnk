@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/napolitain/solver-lnk/internal/models"
-	"github.com/napolitain/solver-lnk/internal/units"
+	"github.com/napolitain/solver-lnk/internal/solver/units"
 )
 
 var configFile string
