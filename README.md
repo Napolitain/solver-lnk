@@ -1,59 +1,113 @@
 # Lords and Knights Build Order Optimizer
 
-A Go-based optimization solver for the game **Lords and Knights** using greedy simulation heuristics.
+A Go-based optimization solver for the game **Lords and Knights** using greedy simulation heuristics. Provides both CLI tools and a gRPC server for integration with automation bots.
 
 ## Features
 
 - **Greedy Simulation Solver**: Smart build order with resource accumulation over time
 - **Dual Queue System**: Separate building queue and research queue (parallel execution)
 - **Technology Prerequisites**: Library research unlocks higher building levels (e.g., Farm 15/25/30)
+- **gRPC Server**: Exposes solver as a service for bot integration
 - **CLI with Cobra**: Full command-line interface with flags
 - **Pretty Tables**: Beautiful colored output with tablewriter
 - **Data-Driven**: All building and technology data loaded from JSON files
-- **Tested**: Includes unit tests for constraint validation
+- **Deterministic**: Same input always produces same output (fuzz-tested)
+
+## Quick Start
+
+### Prerequisites
+
+- Go 1.23+ (uses Go 1.25 features)
+- Protocol Buffers compiler (`protoc`)
+- protoc-gen-go and protoc-gen-go-grpc plugins
+
+### Installation
+
+```bash
+# Clone with submodules
+git clone --recursive git@github.com:Napolitain/solver-lnk.git
+cd solver-lnk
+
+# Install protoc plugins (one-time)
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# Generate protobuf code
+go generate ./...
+
+# Install dependencies
+go mod download
+
+# Build all binaries
+go build -o castle ./cmd/castle/
+go build -o server ./cmd/server/
+go build -o units ./cmd/units/
+```
+
+### Running
+
+```bash
+# Run castle solver CLI
+./castle -d data
+
+# Run gRPC server (for bot-lnk integration)
+./server
+
+# Run units solver CLI  
+./units -d data
+```
 
 ## Project Structure
 
 ```
 solver-lnk/
-├── cmd/solver/          # Main entry point
-├── pkg/
-│   ├── models/          # Data models (buildings, resources, technologies)
-│   ├── solver/          # Greedy simulation solver
-│   └── loader/          # JSON data loaders
-├── data/                # Game data files
+├── cmd/
+│   ├── castle/          # Castle build order CLI
+│   ├── server/          # gRPC server for bot integration
+│   └── units/           # Units solver CLI
+├── internal/
+│   ├── converter/       # Proto <-> internal model conversion
+│   ├── loader/          # JSON data loaders
+│   ├── models/          # Data models (buildings, resources, tech)
+│   └── solver/
+│       ├── castle/      # Castle build order solver
+│       └── units/       # Units recruitment solver
+├── proto/               # Protobuf definitions (submodule → proto-lnk)
+├── data/                # Game data files (JSON)
 │   ├── buildings/       # Building upgrade costs and times
 │   └── technologies/    # Technology research data
-├── go.mod               # Go module configuration
-└── go.sum               # Dependency checksums
-```
-
-## Installation
-
-Requires Go 1.21+
-
-```bash
-# Build the protos
-protoc --go_out=. --go-grpc_out=. --go_opt=module=github.com/napolitain/solver-lnk --go-grpc_opt=module=github.com/napolitain/solver-lnk proto/config.proto
-
-# Build the solver
-go build -o solver ./cmd/solver/
-
-# Or run directly
-go run ./cmd/solver/
+├── go.mod
+└── go.sum
 ```
 
 ## Usage
 
+### Castle Solver CLI
+
 ```bash
 # Run with default settings
-./solver -d data
+./castle -d data
 
 # Quiet mode (minimal output)
-./solver -d data --quiet
+./castle -d data --quiet
 
 # See all options
-./solver --help
+./castle --help
+```
+
+### gRPC Server
+
+```bash
+# Start server (default port 50051)
+./server
+
+# Server listens for Solve requests from bot-lnk
+```
+
+### Units Solver CLI
+
+```bash
+./units -d data
 ```
 
 ### Example Output
@@ -107,15 +161,45 @@ The game has two parallel construction queues:
 
 ## Development
 
+### Commands Reference
+
 ```bash
+# Generate protobuf (after proto changes)
+go generate ./...
+
+# Build all binaries
+go build ./cmd/castle && go build ./cmd/server && go build ./cmd/units
+
 # Run tests
 go test ./...
 
-# Build
-go build -o solver ./cmd/solver/
+# Run tests with race detection
+go test -race ./...
 
-# Run
-./solver -d data
+# Run tests with coverage
+go test -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out
+
+# Run fuzz tests
+go test -fuzz=FuzzSolverDeterminism -fuzztime=30s ./internal/solver/castle
+
+# Format code
+go fmt ./...
+
+# Lint (requires golangci-lint)
+golangci-lint run
+```
+
+### Proto Submodule
+
+The `proto/` folder is a git submodule pointing to `proto-lnk`. To update:
+
+```bash
+cd proto
+git pull origin master
+cd ..
+git add proto
+git commit -m "chore: update proto submodule"
 ```
 
 ## Roadmap
