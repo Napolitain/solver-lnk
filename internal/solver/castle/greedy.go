@@ -220,8 +220,12 @@ func (s *GreedySolver) Solve() *models.Solution {
 		// Start upgrade
 		startTime := state.TimeMinutes
 
-		// Deduct resources and food
-		for resType, cost := range costs {
+		// Deduct resources and food (deterministic order)
+		for _, resType := range models.AllResourceTypes() {
+			cost := costs[resType]
+			if cost == 0 {
+				continue
+			}
 			state.Resources[resType] -= float64(cost)
 			// Invariant: resources should never go negative
 			if state.Resources[resType] < -0.001 { // Small tolerance for float precision
@@ -332,7 +336,12 @@ func (s *GreedySolver) advanceTime(state *SimulationState, minutes int) {
 	hours := float64(minutes) / 60.0
 	state.TimeMinutes += minutes
 
-	for rt, rate := range state.ProductionRates {
+	// Deterministic order for production
+	for _, rt := range models.AllResourceTypes() {
+		rate := state.ProductionRates[rt]
+		if rate == 0 {
+			continue
+		}
 		produced := rate * hours
 		state.Resources[rt] += produced
 
@@ -386,7 +395,12 @@ func (s *GreedySolver) selectNextUpgrade(state *SimulationState, queue []queueIt
 func (s *GreedySolver) canAffordOrWaitTime(state *SimulationState, costs models.Costs) (bool, int) {
 	maxWait := 0
 
-	for rt, cost := range costs {
+	// Deterministic order
+	for _, rt := range models.AllResourceTypes() {
+		cost := costs[rt]
+		if cost == 0 {
+			continue
+		}
 		available := state.Resources[rt]
 		if available >= float64(cost) {
 			continue
@@ -421,7 +435,12 @@ func (s *GreedySolver) checkStorageCapacity(state *SimulationState, costs models
 		models.Food:  models.Farm,
 	}
 
-	for rt, cost := range costs {
+	// Deterministic order
+	for _, rt := range models.AllResourceTypes() {
+		cost := costs[rt]
+		if cost == 0 {
+			continue
+		}
 		if rt == models.Food {
 			// Food: check current available
 			available := state.Resources[models.Food]
@@ -525,8 +544,12 @@ func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string,
 	// Start research
 	startTime := state.TimeMinutes
 
-	// Deduct resources
-	for rt, cost := range tech.Costs {
+	// Deduct resources (deterministic order)
+	for _, rt := range models.AllResourceTypes() {
+		cost := tech.Costs[rt]
+		if cost == 0 {
+			continue
+		}
 		state.Resources[rt] -= float64(cost)
 		// Invariant: resources should never go negative
 		if state.Resources[rt] < -0.001 {
