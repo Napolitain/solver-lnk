@@ -1,6 +1,21 @@
 # Agent Rules and Guidelines
 
-## Project Status (2025-12-25)
+## Quick Reference
+
+```bash
+# Setup (first time)
+git clone --recursive git@github.com:Napolitain/solver-lnk.git
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# Daily workflow
+go generate ./...          # Regenerate protos (if changed)
+go build ./cmd/server      # Build server
+go test ./...              # Run tests
+./server                   # Start gRPC server
+```
+
+## Project Status (2025-12-28)
 
 ### What Works ✅
 - ✅ Go greedy simulation solver with accurate resource tracking
@@ -12,36 +27,45 @@
 - ✅ Dual queue system (building + research)
 - ✅ Technology prerequisites (Farm 15/25/30)
 - ✅ Full castle build in ~45 days (realistic)
+- ✅ gRPC server for bot integration
+- ✅ Deterministic output (fuzz-tested)
 
 ### Implementation Details
-**Solver**: `pkg/solver/greedy.go`
-**Approach**: Simulation-based with event-driven resource accumulation
-**Language**: Go 1.25+
-**Status**: ✅ WORKING AND ACCURATE
+- **Castle Solver**: `internal/solver/castle/solver.go`
+- **Units Solver**: `internal/solver/units/solver.go`
+- **gRPC Server**: `cmd/server/main.go`
+- **Approach**: Simulation-based with event-driven resource accumulation
+- **Language**: Go 1.23+ (uses 1.25 features)
+
+## Project Structure
+
+```
+solver-lnk/
+├── cmd/
+│   ├── castle/              # Castle CLI entry point
+│   ├── server/              # gRPC server entry point
+│   └── units/               # Units CLI entry point
+├── internal/
+│   ├── converter/           # Proto <-> internal models
+│   ├── loader/              # JSON data loaders
+│   ├── models/              # Domain models
+│   └── solver/
+│       ├── castle/          # Castle solver + tests
+│       └── units/           # Units solver + tests
+├── proto/                   # Submodule → proto-lnk
+├── data/                    # Game data (JSON)
+└── go.mod
+```
 
 ## Technology Stack
 
-- **Language**: Go 1.21+
+- **Language**: Go 1.23+
 - **CLI**: spf13/cobra
 - **Tables**: olekukonko/tablewriter
 - **Colors**: fatih/color
-- **Testing**: Go standard library
-
-## Development Workflow
-
-```bash
-# Build
-go build -o solver ./cmd/solver/
-
-# Run
-./solver -d data
-
-# Test
-go test ./...
-
-# Format
-go fmt ./...
-```
+- **gRPC**: google.golang.org/grpc
+- **Protobuf**: google.golang.org/protobuf
+- **Testing**: Go standard library + fuzz tests
 
 ## Key Game Mechanics
 
@@ -61,15 +85,49 @@ For more details refer to RULES.md file.
 - Farm Level 25 requires "Yoke" research
 - Farm Level 30 requires "Cellar Storeroom" research
 
-## Project Structure
+## gRPC API
 
+The server exposes `CastleSolverService`:
+
+```protobuf
+service CastleSolverService {
+  rpc Solve(SolveRequest) returns (SolveResponse);
+}
 ```
-solver-lnk/
-├── cmd/solver/          # Main entry point
-├── pkg/
-│   ├── models/          # Data models
-│   ├── solver/          # Greedy solver + tests
-│   └── loader/          # JSON loaders
-├── data/                # Game data (JSON)
-└── go.mod               # Go module
+
+- **Input**: Current castle state (buildings, resources, levels)
+- **Output**: Recommended next action + full build plan
+
+## Development Commands
+
+```bash
+# Proto generation (after proto-lnk changes)
+go generate ./...
+
+# Build
+go build ./cmd/castle
+go build ./cmd/server
+go build ./cmd/units
+
+# Test
+go test ./...                    # All tests
+go test -race ./...              # With race detection
+go test -cover ./...             # With coverage
+
+# Fuzz testing
+go test -fuzz=FuzzSolverDeterminism -fuzztime=30s ./internal/solver/castle
+
+# Run
+./castle -d data                 # CLI solver
+./server                         # gRPC server (port 50051)
 ```
+
+## CI/CD
+
+GitHub Actions runs on push/PR:
+1. Checkout with submodules
+2. Install protoc + plugins
+3. `go generate ./...`
+4. `go test -race ./...`
+5. `go test -cover ./...`
+6. Fuzz tests (20s each)
