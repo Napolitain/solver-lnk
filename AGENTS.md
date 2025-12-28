@@ -131,3 +131,13 @@ GitHub Actions runs on push/PR:
 4. `go test -race ./...`
 5. `go test -cover ./...`
 6. Fuzz tests (20s each)
+
+## Philosophy
+
+**Always favor state-of-the-art, edge tooling and practices.** This project aims to use the latest stable versions of all tools and follow modern idioms for 2025+:
+
+- Go 1.25+ with latest language features
+- Fuzz testing for robustness
+- `go generate` for code generation
+- `internal/` package layout
+- gRPC for service communication
