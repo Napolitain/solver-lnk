@@ -1,5 +1,7 @@
 # Go build artifacts
 /castle
+/server
+/units
 *.exe
 coverage.out
 
@@ -8,5 +10,3 @@ coverage.out
 .vscode/
 *.swp
 *.swo
-
-server
