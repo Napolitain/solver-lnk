@@ -252,3 +252,96 @@ func TestTradingAt25FieldDistance(t *testing.T) {
 
 	t.Logf("Trading throughput at 25 field distance: %.0f resources/hour", solution.TotalThroughput)
 }
+
+func TestUnitFoodCostsAreCorrect(t *testing.T) {
+	// Verify each unit has correct food cost from game data
+	expectedCosts := map[string]int{
+		"spearman":    1,
+		"swordsman":   1,
+		"archer":      1,
+		"crossbowman": 1,
+		"horseman":    2,
+		"lancer":      2,
+		"handcart":    1,
+		"oxcart":      3,
+	}
+
+	for _, u := range AllUnits() {
+		expected, ok := expectedCosts[u.Name]
+		if !ok {
+			t.Errorf("Unknown unit: %s", u.Name)
+			continue
+		}
+		if u.FoodCost != expected {
+			t.Errorf("Unit %s food cost %d != expected %d", u.Name, u.FoodCost, expected)
+		}
+	}
+}
+
+func TestUnitTrainingTimesAreSet(t *testing.T) {
+	for _, u := range AllUnits() {
+		if u.TrainingTimeSeconds <= 0 {
+			t.Errorf("Unit %s has no training time set", u.Name)
+		}
+		// Training should be reasonable (between 5 minutes and 2 hours)
+		if u.TrainingTimeSeconds < 300 || u.TrainingTimeSeconds > 7200 {
+			t.Errorf("Unit %s training time %d seconds seems unreasonable", u.Name, u.TrainingTimeSeconds)
+		}
+	}
+}
+
+func TestTotalFoodUsedMatchesUnitCounts(t *testing.T) {
+	solver := NewSolver()
+	solution := solver.Solve()
+
+	// Calculate expected food from unit counts
+	expectedFood := 0
+	for _, u := range AllUnits() {
+		count := solution.UnitCounts[u.Name]
+		expectedFood += count * u.FoodCost
+	}
+
+	if solution.TotalFood != expectedFood {
+		t.Errorf("TotalFood %d != calculated from units %d", solution.TotalFood, expectedFood)
+	}
+}
+
+func TestArmyFitsInFoodCapacity(t *testing.T) {
+	solver := NewSolver()
+	solution := solver.Solve()
+
+	if solution.TotalFood > MaxFoodCapacity {
+		t.Errorf("Army food %d exceeds capacity %d", solution.TotalFood, MaxFoodCapacity)
+	}
+
+	// Should use nearly all food (within 10)
+	if solution.TotalFood < MaxFoodCapacity-10 {
+		t.Errorf("Army not using all food: %d / %d", solution.TotalFood, MaxFoodCapacity)
+	}
+}
+
+func TestTrainingTimeCalculation(t *testing.T) {
+	solver := NewSolver()
+	solution := solver.Solve()
+
+	// Calculate total training time
+	totalTrainingSeconds := 0
+	for _, u := range AllUnits() {
+		count := solution.UnitCounts[u.Name]
+		totalTrainingSeconds += count * u.TrainingTimeSeconds
+	}
+
+	trainingDays := float64(totalTrainingSeconds) / 3600 / 24
+
+	t.Logf("Total training time: %d seconds (%.1f days)", totalTrainingSeconds, trainingDays)
+
+	// Training should take significant time (> 30 days for full army)
+	if trainingDays < 30 {
+		t.Errorf("Training time %.1f days seems too short for full army", trainingDays)
+	}
+
+	// But not excessively long (< 100 days)
+	if trainingDays > 100 {
+		t.Errorf("Training time %.1f days seems too long", trainingDays)
+	}
+}

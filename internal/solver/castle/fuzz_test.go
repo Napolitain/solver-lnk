@@ -20,11 +20,6 @@ func FuzzSolverResources(f *testing.F) {
 		f.Fatalf("Failed to load buildings: %v", err)
 	}
 
-	technologies, err := loader.LoadTechnologies(dataDir)
-	if err != nil {
-		f.Fatalf("Failed to load technologies: %v", err)
-	}
-
 	f.Fuzz(func(t *testing.T, wood, stone, iron, food int32) {
 		// Skip negative values
 		if wood < 0 || stone < 0 || iron < 0 || food < 0 {
@@ -51,7 +46,11 @@ func FuzzSolverResources(f *testing.F) {
 			models.Quarry:     5,
 		}
 
-		s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+		// Use empty technologies to focus on building-only invariants
+		// Full tech testing is done elsewhere
+		emptyTechs := make(map[string]*models.Technology)
+
+		s := castle.NewGreedySolver(buildings, emptyTechs, initialState, targetLevels)
 		solution := s.Solve()
 
 		// Invariant 1: Solution should never be nil
