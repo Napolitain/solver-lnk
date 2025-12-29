@@ -123,14 +123,16 @@ func TestTechNameToProto(t *testing.T) {
 		input string
 		want  pb.Technology
 	}{
-		{"Longbow", "longbow", pb.Technology_LONGBOW},
-		{"CropRotation", "crop_rotation", pb.Technology_CROP_ROTATION},
-		{"Yoke", "yoke", pb.Technology_YOKE},
-		{"CellarStoreroom", "cellar_storeroom", pb.Technology_CELLAR_STOREROOM},
-		{"Stirrup", "stirrup", pb.Technology_STIRRUP},
-		{"Crossbow", "crossbow", pb.Technology_CROSSBOW},
-		{"Swordsmith", "swordsmith", pb.Technology_SWORDSMITH},
-		{"HorseArmour", "horse_armour", pb.Technology_HORSE_ARMOUR},
+		{"Longbow", "Longbow", pb.Technology_LONGBOW},
+		{"CropRotation", "Crop rotation", pb.Technology_CROP_ROTATION},
+		{"Yoke", "Yoke", pb.Technology_YOKE},
+		{"CellarStoreroom", "Cellar storeroom", pb.Technology_CELLAR_STOREROOM},
+		{"Stirrup", "Stirrup", pb.Technology_STIRRUP},
+		{"Crossbow", "Crossbow", pb.Technology_CROSSBOW},
+		{"Swordsmith", "Swordsmith", pb.Technology_SWORDSMITH},
+		{"HorseArmour", "Horse armour", pb.Technology_HORSE_ARMOUR},
+		{"BeerTester", "Beer tester", pb.Technology_BEER_TESTER},
+		{"Wheelbarrow", "Wheelbarrow", pb.Technology_WHEELBARROW},
 		{"Unknown", "unknown_tech", pb.Technology_TECH_UNKNOWN},
 		{"Empty", "", pb.Technology_TECH_UNKNOWN},
 	}

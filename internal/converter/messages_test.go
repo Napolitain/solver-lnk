@@ -198,7 +198,7 @@ func TestBuildingActionToProto(t *testing.T) {
 
 func TestResearchActionToProto(t *testing.T) {
 	action := models.ResearchAction{
-		TechnologyName: "longbow",
+		TechnologyName: "Longbow",
 		StartTime:      500,
 		EndTime:        1500,
 		Costs: models.Costs{
@@ -211,6 +211,9 @@ func TestResearchActionToProto(t *testing.T) {
 
 	if proto.Technology != pb.Technology_LONGBOW {
 		t.Errorf("Technology: got %v, want LONGBOW", proto.Technology)
+	}
+	if proto.TechnologyName != "Longbow" {
+		t.Errorf("TechnologyName: got %v, want Longbow", proto.TechnologyName)
 	}
 	if proto.StartTimeSeconds != 500 {
 		t.Errorf("StartTimeSeconds: got %d, want 500", proto.StartTimeSeconds)

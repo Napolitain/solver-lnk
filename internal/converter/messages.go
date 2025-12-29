@@ -67,8 +67,31 @@ func BuildingActionToProto(action models.BuildingUpgradeAction) *pb.BuildingActi
 func ResearchActionToProto(action models.ResearchAction) *pb.ResearchAction {
 	return &pb.ResearchAction{
 		Technology:       TechNameToProto(action.TechnologyName),
+		TechnologyName:   action.TechnologyName,
 		StartTimeSeconds: int32(action.StartTime),
 		EndTimeSeconds:   int32(action.EndTime),
 		Costs:            CostsToProtoResources(action.Costs),
+	}
+}
+
+// BuildingActionToUnifiedAction converts a building action to unified Action
+func BuildingActionToUnifiedAction(action models.BuildingUpgradeAction) *pb.Action {
+	ba := BuildingActionToProto(action)
+	return &pb.Action{
+		Type:             pb.ActionType_ACTION_BUILDING,
+		StartTimeSeconds: ba.StartTimeSeconds,
+		EndTimeSeconds:   ba.EndTimeSeconds,
+		Building:         ba,
+	}
+}
+
+// ResearchActionToUnifiedAction converts a research action to unified Action
+func ResearchActionToUnifiedAction(action models.ResearchAction) *pb.Action {
+	ra := ResearchActionToProto(action)
+	return &pb.Action{
+		Type:             pb.ActionType_ACTION_RESEARCH,
+		StartTimeSeconds: ra.StartTimeSeconds,
+		EndTimeSeconds:   ra.EndTimeSeconds,
+		Research:         ra,
 	}
 }
