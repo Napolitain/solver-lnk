@@ -170,6 +170,9 @@ go generate ./...
 # Build all binaries
 go build ./cmd/castle && go build ./cmd/server && go build ./cmd/units
 
+# Lint (required before commit)
+golangci-lint run
+
 # Run tests
 go test ./...
 
@@ -185,9 +188,27 @@ go test -fuzz=FuzzSolverDeterminism -fuzztime=30s ./internal/solver/castle
 
 # Format code
 go fmt ./...
+```
 
-# Lint (requires golangci-lint)
+### Code Quality
+
+This project uses `golangci-lint` for linting. Install it via:
+
+```bash
+# macOS
+brew install golangci-lint
+
+# Linux
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+
+# Go install
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+```
+
+**Always run before committing:**
+```bash
 golangci-lint run
+go test ./...
 ```
 
 ### Proto Submodule

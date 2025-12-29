@@ -13,6 +13,9 @@ import (
 	"github.com/napolitain/solver-lnk/internal/models"
 )
 
+// Precompiled regex for better performance
+var timeFormatRegex = regexp.MustCompile(`^\d{2}:\d{2}:\d{2}$`)
+
 // BuildingJSON represents the JSON structure for buildings
 type BuildingJSON struct {
 	BuildingType string                       `json:"building_type"`
@@ -201,7 +204,7 @@ func parseTechFile(filePath, internalName string) (*models.Technology, error) {
 		}
 
 		// Check for time format HH:MM:SS
-		if matched, _ := regexp.MatchString(`^\d{2}:\d{2}:\d{2}$`, line); matched {
+		if timeFormatRegex.MatchString(line) {
 			parts := strings.Split(line, ":")
 			hours, _ := strconv.Atoi(parts[0])
 			minutes, _ := strconv.Atoi(parts[1])

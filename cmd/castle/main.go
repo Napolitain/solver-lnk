@@ -275,13 +275,21 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 				trainingTime := count * u.TrainingTimeSeconds
 				foodCost := count * u.FoodCost
 
+				// Calculate total resource costs for this unit batch
+				unitCosts := models.Costs{
+					models.Wood:  u.ResourceCosts[models.Wood] * count,
+					models.Stone: u.ResourceCosts[models.Stone] * count,
+					models.Iron:  u.ResourceCosts[models.Iron] * count,
+					models.Food:  foodCost,
+				}
+
 				allActions = append(allActions, action{
 					actionType:   actionUnit,
 					startTime:    currentTime,
 					endTime:      currentTime + trainingTime,
 					name:         u.Name,
 					count:        count,
-					costs:        models.Costs{models.Food: foodCost},
+					costs:        unitCosts,
 					foodUsed:     currentFoodUsed + foodCost,
 					foodCapacity: finalFoodCapacity,
 				})
@@ -332,10 +340,10 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 			formatCosts(a.costs),
 			foodStr,
 		}
-		table.Append(row)
+		_ = table.Append(row)
 	}
 
-	table.Render()
+	_ = table.Render()
 }
 
 func printSummary(solution *models.Solution, targets map[models.BuildingType]int, finalFoodUsed, finalFoodCapacity int) {
