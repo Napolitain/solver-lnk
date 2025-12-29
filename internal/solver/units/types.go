@@ -2,11 +2,12 @@ package units
 
 // Unit represents a unit type (army or trading)
 type Unit struct {
-	Name              string
-	FoodCost          int
-	SpeedMinutesField float64 // minutes per field
-	TransportCapacity int
-	UnitType          string // Infantry, Cavalry, Artillery, Transport
+	Name               string
+	FoodCost           int
+	SpeedMinutesField  float64 // minutes per field
+	TransportCapacity  int
+	UnitType           string // Infantry, Cavalry, Artillery, Transport
+	TrainingTimeSeconds int    // seconds to train one unit
 
 	// Defense stats (only for combat units)
 	DefenseVsCavalry   int
@@ -54,78 +55,86 @@ func (u *Unit) DefenseEfficiencyPerFood() float64 {
 func AllUnits() []*Unit {
 	return []*Unit{
 		{
-			Name:               "spearman",
-			FoodCost:           1,
-			SpeedMinutesField:  11.666667, // 11 min 40 sec
-			TransportCapacity:  12,
-			UnitType:           "Infantry",
-			DefenseVsCavalry:   59,
-			DefenseVsInfantry:  32,
-			DefenseVsArtillery: 20,
+			Name:                "spearman",
+			FoodCost:            1,
+			SpeedMinutesField:   11.666667, // 11 min 40 sec
+			TransportCapacity:   12,
+			UnitType:            "Infantry",
+			TrainingTimeSeconds: 750, // 12:30
+			DefenseVsCavalry:    59,
+			DefenseVsInfantry:   32,
+			DefenseVsArtillery:  20,
 		},
 		{
-			Name:               "swordsman",
-			FoodCost:           1,
-			SpeedMinutesField:  13.333333, // 13 min 20 sec
-			TransportCapacity:  10,
-			UnitType:           "Infantry",
-			DefenseVsCavalry:   38,
-			DefenseVsInfantry:  25,
-			DefenseVsArtillery: 13,
+			Name:                "swordsman",
+			FoodCost:            1,
+			SpeedMinutesField:   13.333333, // 13 min 20 sec
+			TransportCapacity:   10,
+			UnitType:            "Infantry",
+			TrainingTimeSeconds: 1500, // 25:00
+			DefenseVsCavalry:    38,
+			DefenseVsInfantry:   25,
+			DefenseVsArtillery:  13,
 		},
 		{
-			Name:               "archer",
-			FoodCost:           1,
-			SpeedMinutesField:  8.333333, // 8 min 20 sec
-			TransportCapacity:  16,
-			UnitType:           "Artillery",
-			DefenseVsCavalry:   10,
-			DefenseVsInfantry:  32,
-			DefenseVsArtillery: 15,
+			Name:                "archer",
+			FoodCost:            1,
+			SpeedMinutesField:   8.333333, // 8 min 20 sec
+			TransportCapacity:   16,
+			UnitType:            "Artillery",
+			TrainingTimeSeconds: 750, // 12:30
+			DefenseVsCavalry:    10,
+			DefenseVsInfantry:   32,
+			DefenseVsArtillery:  15,
 		},
 		{
-			Name:               "crossbowman",
-			FoodCost:           1,
-			SpeedMinutesField:  10.0,
-			TransportCapacity:  13,
-			UnitType:           "Artillery",
-			DefenseVsCavalry:   33,
-			DefenseVsInfantry:  91,
-			DefenseVsArtillery: 60,
+			Name:                "crossbowman",
+			FoodCost:            1,
+			SpeedMinutesField:   10.0,
+			TransportCapacity:   13,
+			UnitType:            "Artillery",
+			TrainingTimeSeconds: 1500, // 25:00
+			DefenseVsCavalry:    33,
+			DefenseVsInfantry:   91,
+			DefenseVsArtillery:  60,
 		},
 		{
-			Name:               "horseman",
-			FoodCost:           2,
-			SpeedMinutesField:  5.0,
-			TransportCapacity:  22,
-			UnitType:           "Cavalry",
-			DefenseVsCavalry:   37,
-			DefenseVsInfantry:  27,
-			DefenseVsArtillery: 60,
+			Name:                "horseman",
+			FoodCost:            2,
+			SpeedMinutesField:   5.0,
+			TransportCapacity:   22,
+			UnitType:            "Cavalry",
+			TrainingTimeSeconds: 2250, // 37:30
+			DefenseVsCavalry:    37,
+			DefenseVsInfantry:   27,
+			DefenseVsArtillery:  60,
 		},
 		{
-			Name:               "lancer",
-			FoodCost:           2,
-			SpeedMinutesField:  6.666667, // 6 min 40 sec
-			TransportCapacity:  20,
-			UnitType:           "Cavalry",
-			DefenseVsCavalry:   16,
-			DefenseVsInfantry:  13,
-			DefenseVsArtillery: 25,
+			Name:                "lancer",
+			FoodCost:            2,
+			SpeedMinutesField:   6.666667, // 6 min 40 sec
+			TransportCapacity:   20,
+			UnitType:            "Cavalry",
+			TrainingTimeSeconds: 3000, // 50:00
+			DefenseVsCavalry:    16,
+			DefenseVsInfantry:   13,
+			DefenseVsArtillery:  25,
 		},
 		{
-			Name:              "handcart",
-			FoodCost:          1,
-			SpeedMinutesField: 13.333333, // 13 min 20 sec
-			TransportCapacity: 500,
-			UnitType:          "Transport",
+			Name:                "handcart",
+			FoodCost:            1,
+			SpeedMinutesField:   13.333333, // 13 min 20 sec
+			TransportCapacity:   500,
+			UnitType:            "Transport",
+			TrainingTimeSeconds: 1500, // 25:00 (estimated)
 		},
 		{
-			Name:              "oxcart",
-			FoodCost:          3,
-			SpeedMinutesField: 16.666667, // 16 min 40 sec
-			TransportCapacity: 2500,
-			UnitType:          "Transport",
+			Name:                "oxcart",
+			FoodCost:            3,
+			SpeedMinutesField:   16.666667, // 16 min 40 sec
+			TransportCapacity:   2500,
+			UnitType:            "Transport",
+			TrainingTimeSeconds: 3000, // 50:00 (estimated)
 		},
 	}
 }

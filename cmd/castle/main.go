@@ -329,14 +329,21 @@ func printUnitsRecommendation(foodAvailable int) {
 	solver := units.NewSolverWithConfig(int32(foodAvailable), units.ResourceProductionPerHour, units.MarketDistanceFields)
 	solution := solver.Solve()
 
-	// Print unit counts
+	// Print unit counts with training time
 	fmt.Println("   Recommended army composition:")
+	totalTrainingSeconds := 0
 	for _, u := range units.AllUnits() {
 		count := solution.UnitCounts[u.Name]
 		if count > 0 {
-			fmt.Printf("   • %s: %d (food: %d)\n", strings.Title(u.Name), count, count*u.FoodCost)
+			trainingTime := count * u.TrainingTimeSeconds
+			totalTrainingSeconds += trainingTime
+			fmt.Printf("   • %s: %d (food: %d, training: %s)\n", 
+				strings.Title(u.Name), count, count*u.FoodCost, formatTime(trainingTime))
 		}
 	}
+
+	trainingDays := float64(totalTrainingSeconds) / 3600 / 24
+	fmt.Printf("\n   ⏱️  Total training time: %s (%.1f days)\n", formatTime(totalTrainingSeconds), trainingDays)
 
 	fmt.Printf("\n   📊 Stats:\n")
 	fmt.Printf("   • Total food used: %d / %d\n", solution.TotalFood, foodAvailable)
