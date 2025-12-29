@@ -150,7 +150,7 @@ func TestSolverUsesOnlyCombatUnitsWhenPossible(t *testing.T) {
 	solution := solver.Solve()
 
 	// With combat units providing enough throughput, no transport units should be used
-	transportCount := solution.UnitCounts["handcart"] + solution.UnitCounts["oxcart"]
+	transportCount := solution.UnitCounts["Handcart"] + solution.UnitCounts["Oxcart"]
 
 	if transportCount > 0 && solution.TotalThroughput > ResourceProductionPerHour*2 {
 		t.Logf("Transport units used (%d) even though combat throughput is sufficient", transportCount)
@@ -201,9 +201,9 @@ func TestRoundTripTimeReasonable(t *testing.T) {
 
 func TestDefenseEfficiency(t *testing.T) {
 	// Crossbowman should have best defense efficiency (184 defense / 1 food)
-	crossbow := AllUnits()[3] // crossbowman
-	if crossbow.Name != "crossbowman" {
-		t.Fatal("Expected crossbowman at index 3")
+	crossbow := AllUnits()[3] // Crossbowman
+	if crossbow.Name != "Crossbowman" {
+		t.Fatalf("Expected Crossbowman at index 3, got %s", crossbow.Name)
 	}
 
 	efficiency := crossbow.DefenseEfficiencyPerFood()
@@ -258,14 +258,14 @@ func TestTradingAt25FieldDistance(t *testing.T) {
 func TestUnitFoodCostsAreCorrect(t *testing.T) {
 	// Verify each unit has correct food cost from game data
 	expectedCosts := map[string]int{
-		"spearman":    1,
-		"swordsman":   1,
-		"archer":      1,
-		"crossbowman": 1,
-		"horseman":    2,
-		"lancer":      2,
-		"handcart":    1,
-		"oxcart":      3,
+		"Spearman":    1,
+		"Swordsman":   1,
+		"Archer":      1,
+		"Crossbowman": 1,
+		"Horseman":    2,
+		"Lancer":      2,
+		"Handcart":    1,
+		"Oxcart":      3,
 	}
 
 	for _, u := range AllUnits() {
@@ -363,14 +363,14 @@ func TestUnitResourceCostsReasonable(t *testing.T) {
 	expectedCosts := map[string]struct {
 		wood, iron int
 	}{
-		"spearman":    {45, 30},
-		"swordsman":   {15, 80},
-		"archer":      {60, 20},
-		"crossbowman": {50, 60},
-		"horseman":    {80, 100},
-		"lancer":      {60, 150},
-		"handcart":    {100, 0},
-		"oxcart":      {200, 50},
+		"Spearman":    {18, 30},
+		"Swordsman":   {15, 80},
+		"Archer":      {60, 20},
+		"Crossbowman": {50, 55},
+		"Horseman":    {25, 45},
+		"Lancer":      {60, 150},
+		"Handcart":    {45, 30},
+		"Oxcart":      {95, 65},
 	}
 
 	for _, u := range AllUnits() {

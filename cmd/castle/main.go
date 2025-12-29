@@ -20,6 +20,7 @@ var (
 	dataDir    string
 	configFile string
 	quiet      bool
+	nextOnly   bool
 )
 
 func main() {
@@ -34,6 +35,7 @@ for Lords and Knights castle development.`,
 	rootCmd.Flags().StringVarP(&dataDir, "data", "d", "data", "Path to data directory")
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to JSON config file")
 	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Minimal output")
+	rootCmd.Flags().BoolVarP(&nextOnly, "next", "n", false, "Show only the next action")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -123,16 +125,18 @@ func runSolver(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if !quiet {
+	if !quiet && !nextOnly {
 		printInitialState(initialState, targetLevels)
-	}
-
-	// Solve using all strategies and pick the best
-	if !quiet {
 		infoColor.Println("🔄 Solving with multiple strategies...")
 	}
 
 	solution, bestStrategy, allResults := castle.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
+
+	// If --next flag is set, just show the first action and exit
+	if nextOnly {
+		printNextAction(solution)
+		return
+	}
 
 	// Show all strategy results
 	if !quiet {
@@ -552,4 +556,32 @@ func formatBuildingName(name string) string {
 		}
 	}
 	return strings.Join(words, " ")
+}
+
+func printNextAction(solution *models.Solution) {
+	// Find the earliest action (building or research)
+	var nextBuilding *models.BuildingUpgradeAction
+	var nextResearch *models.ResearchAction
+
+	if len(solution.BuildingActions) > 0 {
+		nextBuilding = &solution.BuildingActions[0]
+	}
+	if len(solution.ResearchActions) > 0 {
+		nextResearch = &solution.ResearchActions[0]
+	}
+
+	// Determine which comes first
+	if nextBuilding != nil && nextResearch != nil {
+		if nextBuilding.StartTime <= nextResearch.StartTime {
+			fmt.Printf("building:%s:%d\n", nextBuilding.BuildingType, nextBuilding.ToLevel)
+		} else {
+			fmt.Printf("research:%s\n", nextResearch.TechnologyName)
+		}
+	} else if nextBuilding != nil {
+		fmt.Printf("building:%s:%d\n", nextBuilding.BuildingType, nextBuilding.ToLevel)
+	} else if nextResearch != nil {
+		fmt.Printf("research:%s\n", nextResearch.TechnologyName)
+	} else {
+		fmt.Println("none")
+	}
 }
