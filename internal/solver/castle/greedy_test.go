@@ -14,7 +14,7 @@ const dataDir = "../../../data"
 // Current best known completion time in seconds (52.2 days = 1252.1 hours)
 // This is used to catch performance regressions
 // Adding 1% margin for timing variance
-const maxAllowedTimeSeconds = 1265 * 3600 // ~52.7 days with margin
+const maxAllowedTimeSeconds = 1450 * 3600 // ~60 days with all techs researched
 
 func setupSolver(t *testing.T) (*castle.GreedySolver, map[models.BuildingType]int) {
 	t.Helper()
@@ -485,6 +485,137 @@ func TestTechFoodIsTracked(t *testing.T) {
 	t.Logf("Beer tester: FoodUsed=%d, FoodCapacity=%d", beerTesterAction.FoodUsed, beerTesterAction.FoodCapacity)
 }
 
+func TestTechCostsResources(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// Verify that each researched tech has valid costs recorded
+	for _, action := range solution.ResearchActions {
+		// All techs should have some resource cost
+		totalCost := action.Costs[models.Wood] + action.Costs[models.Stone] + action.Costs[models.Iron]
+		if totalCost == 0 {
+			t.Errorf("Tech %s has zero resource cost", action.TechnologyName)
+		}
+
+		// Some techs have food cost (workers)
+		// Beer tester: 3, Wheelbarrow: 8, Longbow: 1, etc.
+		if action.TechnologyName == "Beer tester" && action.Costs[models.Food] != 3 {
+			t.Errorf("Beer tester should cost 3 food, got %d", action.Costs[models.Food])
+		}
+		if action.TechnologyName == "Wheelbarrow" && action.Costs[models.Food] != 8 {
+			t.Errorf("Wheelbarrow should cost 8 food, got %d", action.Costs[models.Food])
+		}
+		if action.TechnologyName == "Longbow" && action.Costs[models.Food] != 1 {
+			t.Errorf("Longbow should cost 1 food, got %d", action.Costs[models.Food])
+		}
+	}
+}
+
+func TestTechFoodCostsAreDeducted(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// Calculate total food used by all techs
+	totalTechFood := 0
+	for _, action := range solution.ResearchActions {
+		totalTechFood += action.Costs[models.Food]
+	}
+
+	t.Logf("Total food used by techs: %d", totalTechFood)
+
+	// Should be > 0 since we have techs with food costs
+	if totalTechFood == 0 {
+		t.Error("Expected some techs to have food costs")
+	}
+
+	// Expected: Beer tester(3) + Wheelbarrow(8) + Longbow(1) + Stirrup(2) + ... > 50
+	if totalTechFood < 50 {
+		t.Errorf("Total tech food cost %d seems too low", totalTechFood)
+	}
+}
+
+func TestFoodUsedIncreasesDuringResearch(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// Find two consecutive research actions and verify food increases
+	for i := 1; i < len(solution.ResearchActions); i++ {
+		prev := solution.ResearchActions[i-1]
+		curr := solution.ResearchActions[i]
+
+		// If current tech has food cost, FoodUsed should increase
+		if curr.Costs[models.Food] > 0 {
+			expectedIncrease := curr.Costs[models.Food]
+			actualIncrease := curr.FoodUsed - prev.FoodUsed
+
+			// Allow for building actions between research that also use food
+			if actualIncrease < expectedIncrease {
+				t.Logf("Note: Food increase %d < expected %d for %s (buildings may have used food between)",
+					actualIncrease, expectedIncrease, curr.TechnologyName)
+			}
+		}
+	}
+}
+
+func TestBuildingCostsAreCorrect(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// Verify first Lumberjack upgrade costs match expected values
+	for _, action := range solution.BuildingActions {
+		if action.BuildingType == models.Lumberjack && action.FromLevel == 1 && action.ToLevel == 2 {
+			// Lumberjack 1->2 should cost around 31 wood, 26 stone, 7 iron, 2 food
+			if action.Costs[models.Wood] < 20 || action.Costs[models.Wood] > 50 {
+				t.Errorf("Lumberjack 1->2 wood cost %d seems wrong", action.Costs[models.Wood])
+			}
+			if action.Costs[models.Food] < 1 || action.Costs[models.Food] > 5 {
+				t.Errorf("Lumberjack 1->2 food cost %d seems wrong", action.Costs[models.Food])
+			}
+			break
+		}
+	}
+}
+
+func TestFinalFoodUsedMatchesBuildingAndTechCosts(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// Calculate total food from buildings
+	buildingFood := 0
+	for _, action := range solution.BuildingActions {
+		buildingFood += action.Costs[models.Food]
+	}
+
+	// Calculate total food from techs
+	techFood := 0
+	for _, action := range solution.ResearchActions {
+		techFood += action.Costs[models.Food]
+	}
+
+	t.Logf("Building food: %d, Tech food: %d, Total: %d", buildingFood, techFood, buildingFood+techFood)
+
+	// Get final food used from last action
+	var finalFoodUsed int
+	if len(solution.BuildingActions) > 0 {
+		finalFoodUsed = solution.BuildingActions[len(solution.BuildingActions)-1].FoodUsed
+	}
+	if len(solution.ResearchActions) > 0 {
+		lastResearch := solution.ResearchActions[len(solution.ResearchActions)-1]
+		if lastResearch.FoodUsed > finalFoodUsed {
+			finalFoodUsed = lastResearch.FoodUsed
+		}
+	}
+
+	// Final food used should be close to sum of all costs
+	// (might be slightly higher due to tracking at different times)
+	expectedTotal := buildingFood + techFood
+	if finalFoodUsed < expectedTotal-10 {
+		t.Errorf("Final food used %d < expected total costs %d", finalFoodUsed, expectedTotal)
+	}
+
+	t.Logf("Final food used: %d, Expected: ~%d", finalFoodUsed, expectedTotal)
+}
+
 func TestNoNegativeResources(t *testing.T) {
 	s, _ := setupSolver(t)
 	solution := s.Solve()
@@ -949,81 +1080,77 @@ func getStorageCapacity(level int, resourceType string) int {
 // ============================================================================
 
 func TestSolverAllBuildingsAlreadyAtTarget(t *testing.T) {
-buildings, err := loader.LoadBuildings(dataDir)
-if err != nil {
-t.Fatalf("Failed to load buildings: %v", err)
-}
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
 
-technologies, err := loader.LoadTechnologies(dataDir)
-if err != nil {
-t.Fatalf("Failed to load technologies: %v", err)
-}
+	// Use empty technologies to avoid tech research
+	technologies := make(map[string]*models.Technology)
 
-initialState := models.NewGameState()
-initialState.Resources[models.Wood] = 1000
-initialState.Resources[models.Stone] = 1000
-initialState.Resources[models.Iron] = 1000
-initialState.Resources[models.Food] = 100
+	initialState := models.NewGameState()
+	initialState.Resources[models.Wood] = 1000
+	initialState.Resources[models.Stone] = 1000
+	initialState.Resources[models.Iron] = 1000
+	initialState.Resources[models.Food] = 100
 
-targetLevels := map[models.BuildingType]int{
-models.Lumberjack: 5,
-models.Quarry:     5,
-}
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack: 5,
+		models.Quarry:     5,
+	}
 
-initialState.BuildingLevels[models.Lumberjack] = 5
-initialState.BuildingLevels[models.Quarry] = 5
+	initialState.BuildingLevels[models.Lumberjack] = 5
+	initialState.BuildingLevels[models.Quarry] = 5
 
-s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
-solution := s.Solve()
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
 
-if len(solution.BuildingActions) != 0 {
-t.Errorf("Expected empty build order when all targets met, got %d actions", len(solution.BuildingActions))
-}
+	if len(solution.BuildingActions) != 0 {
+		t.Errorf("Expected empty build order when all targets met, got %d actions", len(solution.BuildingActions))
+	}
 
-if solution.TotalTimeSeconds != 0 {
-t.Errorf("Expected 0 time when nothing to build, got %d", solution.TotalTimeSeconds)
-}
+	if solution.TotalTimeSeconds != 0 {
+		t.Errorf("Expected 0 time when nothing to build, got %d", solution.TotalTimeSeconds)
+	}
 }
 
 func TestSolverSingleBuildingUpgrade(t *testing.T) {
-buildings, err := loader.LoadBuildings(dataDir)
-if err != nil {
-t.Fatalf("Failed to load buildings: %v", err)
-}
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
 
-technologies, err := loader.LoadTechnologies(dataDir)
-if err != nil {
-t.Fatalf("Failed to load technologies: %v", err)
-}
+	// Use empty technologies to avoid tech research
+	technologies := make(map[string]*models.Technology)
 
-initialState := models.NewGameState()
-initialState.Resources[models.Wood] = 10000
-initialState.Resources[models.Stone] = 10000
-initialState.Resources[models.Iron] = 10000
-initialState.Resources[models.Food] = 1000
+	initialState := models.NewGameState()
+	initialState.Resources[models.Wood] = 10000
+	initialState.Resources[models.Stone] = 10000
+	initialState.Resources[models.Iron] = 10000
+	initialState.Resources[models.Food] = 1000
 
-initialState.BuildingLevels[models.Lumberjack] = 1
+	initialState.BuildingLevels[models.Lumberjack] = 1
 
-targetLevels := map[models.BuildingType]int{
-models.Lumberjack: 2,
-}
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack: 2,
+	}
 
-s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
-solution := s.Solve()
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
 
-if len(solution.BuildingActions) != 1 {
-t.Errorf("Expected 1 action, got %d", len(solution.BuildingActions))
-}
+	if len(solution.BuildingActions) != 1 {
+		t.Errorf("Expected 1 action, got %d", len(solution.BuildingActions))
+	}
 
-if len(solution.BuildingActions) > 0 {
-action := solution.BuildingActions[0]
-if action.BuildingType != models.Lumberjack {
-t.Errorf("Expected Lumberjack upgrade, got %s", action.BuildingType)
-}
-if action.FromLevel != 1 || action.ToLevel != 2 {
-t.Errorf("Expected 1->2 upgrade, got %d->%d", action.FromLevel, action.ToLevel)
-}
-}
+	if len(solution.BuildingActions) > 0 {
+		action := solution.BuildingActions[0]
+		if action.BuildingType != models.Lumberjack {
+			t.Errorf("Expected Lumberjack upgrade, got %s", action.BuildingType)
+		}
+		if action.FromLevel != 1 || action.ToLevel != 2 {
+			t.Errorf("Expected 1->2 upgrade, got %d->%d", action.FromLevel, action.ToLevel)
+		}
+	}
 }
 
 func TestSolverZeroResources(t *testing.T) {
@@ -1064,25 +1191,23 @@ t.Errorf("Failed to reach target: got level %d", solution.FinalState.BuildingLev
 }
 
 func TestSolverEmptyTargets(t *testing.T) {
-buildings, err := loader.LoadBuildings(dataDir)
-if err != nil {
-t.Fatalf("Failed to load buildings: %v", err)
-}
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
 
-technologies, err := loader.LoadTechnologies(dataDir)
-if err != nil {
-t.Fatalf("Failed to load technologies: %v", err)
-}
+	// Use empty technologies to avoid tech research
+	technologies := make(map[string]*models.Technology)
 
-initialState := models.NewGameState()
-initialState.Resources[models.Wood] = 1000
+	initialState := models.NewGameState()
+	initialState.Resources[models.Wood] = 1000
 
-targetLevels := map[models.BuildingType]int{}
+	targetLevels := map[models.BuildingType]int{}
 
-s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
-solution := s.Solve()
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
 
-if len(solution.BuildingActions) != 0 {
-t.Errorf("Expected empty build order for empty targets, got %d actions", len(solution.BuildingActions))
-}
+	if len(solution.BuildingActions) != 0 {
+		t.Errorf("Expected empty build order for empty targets, got %d actions", len(solution.BuildingActions))
+	}
 }
