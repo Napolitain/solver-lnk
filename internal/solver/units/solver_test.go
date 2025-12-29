@@ -2,6 +2,8 @@ package units
 
 import (
 	"testing"
+
+	"github.com/napolitain/solver-lnk/internal/models"
 )
 
 func TestSolverThroughputConstraint(t *testing.T) {
@@ -343,5 +345,67 @@ func TestTrainingTimeCalculation(t *testing.T) {
 	// But not excessively long (< 100 days)
 	if trainingDays > 100 {
 		t.Errorf("Training time %.1f days seems too long", trainingDays)
+	}
+}
+
+func TestUnitResourceCostsAreSet(t *testing.T) {
+	// All combat units should have resource costs
+	for _, u := range AllUnits() {
+		totalResourceCost := u.ResourceCosts[models.Wood] + u.ResourceCosts[models.Stone] + u.ResourceCosts[models.Iron]
+		if totalResourceCost == 0 {
+			t.Errorf("Unit %s has no resource costs", u.Name)
+		}
+	}
+}
+
+func TestUnitResourceCostsReasonable(t *testing.T) {
+	// Verify specific unit costs match game data
+	expectedCosts := map[string]struct {
+		wood, iron int
+	}{
+		"spearman":    {45, 30},
+		"swordsman":   {15, 80},
+		"archer":      {60, 20},
+		"crossbowman": {50, 60},
+		"horseman":    {80, 100},
+		"lancer":      {60, 150},
+		"handcart":    {100, 0},
+		"oxcart":      {200, 50},
+	}
+
+	for _, u := range AllUnits() {
+		expected, ok := expectedCosts[u.Name]
+		if !ok {
+			continue
+		}
+		if u.ResourceCosts[models.Wood] != expected.wood {
+			t.Errorf("Unit %s wood cost %d != expected %d", u.Name, u.ResourceCosts[models.Wood], expected.wood)
+		}
+		if u.ResourceCosts[models.Iron] != expected.iron {
+			t.Errorf("Unit %s iron cost %d != expected %d", u.Name, u.ResourceCosts[models.Iron], expected.iron)
+		}
+	}
+}
+
+func TestTotalUnitResourceCosts(t *testing.T) {
+	solver := NewSolver()
+	solution := solver.Solve()
+
+	// Calculate total resource costs
+	var totalWood, totalIron int
+	for _, u := range AllUnits() {
+		count := solution.UnitCounts[u.Name]
+		totalWood += u.ResourceCosts[models.Wood] * count
+		totalIron += u.ResourceCosts[models.Iron] * count
+	}
+
+	t.Logf("Total army resource costs: Wood=%d, Iron=%d", totalWood, totalIron)
+
+	// Army should cost significant resources
+	if totalWood < 50000 {
+		t.Errorf("Total wood cost %d seems too low for full army", totalWood)
+	}
+	if totalIron < 50000 {
+		t.Errorf("Total iron cost %d seems too low for full army", totalIron)
 	}
 }

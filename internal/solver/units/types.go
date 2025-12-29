@@ -1,12 +1,15 @@
 package units
 
+import "github.com/napolitain/solver-lnk/internal/models"
+
 // Unit represents a unit type (army or trading)
 type Unit struct {
-	Name               string
-	FoodCost           int
-	SpeedMinutesField  float64 // minutes per field
-	TransportCapacity  int
-	UnitType           string // Infantry, Cavalry, Artillery, Transport
+	Name                string
+	FoodCost            int
+	ResourceCosts       models.Costs // Wood, Stone, Iron costs per unit
+	SpeedMinutesField   float64      // minutes per field
+	TransportCapacity   int
+	UnitType            string // Infantry, Cavalry, Artillery, Transport
 	TrainingTimeSeconds int    // seconds to train one unit
 
 	// Defense stats (only for combat units)
@@ -57,6 +60,7 @@ func AllUnits() []*Unit {
 		{
 			Name:                "spearman",
 			FoodCost:            1,
+			ResourceCosts:       models.Costs{models.Wood: 45, models.Stone: 0, models.Iron: 30},
 			SpeedMinutesField:   11.666667, // 11 min 40 sec
 			TransportCapacity:   12,
 			UnitType:            "Infantry",
@@ -68,6 +72,7 @@ func AllUnits() []*Unit {
 		{
 			Name:                "swordsman",
 			FoodCost:            1,
+			ResourceCosts:       models.Costs{models.Wood: 15, models.Stone: 0, models.Iron: 80},
 			SpeedMinutesField:   13.333333, // 13 min 20 sec
 			TransportCapacity:   10,
 			UnitType:            "Infantry",
@@ -79,6 +84,7 @@ func AllUnits() []*Unit {
 		{
 			Name:                "archer",
 			FoodCost:            1,
+			ResourceCosts:       models.Costs{models.Wood: 60, models.Stone: 0, models.Iron: 20},
 			SpeedMinutesField:   8.333333, // 8 min 20 sec
 			TransportCapacity:   16,
 			UnitType:            "Artillery",
@@ -90,6 +96,7 @@ func AllUnits() []*Unit {
 		{
 			Name:                "crossbowman",
 			FoodCost:            1,
+			ResourceCosts:       models.Costs{models.Wood: 50, models.Stone: 0, models.Iron: 60},
 			SpeedMinutesField:   10.0,
 			TransportCapacity:   13,
 			UnitType:            "Artillery",
@@ -101,6 +108,7 @@ func AllUnits() []*Unit {
 		{
 			Name:                "horseman",
 			FoodCost:            2,
+			ResourceCosts:       models.Costs{models.Wood: 80, models.Stone: 0, models.Iron: 100},
 			SpeedMinutesField:   5.0,
 			TransportCapacity:   22,
 			UnitType:            "Cavalry",
@@ -112,6 +120,7 @@ func AllUnits() []*Unit {
 		{
 			Name:                "lancer",
 			FoodCost:            2,
+			ResourceCosts:       models.Costs{models.Wood: 60, models.Stone: 0, models.Iron: 150},
 			SpeedMinutesField:   6.666667, // 6 min 40 sec
 			TransportCapacity:   20,
 			UnitType:            "Cavalry",
@@ -123,6 +132,7 @@ func AllUnits() []*Unit {
 		{
 			Name:                "handcart",
 			FoodCost:            1,
+			ResourceCosts:       models.Costs{models.Wood: 100, models.Stone: 0, models.Iron: 0},
 			SpeedMinutesField:   13.333333, // 13 min 20 sec
 			TransportCapacity:   500,
 			UnitType:            "Transport",
@@ -131,6 +141,7 @@ func AllUnits() []*Unit {
 		{
 			Name:                "oxcart",
 			FoodCost:            3,
+			ResourceCosts:       models.Costs{models.Wood: 200, models.Stone: 0, models.Iron: 50},
 			SpeedMinutesField:   16.666667, // 16 min 40 sec
 			TransportCapacity:   2500,
 			UnitType:            "Transport",

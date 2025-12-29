@@ -100,9 +100,9 @@ func printUnitStats(solver *units.Solver) {
 			fmt.Sprintf("%d", u.DefenseVsArtillery),
 			fmt.Sprintf("%d", u.TotalDefense()),
 		}
-		table.Append(row)
+		_ = table.Append(row)
 	}
-	table.Render()
+	_ = table.Render()
 }
 
 func printSolution(solution *units.Solution, solver *units.Solver) {
@@ -125,10 +125,10 @@ func printSolution(solution *units.Solution, solver *units.Solver) {
 				fmt.Sprintf("%d", count*u.DefenseVsInfantry),
 				fmt.Sprintf("%d", count*u.DefenseVsArtillery),
 			}
-			table.Append(row)
+			_ = table.Append(row)
 		}
 	}
-	table.Render()
+	_ = table.Render()
 
 	fmt.Println("\n📊 Summary:")
 	fmt.Printf("   Total food used: %d / %d\n", solution.TotalFood, solver.FoodCapacity)

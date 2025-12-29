@@ -11,11 +11,12 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 # Daily workflow
 go generate ./...          # Regenerate protos (if changed)
 go build ./cmd/server      # Build server
+golangci-lint run          # Lint code
 go test ./...              # Run tests
 ./server                   # Start gRPC server
 ```
 
-## Project Status (2025-12-28)
+## Project Status (2025-12-29)
 
 ### What Works ✅
 - ✅ Go greedy simulation solver with accurate resource tracking
@@ -26,7 +27,9 @@ go test ./...              # Run tests
 - ✅ Food is ABSOLUTE capacity from Farm (not produced!)
 - ✅ Dual queue system (building + research)
 - ✅ Technology prerequisites (Farm 15/25/30)
-- ✅ Full castle build in ~45 days (realistic)
+- ✅ Full castle build in ~60 days (with all techs)
+- ✅ Unit training with resource costs
+- ✅ Unified build order (buildings + research + units)
 - ✅ gRPC server for bot integration
 - ✅ Deterministic output (fuzz-tested)
 
@@ -109,6 +112,9 @@ go build ./cmd/castle
 go build ./cmd/server
 go build ./cmd/units
 
+# Lint (required before commit)
+golangci-lint run
+
 # Test
 go test ./...                    # All tests
 go test -race ./...              # With race detection
@@ -128,9 +134,10 @@ GitHub Actions runs on push/PR:
 1. Checkout with submodules
 2. Install protoc + plugins
 3. `go generate ./...`
-4. `go test -race ./...`
-5. `go test -cover ./...`
-6. Fuzz tests (20s each)
+4. `golangci-lint run`
+5. `go test -race ./...`
+6. `go test -cover ./...`
+7. Fuzz tests (20s each)
 
 ## Philosophy
 
