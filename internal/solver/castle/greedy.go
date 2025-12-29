@@ -297,6 +297,8 @@ func (s *GreedySolver) Solve() *models.Solution {
 			BuildingLevels:         state.BuildingLevels,
 			Resources:              state.Resources,
 			ResearchedTechnologies: state.ResearchedTechnologies,
+			StorageCaps:            state.StorageCaps,
+			ProductionRates:        state.ProductionRates,
 		},
 	}
 }
