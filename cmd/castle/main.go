@@ -238,10 +238,9 @@ func printBuildOrder(solution *models.Solution) {
 		upgradeStr := fmt.Sprintf("%d → %d", a.fromLevel, a.toLevel)
 		foodStr := fmt.Sprintf("%d/%d", a.foodUsed, a.foodCapacity)
 		if !a.isBuilding {
-			queueType := "📚 Research"
+			queueType = "🔬 Research"
 			upgradeStr = ""
 			foodStr = ""
-			_ = queueType
 		}
 
 		duration := a.endTime - a.startTime

@@ -12,6 +12,7 @@ type SimulationState struct {
 	Resources              map[models.ResourceType]float64
 	BuildingLevels         map[models.BuildingType]int
 	ProductionRates        map[models.ResourceType]float64
+	ProductionBonus        float64 // Multiplier from production techs (1.0 = no bonus, 1.05 = 5% bonus)
 	StorageCaps            map[models.ResourceType]int
 	FoodUsed               int // Total workers (food) consumed by buildings
 	FoodCapacity           int // Current food capacity from Farm
@@ -58,7 +59,7 @@ func NewGreedySolver(
 		Technologies: technologies,
 		InitialState: initialState,
 		TargetLevels: targetLevels,
-		Strategy:     ResourceStrategy{0, 0}, // RoundRobin
+		Strategy:     ResourceStrategy{0, 0},
 	}
 }
 
@@ -86,6 +87,7 @@ type StrategyResult struct {
 }
 
 // SolveAllStrategies tries progressively higher wood/quarry leads until no improvement
+// Tech research decisions are made automatically via breakeven heuristic
 func SolveAllStrategies(
 	buildings map[models.BuildingType]*models.Building,
 	technologies map[string]*models.Technology,
@@ -146,10 +148,14 @@ func (s *GreedySolver) Solve() *models.Solution {
 	queue := s.createPrioritizedQueue()
 
 	for len(queue) > 0 {
-
 		// Wait for building queue if needed
 		if state.TimeMinutes < state.BuildingQueueFreeAt {
 			s.advanceTime(state, state.BuildingQueueFreeAt-state.TimeMinutes)
+		}
+
+		// Check if we should trigger production tech research based on strategy
+		if s.shouldResearchProductionTech(state, &queue) {
+			continue // Tech was scheduled or Library upgrade inserted, re-evaluate queue
 		}
 
 		// Select next upgrade
@@ -280,6 +286,9 @@ func (s *GreedySolver) Solve() *models.Solution {
 		}
 	}
 
+	// After all buildings are done, research remaining technologies
+	s.researchRemainingTechs(state)
+
 	return &models.Solution{
 		BuildingActions:  state.CompletedActions,
 		ResearchActions:  state.ResearchActions,
@@ -298,6 +307,7 @@ func (s *GreedySolver) initState() *SimulationState {
 		Resources:              make(map[models.ResourceType]float64),
 		BuildingLevels:         make(map[models.BuildingType]int),
 		ProductionRates:        make(map[models.ResourceType]float64),
+		ProductionBonus:        1.0, // No bonus initially
 		StorageCaps:            make(map[models.ResourceType]int),
 		FoodUsed:               0,
 		FoodCapacity:           0,
@@ -322,6 +332,14 @@ func (s *GreedySolver) initState() *SimulationState {
 		}
 	}
 
+	// Copy researched technologies and calculate initial production bonus
+	for k, v := range s.InitialState.ResearchedTechnologies {
+		state.ResearchedTechnologies[k] = v
+		if v && (k == "Beer tester" || k == "Wheelbarrow") {
+			state.ProductionBonus += 0.05
+		}
+	}
+
 	// Calculate initial production rates
 	state.ProductionRates = s.calculateProductionRates(state.BuildingLevels)
 	state.StorageCaps = s.calculateStorageCaps(state.BuildingLevels)
@@ -342,7 +360,8 @@ func (s *GreedySolver) advanceTime(state *SimulationState, minutes int) {
 		if rate == 0 {
 			continue
 		}
-		produced := rate * hours
+		// Apply production bonus from researched technologies
+		produced := rate * hours * state.ProductionBonus
 		state.Resources[rt] += produced
 
 		// Cap at storage limit
@@ -365,16 +384,17 @@ func (s *GreedySolver) selectNextUpgrade(state *SimulationState, queue []queueIt
 		return nil
 	}
 
-	// Storage/Farm items at front get priority (dynamically inserted)
-	storageTypes := map[models.BuildingType]bool{
+	// Storage/Farm/Library items at front get priority (dynamically inserted)
+	priorityTypes := map[models.BuildingType]bool{
 		models.WoodStore:  true,
 		models.StoneStore: true,
 		models.OreStore:   true,
 		models.Farm:       true,
+		models.Library:    true, // For production tech prerequisites
 	}
 
 	first := queue[0]
-	if storageTypes[first.bType] {
+	if priorityTypes[first.bType] {
 		current := state.BuildingLevels[first.bType]
 		if current < first.targetLevel {
 			return &upgradeSelection{first.bType, first.targetLevel, 0}
@@ -499,19 +519,21 @@ func (s *GreedySolver) checkTechPrerequisite(state *SimulationState, building *m
 	return techName
 }
 
-func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string, queue *[]queueItem) {
+// scheduleResearch attempts to schedule a technology research
+// Returns true if research was successfully started, false if prerequisites not met
+func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string, queue *[]queueItem) bool {
 	tech, ok := s.Technologies[techName]
 	if !ok {
 		// Tech not found, mark as researched to skip
 		state.ResearchedTechnologies[techName] = true
-		return
+		return true // Treat as "done"
 	}
 
 	// Check Library level
 	libraryLevel := state.BuildingLevels[models.Library]
 	if libraryLevel < tech.RequiredLibraryLevel {
 		*queue = insertAtFront(*queue, queueItem{models.Library, tech.RequiredLibraryLevel})
-		return
+		return false
 	}
 
 	// Wait for research queue
@@ -524,10 +546,29 @@ func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string,
 		if storageNeeded != nil {
 			*queue = insertAtFront(*queue, *storageNeeded)
 		}
-		return
+		return false
 	}
 
-	// Wait for resources (research costs don't include Food, so we can always wait)
+	// Check food capacity for research
+	foodCost := tech.Costs[models.Food]
+	if foodCost > 0 && state.FoodUsed+foodCost > state.FoodCapacity {
+		// Need more Farm capacity first - check if already in queue
+		farmLevel := state.BuildingLevels[models.Farm]
+		targetFarmLevel := farmLevel + 1
+		farmInQueue := false
+		for _, item := range *queue {
+			if item.bType == models.Farm && item.targetLevel >= targetFarmLevel {
+				farmInQueue = true
+				break
+			}
+		}
+		if !farmInQueue {
+			*queue = insertAtFront(*queue, queueItem{models.Farm, targetFarmLevel})
+		}
+		return false
+	}
+
+	// Wait for resources
 	canAfford, waitTime := s.canAffordOrWaitTime(state, tech.Costs)
 	if !canAfford {
 		if waitTime > 0 {
@@ -538,7 +579,7 @@ func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string,
 	// Re-check affordability after waiting
 	canAfford, _ = s.canAffordOrWaitTime(state, tech.Costs)
 	if !canAfford {
-		return // Will retry next iteration
+		return false // Will retry next iteration
 	}
 
 	// Start research
@@ -556,6 +597,11 @@ func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string,
 			panic(fmt.Sprintf("BUG: resource %s went negative (%.2f) after deducting %d for research %s",
 				rt, state.Resources[rt], cost, techName))
 		}
+	}
+
+	// Deduct food (workers) for research
+	if foodCost > 0 {
+		state.FoodUsed += foodCost
 	}
 
 	// Calculate duration
@@ -577,6 +623,241 @@ func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string,
 
 	// NOW mark as researched (after completion)
 	state.ResearchedTechnologies[techName] = true
+
+	// Apply production bonus if this is a production tech
+	if techName == "Beer tester" || techName == "Wheelbarrow" {
+		state.ProductionBonus += 0.05
+	}
+
+	return true
+}
+
+// researchRemainingTechs researches all technologies that haven't been researched yet
+// Called after all building upgrades are complete
+func (s *GreedySolver) researchRemainingTechs(state *SimulationState) {
+	// Collect unresearched techs and sort by required library level
+	type techToResearch struct {
+		name         string
+		tech         *models.Technology
+		libraryLevel int
+	}
+
+	var remaining []techToResearch
+	for name, tech := range s.Technologies {
+		if !state.ResearchedTechnologies[name] {
+			remaining = append(remaining, techToResearch{name, tech, tech.RequiredLibraryLevel})
+		}
+	}
+
+	// Sort by library level (ascending) for deterministic order
+	// Use bubble sort for simplicity and determinism
+	for i := 0; i < len(remaining); i++ {
+		for j := i + 1; j < len(remaining); j++ {
+			if remaining[j].libraryLevel < remaining[i].libraryLevel ||
+				(remaining[j].libraryLevel == remaining[i].libraryLevel && remaining[j].name < remaining[i].name) {
+				remaining[i], remaining[j] = remaining[j], remaining[i]
+			}
+		}
+	}
+
+	// Research each tech in order
+	for _, tr := range remaining {
+		// Upgrade Library if needed
+		for state.BuildingLevels[models.Library] < tr.libraryLevel {
+			s.upgradeLibraryForTech(state, state.BuildingLevels[models.Library]+1)
+		}
+
+		// Wait for research queue
+		if state.TimeMinutes < state.ResearchQueueFreeAt {
+			s.advanceTime(state, state.ResearchQueueFreeAt-state.TimeMinutes)
+		}
+
+		// Wait for resources
+		canAfford, waitTime := s.canAffordOrWaitTime(state, tr.tech.Costs)
+		if !canAfford && waitTime > 0 {
+			s.advanceTime(state, waitTime)
+		}
+
+		// Research the tech
+		var dummyQueue []queueItem
+		s.scheduleResearch(state, tr.name, &dummyQueue)
+	}
+}
+
+// upgradeLibraryForTech upgrades Library to the specified level (for end-game tech research)
+func (s *GreedySolver) upgradeLibraryForTech(state *SimulationState, toLevel int) {
+	library := s.Buildings[models.Library]
+	if library == nil {
+		return
+	}
+
+	levelData := library.GetLevelData(toLevel)
+	if levelData == nil {
+		return
+	}
+
+	// Wait for building queue
+	if state.TimeMinutes < state.BuildingQueueFreeAt {
+		s.advanceTime(state, state.BuildingQueueFreeAt-state.TimeMinutes)
+	}
+
+	// Wait for resources
+	canAfford, waitTime := s.canAffordOrWaitTime(state, levelData.Costs)
+	if !canAfford && waitTime > 0 {
+		s.advanceTime(state, waitTime)
+	}
+
+	// Deduct resources
+	startTime := state.TimeMinutes
+	for _, rt := range models.AllResourceTypes() {
+		cost := levelData.Costs[rt]
+		if cost > 0 {
+			state.Resources[rt] -= float64(cost)
+		}
+	}
+
+	// Upgrade
+	durationMinutes := max(1, levelData.BuildTimeSeconds/60)
+	state.BuildingQueueFreeAt = state.TimeMinutes + durationMinutes
+	s.advanceTime(state, durationMinutes)
+
+	fromLevel := state.BuildingLevels[models.Library]
+	state.BuildingLevels[models.Library] = toLevel
+
+	// Record action
+	state.CompletedActions = append(state.CompletedActions, models.BuildingUpgradeAction{
+		BuildingType: models.Library,
+		FromLevel:    fromLevel,
+		ToLevel:      toLevel,
+		StartTime:    startTime * 60,
+		EndTime:      state.TimeMinutes * 60,
+		Costs:        levelData.Costs,
+		FoodUsed:     state.FoodUsed,
+		FoodCapacity: state.FoodCapacity,
+	})
+}
+
+// shouldResearchProductionTech uses breakeven heuristic to decide if production tech is worth researching
+// Returns true if a tech was scheduled or Library upgrade inserted (caller should re-evaluate queue)
+func (s *GreedySolver) shouldResearchProductionTech(state *SimulationState, queue *[]queueItem) bool {
+	// Check Beer tester (5% boost, requires Library 3)
+	if !state.ResearchedTechnologies["Beer tester"] {
+		if s.isTechWorthResearching(state, "Beer tester", 3, queue) {
+			return true
+		}
+	}
+
+	// Check Wheelbarrow (5% boost, requires Library 8)
+	if !state.ResearchedTechnologies["Wheelbarrow"] {
+		if s.isTechWorthResearching(state, "Wheelbarrow", 8, queue) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// isTechWorthResearching calculates if researching a production tech is worth it using breakeven analysis
+func (s *GreedySolver) isTechWorthResearching(state *SimulationState, techName string, requiredLibraryLevel int, queue *[]queueItem) bool {
+	_, ok := s.Technologies[techName]
+	if !ok {
+		return false
+	}
+
+	// Calculate total investment cost (Library upgrades + tech research)
+	investmentCost := s.calculateTechInvestment(state, techName, requiredLibraryLevel)
+
+	// Calculate remaining resource needs to complete all targets
+	remainingNeeds := s.estimateRemainingResourceNeeds(state)
+
+	// The 5% boost effectively "saves" us 5% of remaining resource needs
+	// because we'll produce them faster
+	gain := 0.05 * remainingNeeds
+
+	// Research is worth it if gain > investment
+	// This means the resources we save by producing faster exceed the cost of researching
+	if gain <= investmentCost {
+		return false
+	}
+
+	// Check if we need to upgrade Library first
+	currentLibraryLevel := state.BuildingLevels[models.Library]
+	if currentLibraryLevel < requiredLibraryLevel {
+		// Check if Library upgrade is already in queue
+		libraryInQueue := false
+		for _, item := range *queue {
+			if item.bType == models.Library && item.targetLevel >= requiredLibraryLevel {
+				libraryInQueue = true
+				break
+			}
+		}
+		if !libraryInQueue {
+			*queue = insertAtFront(*queue, queueItem{models.Library, requiredLibraryLevel})
+		}
+		return false // Let normal queue processing handle the Library upgrade
+	}
+
+	// Check if research queue is free
+	if state.TimeMinutes < state.ResearchQueueFreeAt {
+		return false // Wait for research queue, don't block building queue
+	}
+
+	// Schedule the research - returns true only if research actually started
+	return s.scheduleResearch(state, techName, queue)
+}
+
+// calculateTechInvestment returns total resource cost to research a tech (including Library upgrades)
+func (s *GreedySolver) calculateTechInvestment(state *SimulationState, techName string, requiredLibraryLevel int) float64 {
+	var totalCost float64
+
+	// Add Library upgrade costs if needed
+	currentLibraryLevel := state.BuildingLevels[models.Library]
+	library := s.Buildings[models.Library]
+	if library != nil {
+		for level := currentLibraryLevel + 1; level <= requiredLibraryLevel; level++ {
+			levelData := library.GetLevelData(level)
+			if levelData != nil {
+				for _, rt := range []models.ResourceType{models.Wood, models.Stone, models.Iron} {
+					totalCost += float64(levelData.Costs[rt])
+				}
+			}
+		}
+	}
+
+	// Add tech research cost
+	tech, ok := s.Technologies[techName]
+	if ok {
+		for _, rt := range []models.ResourceType{models.Wood, models.Stone, models.Iron} {
+			totalCost += float64(tech.Costs[rt])
+		}
+	}
+
+	return totalCost
+}
+
+// estimateRemainingResourceNeeds calculates total resources still needed to complete all targets
+func (s *GreedySolver) estimateRemainingResourceNeeds(state *SimulationState) float64 {
+	var totalNeeds float64
+
+	for bType, targetLevel := range s.TargetLevels {
+		currentLevel := state.BuildingLevels[bType]
+		building := s.Buildings[bType]
+		if building == nil {
+			continue
+		}
+
+		for level := currentLevel + 1; level <= targetLevel; level++ {
+			levelData := building.GetLevelData(level)
+			if levelData == nil {
+				continue
+			}
+			for _, rt := range []models.ResourceType{models.Wood, models.Stone, models.Iron} {
+				totalNeeds += float64(levelData.Costs[rt])
+			}
+		}
+	}
+
+	return totalNeeds
 }
 
 func (s *GreedySolver) updateProductionRates(state *SimulationState, building *models.Building, bType models.BuildingType, toLevel int) {
