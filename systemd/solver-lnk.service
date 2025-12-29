@@ -1,20 +1,43 @@
+# Example systemd service for solver-lnk
+# Copy to /etc/systemd/system/solver-lnk.service and adjust paths
+#
+# Install:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable solver-lnk.service
+#   sudo systemctl start solver-lnk.service
+#
+# Status:
+#   systemctl status solver-lnk --no-pager
+#   journalctl -u solver-lnk -f
+
 [Unit]
 Description=Lords and Knights Solver (gRPC)
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/napolitain/Repos/solver-lnk
-ExecStart=/home/napolitain/Repos/solver-lnk/server
+
+# TODO: Change to your user/group
+User=YOUR_USER
+Group=YOUR_USER
+
+# TODO: Change to your repo path
+WorkingDirectory=/path/to/solver-lnk
+ExecStart=/path/to/solver-lnk/server
+
 Restart=always
 RestartSec=5
 
-# Environment
-Environment=GOGC=100
+# Localhost-only networking
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 
-# Logging (stdout/stderr go to journald)
+# Logging
 StandardOutput=journal
 StandardError=journal
 
+# Basic hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
