@@ -1,0 +1,20 @@
+[Unit]
+Description=Lords and Knights Solver (gRPC)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/napolitain/Repos/solver-lnk
+ExecStart=/home/napolitain/Repos/solver-lnk/server
+Restart=always
+RestartSec=5
+
+# Environment
+Environment=GOGC=100
+
+# Logging (stdout/stderr go to journald)
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
