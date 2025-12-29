@@ -276,12 +276,28 @@ func printSummary(solution *models.Solution, targets map[models.BuildingType]int
 	fmt.Printf("\n⏱️  Total completion time: %s (%.1f hours = %.1f days)\n",
 		formatTime(solution.TotalTimeSeconds), totalHours, totalDays)
 
-	// Show final food status
+	// Calculate final food status from the last action (building or research)
+	var finalFoodUsed, finalFoodCapacity int
 	if len(solution.BuildingActions) > 0 {
-		lastAction := solution.BuildingActions[len(solution.BuildingActions)-1]
-		remaining := lastAction.FoodCapacity - lastAction.FoodUsed
+		lastBuild := solution.BuildingActions[len(solution.BuildingActions)-1]
+		finalFoodUsed = lastBuild.FoodUsed
+		finalFoodCapacity = lastBuild.FoodCapacity
+	}
+	if len(solution.ResearchActions) > 0 {
+		lastResearch := solution.ResearchActions[len(solution.ResearchActions)-1]
+		if lastResearch.FoodUsed > finalFoodUsed {
+			finalFoodUsed = lastResearch.FoodUsed
+		}
+		if lastResearch.FoodCapacity > finalFoodCapacity {
+			finalFoodCapacity = lastResearch.FoodCapacity
+		}
+	}
+
+	// Show final food status
+	if finalFoodCapacity > 0 {
+		remaining := finalFoodCapacity - finalFoodUsed
 		fmt.Printf("\n🍞 Food: %d/%d used (%d remaining for units)\n",
-			lastAction.FoodUsed, lastAction.FoodCapacity, remaining)
+			finalFoodUsed, finalFoodCapacity, remaining)
 	}
 
 	// Verify targets
@@ -312,9 +328,8 @@ func printSummary(solution *models.Solution, targets map[models.BuildingType]int
 	}
 
 	// Print units recommendation
-	if allOk && len(solution.BuildingActions) > 0 {
-		lastAction := solution.BuildingActions[len(solution.BuildingActions)-1]
-		foodAvailable := lastAction.FoodCapacity - lastAction.FoodUsed
+	if allOk && finalFoodCapacity > 0 {
+		foodAvailable := finalFoodCapacity - finalFoodUsed
 		printUnitsRecommendation(foodAvailable)
 	}
 }
