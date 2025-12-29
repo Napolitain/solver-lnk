@@ -183,11 +183,43 @@ go test -race ./...
 go test -coverprofile=coverage.out ./...
 go tool cover -func=coverage.out
 
-# Run fuzz tests
-go test -fuzz=FuzzSolverDeterminism -fuzztime=30s ./internal/solver/castle
-
 # Format code
 go fmt ./...
+```
+
+### Testing
+
+#### Standard Tests
+
+```bash
+go test ./...                    # Run all tests (includes fuzz seed corpus)
+go test -race ./...              # With race detection
+go test -coverprofile=coverage.out ./...  # With coverage
+go tool cover -func=coverage.out # Show coverage report
+```
+
+#### Fuzz Tests
+
+`go test ./...` runs fuzz tests against their seed corpus (regression tests), but does NOT run the fuzzing engine with random generation. To actually fuzz:
+
+**Castle solver fuzz tests (`internal/solver/castle/`):**
+```bash
+go test -fuzz=FuzzSolverDeterminism -fuzztime=30s ./internal/solver/castle
+go test -fuzz=FuzzSolverResources -fuzztime=30s ./internal/solver/castle
+go test -fuzz=FuzzSolverBuildingLevels -fuzztime=30s ./internal/solver/castle
+```
+
+**Units solver fuzz tests (`internal/solver/units/`):**
+```bash
+go test -fuzz=FuzzSolverConstraints -fuzztime=30s ./internal/solver/units
+go test -fuzz=FuzzUnitThroughput -fuzztime=30s ./internal/solver/units
+go test -fuzz=FuzzUnitResourceCosts -fuzztime=30s ./internal/solver/units
+```
+
+#### Run All Quality Checks (before commit)
+
+```bash
+golangci-lint run && go test -race ./...
 ```
 
 ### Code Quality

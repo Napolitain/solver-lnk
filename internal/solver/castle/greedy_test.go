@@ -11,10 +11,10 @@ import (
 
 const dataDir = "../../../data"
 
-// Current best known completion time in seconds (52.2 days = 1252.1 hours)
+// Current best known completion time in seconds (59.6 days = 1431.2 hours)
 // This is used to catch performance regressions
-// Adding 1% margin for timing variance
-const maxAllowedTimeSeconds = 1450 * 3600 // ~60 days with all techs researched
+// Adding slight margin for timing variance
+const maxAllowedTimeSeconds = 1440 * 3600 // ~60 days with all techs researched
 
 func setupSolver(t *testing.T) (*castle.GreedySolver, map[models.BuildingType]int) {
 	t.Helper()

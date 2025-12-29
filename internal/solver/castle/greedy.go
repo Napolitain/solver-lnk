@@ -26,16 +26,30 @@ type SimulationState struct {
 // ResourceStrategy defines how resource buildings are prioritized
 // WoodLead and QuarryLead indicate how many levels ahead of OreMine they should be
 type ResourceStrategy struct {
-	WoodLead   int // How many levels Lumberjack stays ahead of OreMine
-	QuarryLead int // How many levels Quarry stays ahead of OreMine
+	WoodLead   int // Initial Wood lead
+	QuarryLead int // Initial Quarry lead
+
+	// Dynamic/Staged strategy parameters
+	SwitchLevel    int // Level of OreMine at which we switch strategy (0 = disabled)
+	LateWoodLead   int // Wood lead after switch
+	LateQuarryLead int // Quarry lead after switch
 }
 
 // String returns the strategy name
 func (s ResourceStrategy) String() string {
+	base := fmt.Sprintf("W+%d/Q+%d", s.WoodLead, s.QuarryLead)
 	if s.WoodLead == 0 && s.QuarryLead == 0 {
-		return "RoundRobin"
+		base = "RoundRobin"
 	}
-	return fmt.Sprintf("W+%d/Q+%d", s.WoodLead, s.QuarryLead)
+
+	if s.SwitchLevel > 0 {
+		late := fmt.Sprintf("W+%d/Q+%d", s.LateWoodLead, s.LateQuarryLead)
+		if s.LateWoodLead == 0 && s.LateQuarryLead == 0 {
+			late = "RoundRobin"
+		}
+		return fmt.Sprintf("%s -> @OM%d %s", base, s.SwitchLevel, late)
+	}
+	return base
 }
 
 // GreedySolver implements the greedy simulation solver
@@ -59,7 +73,7 @@ func NewGreedySolver(
 		Technologies: technologies,
 		InitialState: initialState,
 		TargetLevels: targetLevels,
-		Strategy:     ResourceStrategy{0, 0},
+		Strategy:     ResourceStrategy{},
 	}
 }
 
@@ -86,8 +100,7 @@ type StrategyResult struct {
 	Solution *models.Solution
 }
 
-// SolveAllStrategies tries progressively higher wood/quarry leads until no improvement
-// Tech research decisions are made automatically via breakeven heuristic
+// SolveAllStrategies tries various strategies to find the best build order
 func SolveAllStrategies(
 	buildings map[models.BuildingType]*models.Building,
 	technologies map[string]*models.Technology,
@@ -98,44 +111,71 @@ func SolveAllStrategies(
 	var bestStrategy ResourceStrategy
 	var results []StrategyResult
 
-	// Generate strategies: start with RoundRobin, then progressively add wood/quarry lead
-	// Pattern: (0,0), (1,0), (1,1), (2,0), (2,1), (2,2), (3,0), ...
-	// Stop when we've tried 5 consecutive strategies without improvement
-	noImprovementCount := 0
-	maxNoImprovement := 5
+	strategies := []ResourceStrategy{}
 
-	for woodLead := 0; woodLead <= 10 && noImprovementCount < maxNoImprovement; woodLead++ {
-		for quarryLead := 0; quarryLead <= woodLead && noImprovementCount < maxNoImprovement; quarryLead++ {
-			strategy := ResourceStrategy{WoodLead: woodLead, QuarryLead: quarryLead}
+	// 1. Static strategies: RoundRobin up to W+8/Q+8
+	// We want to ensure +3/+3, +4/+4, +5/+5 are tested as requested
+	// Removing the early-exit heuristic to guarantee coverage
+	for woodLead := 0; woodLead <= 8; woodLead++ {
+		for quarryLead := 0; quarryLead <= woodLead; quarryLead++ {
+			strategies = append(strategies, ResourceStrategy{
+				WoodLead:   woodLead,
+				QuarryLead: quarryLead,
+			})
+		}
+	}
 
-			// Deep copy initial state for each run
-			stateCopy := &models.GameState{
-				BuildingLevels:         make(map[models.BuildingType]int),
-				Resources:              make(map[models.ResourceType]float64),
-				ResearchedTechnologies: make(map[string]bool),
-			}
-			for k, v := range initialState.BuildingLevels {
-				stateCopy.BuildingLevels[k] = v
-			}
-			for k, v := range initialState.Resources {
-				stateCopy.Resources[k] = v
-			}
-			for k, v := range initialState.ResearchedTechnologies {
-				stateCopy.ResearchedTechnologies[k] = v
-			}
+	// 2. Staged strategies: Push hard early, then balance
+	// Useful for getting production high quickly then catching up on core/military
+	switchLevels := []int{10, 15, 20}
+	pushLeads := []int{3, 5}
 
-			solver := NewGreedySolverWithStrategy(buildings, technologies, stateCopy, targetLevels, strategy)
-			solution := solver.Solve()
+	for _, switchLvl := range switchLevels {
+		for _, push := range pushLeads {
+			// Push Wood & Stone, then RoundRobin
+			strategies = append(strategies, ResourceStrategy{
+				WoodLead:       push,
+				QuarryLead:     push,
+				SwitchLevel:    switchLvl,
+				LateWoodLead:   0,
+				LateQuarryLead: 0,
+			})
+			// Push Wood & Stone, then mild lead
+			strategies = append(strategies, ResourceStrategy{
+				WoodLead:       push,
+				QuarryLead:     push,
+				SwitchLevel:    switchLvl,
+				LateWoodLead:   1,
+				LateQuarryLead: 1,
+			})
+		}
+	}
 
-			results = append(results, StrategyResult{Strategy: strategy, Solution: solution})
+	for _, strategy := range strategies {
+		// Deep copy initial state for each run
+		stateCopy := &models.GameState{
+			BuildingLevels:         make(map[models.BuildingType]int),
+			Resources:              make(map[models.ResourceType]float64),
+			ResearchedTechnologies: make(map[string]bool),
+		}
+		for k, v := range initialState.BuildingLevels {
+			stateCopy.BuildingLevels[k] = v
+		}
+		for k, v := range initialState.Resources {
+			stateCopy.Resources[k] = v
+		}
+		for k, v := range initialState.ResearchedTechnologies {
+			stateCopy.ResearchedTechnologies[k] = v
+		}
 
-			if bestSolution == nil || solution.TotalTimeSeconds < bestSolution.TotalTimeSeconds {
-				bestSolution = solution
-				bestStrategy = strategy
-				noImprovementCount = 0
-			} else {
-				noImprovementCount++
-			}
+		solver := NewGreedySolverWithStrategy(buildings, technologies, stateCopy, targetLevels, strategy)
+		solution := solver.Solve()
+
+		results = append(results, StrategyResult{Strategy: strategy, Solution: solution})
+
+		if bestSolution == nil || solution.TotalTimeSeconds < bestSolution.TotalTimeSeconds {
+			bestSolution = solution
+			bestStrategy = strategy
 		}
 	}
 
@@ -1101,12 +1141,32 @@ func (s *GreedySolver) createResourceQueue() []queueItem {
 	qTarget := s.TargetLevels[models.Quarry]
 	omTarget := s.TargetLevels[models.OreMine]
 
-	woodLead := s.Strategy.WoodLead
-	quarryLead := s.Strategy.QuarryLead
-
 	ljLevel, qLevel, omLevel := 2, 2, 2
 
+	// Get initial levels if we are continuing a game
+	if l, ok := s.InitialState.BuildingLevels[models.Lumberjack]; ok && l > 1 {
+		ljLevel = l + 1
+	}
+	if l, ok := s.InitialState.BuildingLevels[models.Quarry]; ok && l > 1 {
+		qLevel = l + 1
+	}
+	if l, ok := s.InitialState.BuildingLevels[models.OreMine]; ok && l > 1 {
+		omLevel = l + 1
+	}
+
 	for ljLevel <= ljTarget || qLevel <= qTarget || omLevel <= omTarget {
+		// Determine current leads based on strategy phase
+		woodLead := s.Strategy.WoodLead
+		quarryLead := s.Strategy.QuarryLead
+
+		// Switch strategy if enabled and threshold reached
+		// Note: We use omLevel-1 because omLevel is the NEXT level to build
+		// So if omLevel is 16, current is 15. If switch is 15, we switch.
+		if s.Strategy.SwitchLevel > 0 && (omLevel-1) >= s.Strategy.SwitchLevel {
+			woodLead = s.Strategy.LateWoodLead
+			quarryLead = s.Strategy.LateQuarryLead
+		}
+
 		added := false
 
 		// Try to add one LJ if needed to maintain lead
@@ -1140,6 +1200,13 @@ func (s *GreedySolver) createResourceQueue() []queueItem {
 			} else if qLevel <= qTarget {
 				queue = append(queue, queueItem{models.Quarry, qLevel})
 				qLevel++
+			} else if omLevel <= omTarget {
+				// Fallback: if wood/quarry done but ore mine pending
+				queue = append(queue, queueItem{models.OreMine, omLevel})
+				omLevel++
+			} else {
+				// All done
+				break
 			}
 		}
 	}
