@@ -140,7 +140,38 @@ func LoadTechnologies(dataDir string) (map[string]*models.Technology, error) {
 		technologies[tech.Name] = tech
 	}
 
+	// Load required library levels from technologies.json
+	if err := loadTechLibraryLevels(dataDir, technologies); err != nil {
+		fmt.Printf("Warning: could not load tech library levels: %v\n", err)
+	}
+
 	return technologies, nil
+}
+
+// loadTechLibraryLevels reads required library levels from technologies.json
+func loadTechLibraryLevels(dataDir string, technologies map[string]*models.Technology) error {
+	filePath := filepath.Join(dataDir, "technologies.json")
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	var techJSON map[string]struct {
+		Name                 string `json:"name"`
+		RequiredLibraryLevel int    `json:"required_library_level"`
+	}
+
+	if err := json.Unmarshal(data, &techJSON); err != nil {
+		return err
+	}
+
+	for name, info := range techJSON {
+		if tech, ok := technologies[name]; ok {
+			tech.RequiredLibraryLevel = info.RequiredLibraryLevel
+		}
+	}
+
+	return nil
 }
 
 func parseTechFile(filePath, internalName string) (*models.Technology, error) {
@@ -196,7 +227,7 @@ func parseTechFile(filePath, internalName string) (*models.Technology, error) {
 		}
 	}
 
-	// Assign costs based on position (wood, stone, iron)
+	// Assign costs based on position (wood, stone, iron, food)
 	if len(costLines) >= 1 {
 		tech.Costs[models.Wood] = costLines[0]
 	}
@@ -206,7 +237,11 @@ func parseTechFile(filePath, internalName string) (*models.Technology, error) {
 	if len(costLines) >= 3 {
 		tech.Costs[models.Iron] = costLines[2]
 	}
-	tech.Costs[models.Food] = 0
+	if len(costLines) >= 4 {
+		tech.Costs[models.Food] = costLines[3]
+	} else {
+		tech.Costs[models.Food] = 0
+	}
 
 	return tech, nil
 }
