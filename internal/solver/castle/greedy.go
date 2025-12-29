@@ -615,6 +615,8 @@ func (s *GreedySolver) scheduleResearch(state *SimulationState, techName string,
 		StartTime:      startTime * 60,
 		EndTime:        researchEndTime * 60,
 		Costs:          tech.Costs,
+		FoodUsed:       state.FoodUsed,
+		FoodCapacity:   state.FoodCapacity,
 	})
 
 	// Wait until research completes before marking as researched
