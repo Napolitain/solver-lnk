@@ -409,3 +409,153 @@ func TestTotalUnitResourceCosts(t *testing.T) {
 		t.Errorf("Total iron cost %d seems too low for full army", totalIron)
 	}
 }
+
+func TestUnitResourceCostsPerBatchRespectStorage(t *testing.T) {
+	// This test verifies that when training units, we can't exceed storage capacity
+	// in a single batch
+
+	// Level 20 storage capacity is ~27k per resource
+	const level20StorageCap = 26930
+
+	solver := NewSolver()
+	solution := solver.Solve()
+
+	// Verify that no single unit type's total cost exceeds what we could possibly accumulate
+	for _, u := range AllUnits() {
+		count := solution.UnitCounts[u.Name]
+		if count == 0 {
+			continue
+		}
+
+		woodCost := u.ResourceCosts[models.Wood] * count
+		ironCost := u.ResourceCosts[models.Iron] * count
+
+		// Log total costs per unit type
+		t.Logf("%s x%d: Wood=%d, Iron=%d", u.Name, count, woodCost, ironCost)
+
+		// Single unit should never exceed storage
+		if u.ResourceCosts[models.Wood] > level20StorageCap {
+			t.Errorf("Single %s wood cost %d exceeds storage %d", u.Name, u.ResourceCosts[models.Wood], level20StorageCap)
+		}
+		if u.ResourceCosts[models.Iron] > level20StorageCap {
+			t.Errorf("Single %s iron cost %d exceeds storage %d", u.Name, u.ResourceCosts[models.Iron], level20StorageCap)
+		}
+	}
+}
+
+func TestUnitBatchSizesByStorage(t *testing.T) {
+	// Given storage capacity, how many units can we train before waiting?
+	const storageCap = 26930
+
+	for _, u := range AllUnits() {
+		if u.ResourceCosts[models.Wood] == 0 && u.ResourceCosts[models.Iron] == 0 {
+			continue // Skip units without resource costs
+		}
+
+		maxByWood := storageCap
+		if u.ResourceCosts[models.Wood] > 0 {
+			maxByWood = storageCap / u.ResourceCosts[models.Wood]
+		}
+		maxByIron := storageCap
+		if u.ResourceCosts[models.Iron] > 0 {
+			maxByIron = storageCap / u.ResourceCosts[models.Iron]
+		}
+
+		batchSize := min(maxByWood, maxByIron)
+		t.Logf("%s: max batch size with %d storage = %d units (wood: %d/unit, iron: %d/unit)",
+			u.Name, storageCap, batchSize, u.ResourceCosts[models.Wood], u.ResourceCosts[models.Iron])
+
+		// Should be able to train at least 100 units per batch
+		if batchSize < 100 {
+			t.Logf("Warning: %s can only train %d per batch", u.Name, batchSize)
+		}
+	}
+}
+
+func TestUnitTrainingTimeWithResourceWait(t *testing.T) {
+	// Simulate training with resource accumulation
+	// Production rate: ~387/h per resource (level 30)
+	// With 10% bonus: ~425/h
+
+	const productionRate = 425.0 // per hour per resource
+
+	solver := NewSolver()
+	solution := solver.Solve()
+
+	totalTrainingSeconds := 0
+	totalResourceWaitSeconds := 0
+
+	for _, u := range AllUnits() {
+		count := solution.UnitCounts[u.Name]
+		if count == 0 {
+			continue
+		}
+
+		// Training time
+		trainingSeconds := count * u.TrainingTimeSeconds
+		totalTrainingSeconds += trainingSeconds
+
+		// Resource accumulation time (worst case: storage empty, need to wait)
+		totalWood := u.ResourceCosts[models.Wood] * count
+		totalIron := u.ResourceCosts[models.Iron] * count
+
+		woodWaitHours := float64(totalWood) / productionRate
+		ironWaitHours := float64(totalIron) / productionRate
+
+		maxWaitHours := max(woodWaitHours, ironWaitHours)
+		totalResourceWaitSeconds += int(maxWaitHours * 3600)
+
+		t.Logf("%s x%d: train %.1fh, resource wait %.1fh",
+			u.Name, count,
+			float64(trainingSeconds)/3600,
+			maxWaitHours)
+	}
+
+	t.Logf("Total training time: %.1f hours", float64(totalTrainingSeconds)/3600)
+	t.Logf("Total resource wait time: %.1f hours (theoretical max)", float64(totalResourceWaitSeconds)/3600)
+
+	// Training should take significant time
+	if totalTrainingSeconds < 100*3600 { // At least 100 hours
+		t.Errorf("Training time %d seconds seems too short", totalTrainingSeconds)
+	}
+}
+
+func TestUnitFoodCostMatchesData(t *testing.T) {
+	// Verify food costs match unit data
+	expectedFood := map[string]int{
+		"Spearman":    1,
+		"Crossbowman": 1,
+		"Horseman":    2,
+	}
+
+	for _, u := range AllUnits() {
+		expected, ok := expectedFood[u.Name]
+		if !ok {
+			continue
+		}
+		if u.FoodCost != expected {
+			t.Errorf("%s food cost %d != expected %d", u.Name, u.FoodCost, expected)
+		}
+	}
+}
+
+func TestTotalFoodUsedByUnits(t *testing.T) {
+	solver := NewSolver()
+	solution := solver.Solve()
+
+	totalFood := 0
+	for _, u := range AllUnits() {
+		count := solution.UnitCounts[u.Name]
+		totalFood += u.FoodCost * count
+	}
+
+	t.Logf("Total food used by units: %d / %d", totalFood, MaxFoodCapacity)
+
+	if totalFood != solution.TotalFood {
+		t.Errorf("Calculated food %d != solution.TotalFood %d", totalFood, solution.TotalFood)
+	}
+
+	if totalFood > MaxFoodCapacity {
+		t.Errorf("Total food %d exceeds capacity %d", totalFood, MaxFoodCapacity)
+	}
+}

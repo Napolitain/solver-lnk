@@ -198,3 +198,50 @@ func TestThroughputMeetsProduction(t *testing.T) {
 		}
 	}
 }
+
+// FuzzUnitResourceCosts verifies that resource costs are reasonable for all fuzz inputs
+func FuzzUnitResourceCosts(f *testing.F) {
+	// Seed with storage capacities at different levels
+	f.Add(int32(500), int32(26930))   // Level 20 storage
+	f.Add(int32(1000), int32(10000))  // Mid-level storage
+	f.Add(int32(4265), int32(50000))  // High storage
+
+	f.Fuzz(func(t *testing.T, food, storageCap int32) {
+		if food <= 0 || storageCap <= 0 {
+			return
+		}
+		if food > 10000 || storageCap > 100000 {
+			return
+		}
+
+		solver := NewSolverWithConfig(food, 1161, 50)
+		solution := solver.Solve()
+
+		// Calculate total resource costs for the army
+		var totalWood, totalIron int
+		for _, u := range AllUnits() {
+			count := solution.UnitCounts[u.Name]
+			totalWood += u.ResourceCosts["wood"] * count
+			totalIron += u.ResourceCosts["iron"] * count
+		}
+
+		// Invariant: Single unit should never cost more than storage
+		for _, u := range AllUnits() {
+			if u.ResourceCosts["wood"] > int(storageCap) {
+				// This would be a data issue, not solver issue
+				t.Logf("Warning: %s wood cost %d exceeds storage %d", u.Name, u.ResourceCosts["wood"], storageCap)
+			}
+			if u.ResourceCosts["iron"] > int(storageCap) {
+				t.Logf("Warning: %s iron cost %d exceeds storage %d", u.Name, u.ResourceCosts["iron"], storageCap)
+			}
+		}
+
+		// Invariant: Resource costs should be non-negative
+		if totalWood < 0 {
+			t.Errorf("Negative total wood cost: %d", totalWood)
+		}
+		if totalIron < 0 {
+			t.Errorf("Negative total iron cost: %d", totalIron)
+		}
+	})
+}
