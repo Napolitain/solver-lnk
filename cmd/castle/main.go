@@ -216,11 +216,13 @@ func printBuildOrder(solution *models.Solution) {
 	}
 	for _, a := range solution.ResearchActions {
 		allActions = append(allActions, action{
-			isBuilding: false,
-			startTime:  a.StartTime,
-			endTime:    a.EndTime,
-			name:       a.TechnologyName,
-			costs:      a.Costs,
+			isBuilding:   false,
+			startTime:    a.StartTime,
+			endTime:      a.EndTime,
+			name:         a.TechnologyName,
+			costs:        a.Costs,
+			foodUsed:     a.FoodUsed,
+			foodCapacity: a.FoodCapacity,
 		})
 	}
 
@@ -241,7 +243,7 @@ func printBuildOrder(solution *models.Solution) {
 		if !a.isBuilding {
 			queueType = "🔬 Research"
 			upgradeStr = ""
-			foodStr = ""
+			// Show food for research too (foodCapacity should be set)
 		}
 
 		duration := a.endTime - a.startTime

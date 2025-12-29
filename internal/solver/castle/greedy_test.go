@@ -427,6 +427,64 @@ func TestProductionTechBreakevenCalculation(t *testing.T) {
 	_ = s
 }
 
+func TestProductionBonusApplied(t *testing.T) {
+	buildings, technologies, initialState, targetLevels := setupFullSolver(t)
+
+	strategy := castle.ResourceStrategy{WoodLead: 0, QuarryLead: 0}
+	s := castle.NewGreedySolverWithStrategy(buildings, technologies, initialState, targetLevels, strategy)
+	solution := s.Solve()
+
+	// Beer tester and Wheelbarrow should both be researched
+	if !solution.FinalState.ResearchedTechnologies["Beer tester"] {
+		t.Error("Beer tester should be researched")
+	}
+	if !solution.FinalState.ResearchedTechnologies["Wheelbarrow"] {
+		t.Error("Wheelbarrow should be researched")
+	}
+
+	// Final production rates should include 10% bonus (2x 5%)
+	// Base production at level 30 is 387/hour for each resource building
+	// With 10% bonus: 387 * 1.10 = 425.7
+	// Check that we completed faster than without the bonus would allow
+	days := float64(solution.TotalTimeSeconds) / 3600 / 24
+	t.Logf("Completion time with production bonus: %.1f days", days)
+
+	// Should complete in reasonable time (bonus helps)
+	if days > 65 {
+		t.Errorf("Expected completion under 65 days with production bonus, got %.1f", days)
+	}
+}
+
+func TestTechFoodIsTracked(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// Find a tech that uses food
+	var beerTesterAction *models.ResearchAction
+	for i := range solution.ResearchActions {
+		if solution.ResearchActions[i].TechnologyName == "Beer tester" {
+			beerTesterAction = &solution.ResearchActions[i]
+			break
+		}
+	}
+
+	if beerTesterAction == nil {
+		t.Fatal("Beer tester action not found")
+	}
+
+	// Beer tester costs 3 food
+	if beerTesterAction.Costs[models.Food] != 3 {
+		t.Errorf("Beer tester should cost 3 food, got %d", beerTesterAction.Costs[models.Food])
+	}
+
+	// FoodUsed should be tracked
+	if beerTesterAction.FoodUsed == 0 && beerTesterAction.FoodCapacity == 0 {
+		t.Error("FoodUsed and FoodCapacity should be tracked for research actions")
+	}
+
+	t.Logf("Beer tester: FoodUsed=%d, FoodCapacity=%d", beerTesterAction.FoodUsed, beerTesterAction.FoodCapacity)
+}
+
 func TestNoNegativeResources(t *testing.T) {
 	s, _ := setupSolver(t)
 	solution := s.Solve()

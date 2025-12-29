@@ -116,6 +116,8 @@ type ResearchAction struct {
 	StartTime      int // seconds
 	EndTime        int // seconds
 	Costs          Costs
+	FoodUsed       int // Total food used after this action
+	FoodCapacity   int // Food capacity after this action
 }
 
 // Solution represents a complete build order solution

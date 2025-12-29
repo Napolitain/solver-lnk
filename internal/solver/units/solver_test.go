@@ -209,3 +209,46 @@ func TestDefenseEfficiency(t *testing.T) {
 		t.Errorf("Crossbowman efficiency %.1f < expected 184", efficiency)
 	}
 }
+
+func TestTradingMatchesProduction(t *testing.T) {
+	// Base production at level 30 is 387/hour per resource building = 1161 total
+	// With 10% bonus from Beer tester + Wheelbarrow: 1161 * 1.10 = 1277.1
+	// Trading throughput should be able to handle this
+	
+	// Test with boosted production rate (simulating after tech research)
+	boostedProduction := int32(1277) // 1161 * 1.10
+	
+	solver := NewSolverWithConfig(MaxFoodCapacity, boostedProduction, MarketDistanceFields)
+	solution := solver.Solve()
+
+	if solution.TotalThroughput < float64(boostedProduction) {
+		t.Errorf("Trading throughput %.0f < boosted production %d - cannot trade all resources",
+			solution.TotalThroughput, boostedProduction)
+	}
+
+	t.Logf("Boosted production: %d/hour, Trading throughput: %.0f/hour (surplus: %.0f)",
+		boostedProduction, solution.TotalThroughput, solution.TotalThroughput-float64(boostedProduction))
+}
+
+func TestTradingAt25FieldDistance(t *testing.T) {
+	// With Keep level 10, market distance is 25 fields (50 round trip)
+	// Resource rate at level 30: 387 * 3 = 1161/hour base
+	// With 10% bonus: ~1277/hour
+	
+	solver := NewSolver()
+	solution := solver.Solve()
+
+	// Should achieve at least 1161 throughput (base production)
+	if solution.TotalThroughput < float64(ResourceProductionPerHour) {
+		t.Errorf("Throughput %.0f < base production %d", 
+			solution.TotalThroughput, ResourceProductionPerHour)
+	}
+
+	// With good army composition, should achieve much higher throughput
+	// (combat units contribute to trading while providing defense)
+	if solution.TotalThroughput < 5000 {
+		t.Errorf("Throughput %.0f seems too low for maxed castle army", solution.TotalThroughput)
+	}
+
+	t.Logf("Trading throughput at 25 field distance: %.0f resources/hour", solution.TotalThroughput)
+}
