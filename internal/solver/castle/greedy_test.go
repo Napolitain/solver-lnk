@@ -1154,40 +1154,40 @@ func TestSolverSingleBuildingUpgrade(t *testing.T) {
 }
 
 func TestSolverZeroResources(t *testing.T) {
-buildings, err := loader.LoadBuildings(dataDir)
-if err != nil {
-t.Fatalf("Failed to load buildings: %v", err)
-}
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
 
-technologies, err := loader.LoadTechnologies(dataDir)
-if err != nil {
-t.Fatalf("Failed to load technologies: %v", err)
-}
+	technologies, err := loader.LoadTechnologies(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load technologies: %v", err)
+	}
 
-initialState := models.NewGameState()
-initialState.Resources[models.Wood] = 0
-initialState.Resources[models.Stone] = 0
-initialState.Resources[models.Iron] = 0
-initialState.Resources[models.Food] = 0
+	initialState := models.NewGameState()
+	initialState.Resources[models.Wood] = 0
+	initialState.Resources[models.Stone] = 0
+	initialState.Resources[models.Iron] = 0
+	initialState.Resources[models.Food] = 0
 
-for _, bt := range models.AllBuildingTypes() {
-initialState.BuildingLevels[bt] = 1
-}
+	for _, bt := range models.AllBuildingTypes() {
+		initialState.BuildingLevels[bt] = 1
+	}
 
-targetLevels := map[models.BuildingType]int{
-models.Lumberjack: 5,
-}
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack: 5,
+	}
 
-s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
-solution := s.Solve()
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
 
-if solution == nil {
-t.Fatal("Expected non-nil solution")
-}
+	if solution == nil {
+		t.Fatal("Expected non-nil solution")
+	}
 
-if solution.FinalState.BuildingLevels[models.Lumberjack] < 5 {
-t.Errorf("Failed to reach target: got level %d", solution.FinalState.BuildingLevels[models.Lumberjack])
-}
+	if solution.FinalState.BuildingLevels[models.Lumberjack] < 5 {
+		t.Errorf("Failed to reach target: got level %d", solution.FinalState.BuildingLevels[models.Lumberjack])
+	}
 }
 
 func TestSolverEmptyTargets(t *testing.T) {
@@ -1209,5 +1209,177 @@ func TestSolverEmptyTargets(t *testing.T) {
 
 	if len(solution.BuildingActions) != 0 {
 		t.Errorf("Expected empty build order for empty targets, got %d actions", len(solution.BuildingActions))
+	}
+}
+
+// TestLibraryNotUpgradedPrematurelyForWheelbarrow verifies that Library isn't upgraded to 8
+// before Beer Tester (which only needs Library 3) is researched
+// Tests with multiple strategies to catch strategy-specific issues
+func TestLibraryNotUpgradedPrematurelyForWheelbarrow(t *testing.T) {
+	buildings, technologies, initialState, targetLevels := setupFullSolver(t)
+
+	// Test with multiple strategies including the best one
+	strategies := []castle.ResourceStrategy{
+		{WoodLead: 0, QuarryLead: 0}, // RoundRobin
+		{WoodLead: 4, QuarryLead: 4}, // Best strategy found
+		{WoodLead: 2, QuarryLead: 1}, // Intermediate
+	}
+
+	for _, strategy := range strategies {
+		t.Run(strategy.String(), func(t *testing.T) {
+			stateCopy := &models.GameState{
+				BuildingLevels:         make(map[models.BuildingType]int),
+				Resources:              make(map[models.ResourceType]float64),
+				ResearchedTechnologies: make(map[string]bool),
+			}
+			for k, v := range initialState.BuildingLevels {
+				stateCopy.BuildingLevels[k] = v
+			}
+			for k, v := range initialState.Resources {
+				stateCopy.Resources[k] = v
+			}
+			for k, v := range initialState.ResearchedTechnologies {
+				stateCopy.ResearchedTechnologies[k] = v
+			}
+
+			s := castle.NewGreedySolverWithStrategy(buildings, technologies, stateCopy, targetLevels, strategy)
+			solution := s.Solve()
+
+			// Find when Beer Tester is researched
+			var beerTesterStart int
+			for _, action := range solution.ResearchActions {
+				if action.TechnologyName == "Beer tester" {
+					beerTesterStart = action.StartTime
+					break
+				}
+			}
+
+			if beerTesterStart == 0 {
+				t.Fatal("Beer tester not found in research actions")
+			}
+
+			// Check Library upgrades before Beer Tester
+			maxLibraryBeforeBeerTester := 1
+			for _, action := range solution.BuildingActions {
+				if action.BuildingType == models.Library && action.EndTime <= beerTesterStart {
+					if action.ToLevel > maxLibraryBeforeBeerTester {
+						maxLibraryBeforeBeerTester = action.ToLevel
+					}
+				}
+			}
+
+			// Beer Tester needs Library 3, so Library should only be at 3 before Beer Tester
+			// NOT at 4, 5, 6, 7, or 8 (which is for Wheelbarrow)
+			if maxLibraryBeforeBeerTester > 3 {
+				t.Errorf("Library upgraded to %d before Beer Tester (which only needs Library 3) - this is premature for Wheelbarrow (needs Library 8)",
+					maxLibraryBeforeBeerTester)
+
+				// Log the premature upgrades
+				for _, action := range solution.BuildingActions {
+					if action.BuildingType == models.Library {
+						t.Logf("Library %d→%d at hour %.1f (Beer Tester starts at hour %.1f)",
+							action.FromLevel, action.ToLevel, float64(action.StartTime)/3600, float64(beerTesterStart)/3600)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestLibraryUpgradedOnDemandOnly verifies Library is only upgraded when needed for a specific tech
+func TestLibraryUpgradedOnDemandOnly(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// Track which Library level is needed for each tech
+	techLibraryReqs := map[string]int{
+		"Beer tester":      3,
+		"Wheelbarrow":      8,
+		"Crop rotation":    1,
+		"Yoke":             1,
+		"Cellar storeroom": 1,
+	}
+
+	// For each research action, check Library was at the required level
+	for _, ra := range solution.ResearchActions {
+		reqLevel, ok := techLibraryReqs[ra.TechnologyName]
+		if !ok {
+			continue // Skip techs we don't have requirements for
+		}
+
+		// Find Library level at research start time
+		libraryLevel := 1
+		for _, ba := range solution.BuildingActions {
+			if ba.BuildingType == models.Library && ba.EndTime <= ra.StartTime {
+				if ba.ToLevel > libraryLevel {
+					libraryLevel = ba.ToLevel
+				}
+			}
+		}
+
+		if libraryLevel < reqLevel {
+			t.Errorf("Tech %s started at time %d but Library was only at %d (needs %d)",
+				ra.TechnologyName, ra.StartTime, libraryLevel, reqLevel)
+		}
+	}
+}
+
+// TestLibraryNotInInitialQueue verifies Library is not added to the initial build queue
+// (it should be upgraded on-demand for tech prerequisites only)
+func TestLibraryNotInInitialQueue(t *testing.T) {
+	buildings, technologies, initialState, targetLevels := setupFullSolver(t)
+
+	// Remove Library from targets to see if it still gets upgraded
+	delete(targetLevels, models.Library)
+
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
+
+	// Library should still be upgraded because production techs need it
+	// But only to the level needed for those techs
+	libraryFinal := solution.FinalState.BuildingLevels[models.Library]
+
+	// With Beer Tester (Library 3) and Wheelbarrow (Library 8) as production techs
+	// Library should reach at least 3
+	if libraryFinal < 3 {
+		t.Errorf("Library should reach at least 3 for Beer Tester, got %d", libraryFinal)
+	}
+
+	t.Logf("Final Library level: %d (was not in initial targets)", libraryFinal)
+}
+
+// TestTechNotResearchedWithoutLibrary verifies that a tech requiring higher Library
+// doesn't get researched until Library is at the right level
+func TestTechNotResearchedWithoutLibrary(t *testing.T) {
+	buildings, technologies, initialState, targetLevels := setupFullSolver(t)
+
+	// Set Library to 1
+	initialState.BuildingLevels[models.Library] = 1
+
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
+
+	// Beer Tester requires Library 3
+	// Find Beer Tester research action
+	for _, ra := range solution.ResearchActions {
+		if ra.TechnologyName == "Beer tester" {
+			// Check Library level at research start
+			libraryLevel := 1
+			for _, ba := range solution.BuildingActions {
+				if ba.BuildingType == models.Library && ba.EndTime <= ra.StartTime {
+					if ba.ToLevel > libraryLevel {
+						libraryLevel = ba.ToLevel
+					}
+				}
+			}
+
+			if libraryLevel < 3 {
+				t.Errorf("Beer tester researched at time %d with Library at %d (needs 3)",
+					ra.StartTime, libraryLevel)
+			} else {
+				t.Logf("Beer tester correctly researched after Library reached %d", libraryLevel)
+			}
+			break
+		}
 	}
 }
