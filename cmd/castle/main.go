@@ -13,6 +13,7 @@ import (
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
 	"github.com/napolitain/solver-lnk/internal/solver/castle"
+	"github.com/napolitain/solver-lnk/internal/solver/units"
 )
 
 var (
@@ -307,6 +308,41 @@ func printSummary(solution *models.Solution, targets map[models.BuildingType]int
 			fmt.Printf("   • %s\n", tech)
 		}
 	}
+
+	// Print units recommendation
+	if allOk && len(solution.BuildingActions) > 0 {
+		lastAction := solution.BuildingActions[len(solution.BuildingActions)-1]
+		foodAvailable := lastAction.FoodCapacity - lastAction.FoodUsed
+		printUnitsRecommendation(foodAvailable)
+	}
+}
+
+func printUnitsRecommendation(foodAvailable int) {
+	infoColor := color.New(color.FgCyan)
+	
+	infoColor.Println("\n⚔️  Units Recommendation:")
+	fmt.Printf("   Food available for units: %d\n\n", foodAvailable)
+
+	// Create units solver with available food
+	solver := units.NewSolverWithConfig(int32(foodAvailable), units.ResourceProductionPerHour, units.MarketDistanceFields)
+	solution := solver.Solve()
+
+	// Print unit counts
+	fmt.Println("   Recommended army composition:")
+	for _, u := range units.AllUnits() {
+		count := solution.UnitCounts[u.Name]
+		if count > 0 {
+			fmt.Printf("   • %s: %d (food: %d)\n", strings.Title(u.Name), count, count*u.FoodCost)
+		}
+	}
+
+	fmt.Printf("\n   📊 Stats:\n")
+	fmt.Printf("   • Total food used: %d / %d\n", solution.TotalFood, foodAvailable)
+	fmt.Printf("   • Trading throughput: %.0f resources/hour\n", solution.TotalThroughput)
+	fmt.Printf("   • Defense vs Cavalry: %d\n", solution.DefenseVsCavalry)
+	fmt.Printf("   • Defense vs Infantry: %d\n", solution.DefenseVsInfantry)
+	fmt.Printf("   • Defense vs Artillery: %d\n", solution.DefenseVsArtillery)
+	fmt.Printf("   • Min defense (balanced): %d\n", solution.MinDefense())
 }
 
 func formatTime(seconds int) string {
