@@ -109,22 +109,46 @@ func ModelToProtoResourceType(rt models.ResourceType) pb.ResourceType {
 // TechNameToProto converts technology name string to proto Technology enum
 func TechNameToProto(name string) pb.Technology {
 	switch name {
-	case "longbow":
+	case "Longbow":
 		return pb.Technology_LONGBOW
-	case "crop_rotation":
+	case "Crop rotation":
 		return pb.Technology_CROP_ROTATION
-	case "yoke":
+	case "Yoke":
 		return pb.Technology_YOKE
-	case "cellar_storeroom":
+	case "Cellar storeroom":
 		return pb.Technology_CELLAR_STOREROOM
-	case "stirrup":
+	case "Stirrup":
 		return pb.Technology_STIRRUP
-	case "crossbow":
+	case "Crossbow":
 		return pb.Technology_CROSSBOW
-	case "swordsmith":
+	case "Swordsmith":
 		return pb.Technology_SWORDSMITH
-	case "horse_armour":
+	case "Horse armour":
 		return pb.Technology_HORSE_ARMOUR
+	case "Beer tester":
+		return pb.Technology_BEER_TESTER
+	case "Wheelbarrow":
+		return pb.Technology_WHEELBARROW
+	case "Weaponsmith":
+		return pb.Technology_WEAPONSMITH
+	case "Armoursmith":
+		return pb.Technology_ARMOURSMITH
+	case "Iron hardening":
+		return pb.Technology_IRON_HARDENING
+	case "Poison arrows":
+		return pb.Technology_POISON_ARROWS
+	case "Horse breeding":
+		return pb.Technology_HORSE_BREEDING
+	case "Flaming arrows":
+		return pb.Technology_FLAMING_ARROWS
+	case "Blacksmith":
+		return pb.Technology_BLACKSMITH
+	case "Map of area":
+		return pb.Technology_MAP_OF_AREA
+	case "Cistern":
+		return pb.Technology_CISTERN
+	case "Fortress construction":
+		return pb.Technology_FORTRESS_CONSTRUCTION
 	default:
 		return pb.Technology_TECH_UNKNOWN
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sort"
 
 	"google.golang.org/grpc"
 
@@ -65,22 +66,28 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 		Strategy:         bestStrategy.String(),
 	}
 
-	// Add building actions
+	// Add building actions (legacy)
 	for _, action := range solution.BuildingActions {
 		response.BuildingActions = append(response.BuildingActions, converter.BuildingActionToProto(action))
 	}
 
-	// Add research actions
+	// Add research actions (legacy)
 	for _, action := range solution.ResearchActions {
 		response.ResearchActions = append(response.ResearchActions, converter.ResearchActionToProto(action))
 	}
 
-	// Set next action (first in list)
+	// Build unified timeline - merge building and research actions chronologically
+	response.Timeline = s.buildUnifiedTimeline(solution)
+
+	// Set next immediate action (unified)
+	if len(response.Timeline) > 0 {
+		response.NextImmediateAction = response.Timeline[0]
+	}
+
+	// Set legacy next action fields for backward compatibility
 	if len(solution.BuildingActions) > 0 {
 		response.NextAction = converter.BuildingActionToProto(solution.BuildingActions[0])
 	}
-
-	// Set next research action (first in list)
 	if len(solution.ResearchActions) > 0 {
 		response.NextResearchAction = converter.ResearchActionToProto(solution.ResearchActions[0])
 	}
@@ -92,9 +99,31 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 		response.UnitsRecommendation = s.generateUnitsRecommendation(initialState)
 	}
 
-	log.Printf("Returning solution with %d building actions, %d research actions, strategy: %s",
-		len(response.BuildingActions), len(response.ResearchActions), response.Strategy)
+	log.Printf("Returning solution with %d actions in timeline, strategy: %s",
+		len(response.Timeline), response.Strategy)
 	return response, nil
+}
+
+// buildUnifiedTimeline merges building and research actions into a chronological timeline
+func (s *server) buildUnifiedTimeline(solution *models.Solution) []*pb.Action {
+	var timeline []*pb.Action
+
+	// Add all building actions
+	for _, action := range solution.BuildingActions {
+		timeline = append(timeline, converter.BuildingActionToUnifiedAction(action))
+	}
+
+	// Add all research actions
+	for _, action := range solution.ResearchActions {
+		timeline = append(timeline, converter.ResearchActionToUnifiedAction(action))
+	}
+
+	// Sort by start time
+	sort.Slice(timeline, func(i, j int) bool {
+		return timeline[i].StartTimeSeconds < timeline[j].StartTimeSeconds
+	})
+
+	return timeline
 }
 
 // GetNextAction implements the GetNextAction RPC
