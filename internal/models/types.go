@@ -87,6 +87,8 @@ type GameState struct {
 	BuildingLevels         map[BuildingType]int
 	Resources              map[ResourceType]float64
 	ResearchedTechnologies map[string]bool
+	StorageCaps            map[ResourceType]int // Storage capacities for wood/stone/iron
+	ProductionRates        map[ResourceType]float64
 }
 
 // NewGameState creates a new game state with defaults
@@ -95,6 +97,8 @@ func NewGameState() *GameState {
 		BuildingLevels:         make(map[BuildingType]int),
 		Resources:              make(map[ResourceType]float64),
 		ResearchedTechnologies: make(map[string]bool),
+		StorageCaps:            make(map[ResourceType]int),
+		ProductionRates:        make(map[ResourceType]float64),
 	}
 }
 

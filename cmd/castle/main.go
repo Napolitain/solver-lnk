@@ -253,7 +253,7 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 
 	// Add unit training actions after all other actions complete
 	foodAvailable := finalFoodCapacity - finalFoodUsed
-	if foodAvailable > 0 {
+	if foodAvailable > 0 && solution.FinalState != nil {
 		solver := units.NewSolverWithConfig(int32(foodAvailable), units.ResourceProductionPerHour, units.MarketDistanceFields)
 		unitSolution := solver.Solve()
 
@@ -265,37 +265,140 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 			}
 		}
 
-		currentTime := lastEndTime
+		// Get final state for resource simulation
+		finalState := solution.FinalState
+		productionRates := make(map[models.ResourceType]float64)
+		storageCaps := make(map[models.ResourceType]int)
+
+		// Calculate production rates from final building levels
+		for bt, level := range finalState.BuildingLevels {
+			var rt models.ResourceType
+			switch bt {
+			case models.Lumberjack:
+				rt = models.Wood
+			case models.Quarry:
+				rt = models.Stone
+			case models.OreMine:
+				rt = models.Iron
+			default:
+				continue
+			}
+			// Get production rate from building data (level 30 = ~387/h each)
+			// Using hardcoded values for level 30: 387 per resource type
+			productionRates[rt] = float64(level) * 12.9 // Approximation
+		}
+
+		// Get storage capacities from final state
+		for rt, cap := range finalState.StorageCaps {
+			storageCaps[rt] = cap
+		}
+
+		// If we don't have storage caps, use level 20 defaults
+		if len(storageCaps) == 0 {
+			storageCaps[models.Wood] = 26930
+			storageCaps[models.Stone] = 26930
+			storageCaps[models.Iron] = 26930
+		}
+
+		// Production bonus (beer tester + wheelbarrow = 10%)
+		productionBonus := 1.0
+		if finalState.ResearchedTechnologies["Beer tester"] {
+			productionBonus += 0.05
+		}
+		if finalState.ResearchedTechnologies["Wheelbarrow"] {
+			productionBonus += 0.05
+		}
+
+		// Simulate unit training with resource constraints
+		currentTimeSeconds := lastEndTime
 		currentFoodUsed := finalFoodUsed
+		currentResources := map[models.ResourceType]float64{
+			models.Wood:  float64(storageCaps[models.Wood]),  // Start with full storage
+			models.Stone: float64(storageCaps[models.Stone]),
+			models.Iron:  float64(storageCaps[models.Iron]),
+		}
 
-		// Add each unit type as an action
+		// Train each unit type in batches
 		for _, u := range units.AllUnits() {
-			count := unitSolution.UnitCounts[u.Name]
-			if count > 0 {
-				trainingTime := count * u.TrainingTimeSeconds
-				foodCost := count * u.FoodCost
+			totalCount := unitSolution.UnitCounts[u.Name]
+			if totalCount <= 0 {
+				continue
+			}
 
-				// Calculate total resource costs for this unit batch
+			remainingCount := totalCount
+			batchStartTime := currentTimeSeconds
+			batchCount := 0
+			batchTrainingTime := 0
+
+			for remainingCount > 0 {
+				// Calculate how many units we can afford with current resources
+				maxByWood := int(currentResources[models.Wood]) / max(1, u.ResourceCosts[models.Wood])
+				maxByIron := int(currentResources[models.Iron]) / max(1, u.ResourceCosts[models.Iron])
+				maxByFood := (finalFoodCapacity - currentFoodUsed) / u.FoodCost
+
+				canTrain := min(remainingCount, maxByFood)
+				if u.ResourceCosts[models.Wood] > 0 {
+					canTrain = min(canTrain, maxByWood)
+				}
+				if u.ResourceCosts[models.Iron] > 0 {
+					canTrain = min(canTrain, maxByIron)
+				}
+
+				if canTrain > 0 {
+					// Train this batch
+					batchCount += canTrain
+					batchTrainingTime += canTrain * u.TrainingTimeSeconds
+					currentFoodUsed += canTrain * u.FoodCost
+					currentResources[models.Wood] -= float64(canTrain * u.ResourceCosts[models.Wood])
+					currentResources[models.Iron] -= float64(canTrain * u.ResourceCosts[models.Iron])
+					remainingCount -= canTrain
+				}
+
+				if remainingCount > 0 {
+					// Need to wait for resources - advance time and accumulate
+					// Calculate time needed to afford next unit
+					woodNeeded := float64(u.ResourceCosts[models.Wood]) - currentResources[models.Wood]
+					ironNeeded := float64(u.ResourceCosts[models.Iron]) - currentResources[models.Iron]
+
+					waitHours := 0.0
+					if woodNeeded > 0 && productionRates[models.Wood] > 0 {
+						waitHours = max(waitHours, woodNeeded/(productionRates[models.Wood]*productionBonus))
+					}
+					if ironNeeded > 0 && productionRates[models.Iron] > 0 {
+						waitHours = max(waitHours, ironNeeded/(productionRates[models.Iron]*productionBonus))
+					}
+
+					// Advance time and accumulate resources (capped by storage)
+					waitSeconds := int(waitHours*3600) + 1
+					for rt, rate := range productionRates {
+						produced := rate * productionBonus * (float64(waitSeconds) / 3600.0)
+						currentResources[rt] = min(currentResources[rt]+produced, float64(storageCaps[rt]))
+					}
+					currentTimeSeconds += waitSeconds
+				}
+			}
+
+			// Add the complete batch as one action
+			if batchCount > 0 {
 				unitCosts := models.Costs{
-					models.Wood:  u.ResourceCosts[models.Wood] * count,
-					models.Stone: u.ResourceCosts[models.Stone] * count,
-					models.Iron:  u.ResourceCosts[models.Iron] * count,
-					models.Food:  foodCost,
+					models.Wood:  u.ResourceCosts[models.Wood] * batchCount,
+					models.Stone: u.ResourceCosts[models.Stone] * batchCount,
+					models.Iron:  u.ResourceCosts[models.Iron] * batchCount,
+					models.Food:  batchCount * u.FoodCost,
 				}
 
 				allActions = append(allActions, action{
 					actionType:   actionUnit,
-					startTime:    currentTime,
-					endTime:      currentTime + trainingTime,
+					startTime:    batchStartTime,
+					endTime:      currentTimeSeconds + batchTrainingTime,
 					name:         u.Name,
-					count:        count,
+					count:        batchCount,
 					costs:        unitCosts,
-					foodUsed:     currentFoodUsed + foodCost,
+					foodUsed:     currentFoodUsed,
 					foodCapacity: finalFoodCapacity,
 				})
 
-				currentTime += trainingTime
-				currentFoodUsed += foodCost
+				currentTimeSeconds += batchTrainingTime
 			}
 		}
 	}
