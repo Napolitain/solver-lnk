@@ -152,11 +152,28 @@ func runSolver(cmd *cobra.Command, args []string) {
 	successColor.Printf("✓ Found solution with %d building upgrades and %d research tasks!\n\n",
 		len(solution.BuildingActions), len(solution.ResearchActions))
 
-	// Print build order table
-	printBuildOrder(solution)
+	// Calculate final food status
+	var finalFoodUsed, finalFoodCapacity int
+	if len(solution.BuildingActions) > 0 {
+		lastBuild := solution.BuildingActions[len(solution.BuildingActions)-1]
+		finalFoodUsed = lastBuild.FoodUsed
+		finalFoodCapacity = lastBuild.FoodCapacity
+	}
+	if len(solution.ResearchActions) > 0 {
+		lastResearch := solution.ResearchActions[len(solution.ResearchActions)-1]
+		if lastResearch.FoodUsed > finalFoodUsed {
+			finalFoodUsed = lastResearch.FoodUsed
+		}
+		if lastResearch.FoodCapacity > finalFoodCapacity {
+			finalFoodCapacity = lastResearch.FoodCapacity
+		}
+	}
+
+	// Print build order table (includes units)
+	printBuildOrder(solution, finalFoodUsed, finalFoodCapacity)
 
 	// Print summary
-	printSummary(solution, targetLevels)
+	printSummary(solution, targetLevels, finalFoodUsed, finalFoodCapacity)
 }
 
 func printInitialState(state *models.GameState, targets map[models.BuildingType]int) {
@@ -186,15 +203,23 @@ func printInitialState(state *models.GameState, targets map[models.BuildingType]
 	fmt.Println()
 }
 
-func printBuildOrder(solution *models.Solution) {
+func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity int) {
 	// Merge and sort all actions
+	type actionType int
+	const (
+		actionBuilding actionType = iota
+		actionResearch
+		actionUnit
+	)
+
 	type action struct {
-		isBuilding   bool
+		actionType   actionType
 		startTime    int
 		endTime      int
 		name         string
 		fromLevel    int
 		toLevel      int
+		count        int // for units
 		costs        models.Costs
 		foodUsed     int
 		foodCapacity int
@@ -203,7 +228,7 @@ func printBuildOrder(solution *models.Solution) {
 	var allActions []action
 	for _, a := range solution.BuildingActions {
 		allActions = append(allActions, action{
-			isBuilding:   true,
+			actionType:   actionBuilding,
 			startTime:    a.StartTime,
 			endTime:      a.EndTime,
 			name:         string(a.BuildingType),
@@ -216,7 +241,7 @@ func printBuildOrder(solution *models.Solution) {
 	}
 	for _, a := range solution.ResearchActions {
 		allActions = append(allActions, action{
-			isBuilding:   false,
+			actionType:   actionResearch,
 			startTime:    a.StartTime,
 			endTime:      a.EndTime,
 			name:         a.TechnologyName,
@@ -224,6 +249,47 @@ func printBuildOrder(solution *models.Solution) {
 			foodUsed:     a.FoodUsed,
 			foodCapacity: a.FoodCapacity,
 		})
+	}
+
+	// Add unit training actions after all other actions complete
+	foodAvailable := finalFoodCapacity - finalFoodUsed
+	if foodAvailable > 0 {
+		solver := units.NewSolverWithConfig(int32(foodAvailable), units.ResourceProductionPerHour, units.MarketDistanceFields)
+		unitSolution := solver.Solve()
+
+		// Find the end time of last action
+		var lastEndTime int
+		for _, a := range allActions {
+			if a.endTime > lastEndTime {
+				lastEndTime = a.endTime
+			}
+		}
+
+		currentTime := lastEndTime
+		currentFoodUsed := finalFoodUsed
+
+		// Add each unit type as an action
+		for _, u := range units.AllUnits() {
+			count := unitSolution.UnitCounts[u.Name]
+			if count > 0 {
+				trainingTime := count * u.TrainingTimeSeconds
+				foodCost := count * u.FoodCost
+
+				allActions = append(allActions, action{
+					actionType:   actionUnit,
+					startTime:    currentTime,
+					endTime:      currentTime + trainingTime,
+					name:         u.Name,
+					count:        count,
+					costs:        models.Costs{models.Food: foodCost},
+					foodUsed:     currentFoodUsed + foodCost,
+					foodCapacity: finalFoodCapacity,
+				})
+
+				currentTime += trainingTime
+				currentFoodUsed += foodCost
+			}
+		}
 	}
 
 	sort.Slice(allActions, func(i, j int) bool {
@@ -237,13 +303,19 @@ func printBuildOrder(solution *models.Solution) {
 
 	// Add rows
 	for i, a := range allActions {
-		queueType := "🏗️ Building"
-		upgradeStr := fmt.Sprintf("%d → %d", a.fromLevel, a.toLevel)
+		var queueType, upgradeStr string
 		foodStr := fmt.Sprintf("%d/%d", a.foodUsed, a.foodCapacity)
-		if !a.isBuilding {
+
+		switch a.actionType {
+		case actionBuilding:
+			queueType = "🏗️ Building"
+			upgradeStr = fmt.Sprintf("%d → %d", a.fromLevel, a.toLevel)
+		case actionResearch:
 			queueType = "🔬 Research"
 			upgradeStr = ""
-			// Show food for research too (foodCapacity should be set)
+		case actionUnit:
+			queueType = "⚔️ Train"
+			upgradeStr = fmt.Sprintf("×%d", a.count)
 		}
 
 		duration := a.endTime - a.startTime
@@ -266,7 +338,7 @@ func printBuildOrder(solution *models.Solution) {
 	table.Render()
 }
 
-func printSummary(solution *models.Solution, targets map[models.BuildingType]int) {
+func printSummary(solution *models.Solution, targets map[models.BuildingType]int, finalFoodUsed, finalFoodCapacity int) {
 	successColor := color.New(color.FgGreen)
 	errorColor := color.New(color.FgRed)
 
@@ -275,23 +347,6 @@ func printSummary(solution *models.Solution, targets map[models.BuildingType]int
 
 	fmt.Printf("\n⏱️  Total completion time: %s (%.1f hours = %.1f days)\n",
 		formatTime(solution.TotalTimeSeconds), totalHours, totalDays)
-
-	// Calculate final food status from the last action (building or research)
-	var finalFoodUsed, finalFoodCapacity int
-	if len(solution.BuildingActions) > 0 {
-		lastBuild := solution.BuildingActions[len(solution.BuildingActions)-1]
-		finalFoodUsed = lastBuild.FoodUsed
-		finalFoodCapacity = lastBuild.FoodCapacity
-	}
-	if len(solution.ResearchActions) > 0 {
-		lastResearch := solution.ResearchActions[len(solution.ResearchActions)-1]
-		if lastResearch.FoodUsed > finalFoodUsed {
-			finalFoodUsed = lastResearch.FoodUsed
-		}
-		if lastResearch.FoodCapacity > finalFoodCapacity {
-			finalFoodCapacity = lastResearch.FoodCapacity
-		}
-	}
 
 	// Show final food status
 	if finalFoodCapacity > 0 {
@@ -327,40 +382,33 @@ func printSummary(solution *models.Solution, targets map[models.BuildingType]int
 		}
 	}
 
-	// Print units recommendation
+	// Print units stats (units are already in the table above)
 	if allOk && finalFoodCapacity > 0 {
 		foodAvailable := finalFoodCapacity - finalFoodUsed
-		printUnitsRecommendation(foodAvailable)
+		printUnitsStats(foodAvailable)
 	}
 }
 
-func printUnitsRecommendation(foodAvailable int) {
+func printUnitsStats(foodAvailable int) {
 	infoColor := color.New(color.FgCyan)
 	
-	infoColor.Println("\n⚔️  Units Recommendation:")
-	fmt.Printf("   Food available for units: %d\n\n", foodAvailable)
-
 	// Create units solver with available food
 	solver := units.NewSolverWithConfig(int32(foodAvailable), units.ResourceProductionPerHour, units.MarketDistanceFields)
 	solution := solver.Solve()
 
-	// Print unit counts with training time
-	fmt.Println("   Recommended army composition:")
+	// Calculate total training time
 	totalTrainingSeconds := 0
 	for _, u := range units.AllUnits() {
 		count := solution.UnitCounts[u.Name]
 		if count > 0 {
-			trainingTime := count * u.TrainingTimeSeconds
-			totalTrainingSeconds += trainingTime
-			fmt.Printf("   • %s: %d (food: %d, training: %s)\n", 
-				strings.Title(u.Name), count, count*u.FoodCost, formatTime(trainingTime))
+			totalTrainingSeconds += count * u.TrainingTimeSeconds
 		}
 	}
 
 	trainingDays := float64(totalTrainingSeconds) / 3600 / 24
-	fmt.Printf("\n   ⏱️  Total training time: %s (%.1f days)\n", formatTime(totalTrainingSeconds), trainingDays)
 
-	fmt.Printf("\n   📊 Stats:\n")
+	infoColor.Println("\n⚔️  Army Stats:")
+	fmt.Printf("   • Total training time: %s (%.1f days)\n", formatTime(totalTrainingSeconds), trainingDays)
 	fmt.Printf("   • Total food used: %d / %d\n", solution.TotalFood, foodAvailable)
 	fmt.Printf("   • Trading throughput: %.0f resources/hour\n", solution.TotalThroughput)
 	fmt.Printf("   • Defense vs Cavalry: %d\n", solution.DefenseVsCavalry)
