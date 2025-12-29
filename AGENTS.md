@@ -116,16 +116,48 @@ go build ./cmd/units
 golangci-lint run
 
 # Test
-go test ./...                    # All tests
+go test ./...                    # All tests (includes fuzz seed corpus)
 go test -race ./...              # With race detection
 go test -cover ./...             # With coverage
-
-# Fuzz testing
-go test -fuzz=FuzzSolverDeterminism -fuzztime=30s ./internal/solver/castle
 
 # Run
 ./castle -d data                 # CLI solver
 ./server                         # gRPC server (port 50051)
+```
+
+## Testing
+
+### Standard Tests
+
+```bash
+go test ./...                    # Run all tests
+go test -race ./...              # With race detection
+go test -coverprofile=coverage.out ./...  # With coverage
+go tool cover -func=coverage.out # Show coverage report
+```
+
+### Fuzz Tests
+
+`go test ./...` runs fuzz tests against their seed corpus (regression tests), but does NOT run the fuzzing engine with random generation. To actually fuzz:
+
+**Castle solver fuzz tests (`internal/solver/castle/`):**
+```bash
+go test -fuzz=FuzzSolverDeterminism -fuzztime=30s ./internal/solver/castle
+go test -fuzz=FuzzSolverResources -fuzztime=30s ./internal/solver/castle
+go test -fuzz=FuzzSolverBuildingLevels -fuzztime=30s ./internal/solver/castle
+```
+
+**Units solver fuzz tests (`internal/solver/units/`):**
+```bash
+go test -fuzz=FuzzSolverConstraints -fuzztime=30s ./internal/solver/units
+go test -fuzz=FuzzUnitThroughput -fuzztime=30s ./internal/solver/units
+go test -fuzz=FuzzUnitResourceCosts -fuzztime=30s ./internal/solver/units
+```
+
+### Run All Quality Checks (before commit)
+
+```bash
+golangci-lint run && go test -race ./...
 ```
 
 ## CI/CD
@@ -136,8 +168,14 @@ GitHub Actions runs on push/PR:
 3. `go generate ./...`
 4. `golangci-lint run`
 5. `go test -race ./...`
-6. `go test -cover ./...`
-7. Fuzz tests (20s each)
+6. `go test -coverprofile=coverage.out ./...`
+7. Fuzz tests (20s each):
+   - `FuzzSolverDeterminism` (castle)
+   - `FuzzSolverResources` (castle)
+   - `FuzzSolverBuildingLevels` (castle)
+   - `FuzzSolverConstraints` (units)
+   - `FuzzUnitThroughput` (units)
+8. Upload coverage to Codecov
 
 ## Philosophy
 

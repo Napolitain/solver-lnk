@@ -35,6 +35,12 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
       - name: Build
         run: go build -v ./cmd/castle
 
@@ -54,6 +60,7 @@ jobs:
           go test -fuzz=FuzzSolverBuildingLevels -fuzztime=20s ./internal/solver/castle || true
           go test -fuzz=FuzzSolverConstraints -fuzztime=20s ./internal/solver/units || true
           go test -fuzz=FuzzUnitThroughput -fuzztime=20s ./internal/solver/units || true
+          go test -fuzz=FuzzUnitResourceCosts -fuzztime=20s ./internal/solver/units || true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
