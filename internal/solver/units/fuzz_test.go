@@ -202,7 +202,7 @@ func TestThroughputMeetsProduction(t *testing.T) {
 // FuzzUnitResourceCosts verifies that resource costs are reasonable for all fuzz inputs
 func FuzzUnitResourceCosts(f *testing.F) {
 	// Seed with storage capacities at different levels
-	f.Add(int32(500), int32(26930))   // Level 20 storage
+	f.Add(int32(500), int32(9999))    // Level 20 storage (actual game value)
 	f.Add(int32(1000), int32(10000))  // Mid-level storage
 	f.Add(int32(4265), int32(50000))  // High storage
 

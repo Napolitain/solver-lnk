@@ -173,11 +173,11 @@ func runSolver(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	// Print build order table (includes units)
-	printBuildOrder(solution, finalFoodUsed, finalFoodCapacity)
+	// Print build order table (includes units) and get total completion time
+	totalCompletionTime := printBuildOrder(solution, finalFoodUsed, finalFoodCapacity)
 
-	// Print summary
-	printSummary(solution, targetLevels, finalFoodUsed, finalFoodCapacity)
+	// Print summary with total time including units
+	printSummary(solution, targetLevels, finalFoodUsed, finalFoodCapacity, totalCompletionTime)
 }
 
 func printInitialState(state *models.GameState, targets map[models.BuildingType]int) {
@@ -207,7 +207,7 @@ func printInitialState(state *models.GameState, targets map[models.BuildingType]
 	fmt.Println()
 }
 
-func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity int) {
+func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity int) int {
 	// Merge and sort all actions
 	type actionType int
 	const (
@@ -299,9 +299,9 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 
 		// If we don't have storage caps, use level 20 defaults
 		if len(storageCaps) == 0 {
-			storageCaps[models.Wood] = 26930
-			storageCaps[models.Stone] = 26930
-			storageCaps[models.Iron] = 26930
+			storageCaps[models.Wood] = 9999
+			storageCaps[models.Stone] = 9999
+			storageCaps[models.Iron] = 9999
 		}
 
 		// Production bonus (beer tester + wheelbarrow = 10%)
@@ -451,17 +451,38 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 	}
 
 	_ = table.Render()
+
+	// Calculate and return the total completion time (including units)
+	var totalEndTime int
+	for _, a := range allActions {
+		if a.endTime > totalEndTime {
+			totalEndTime = a.endTime
+		}
+	}
+	return totalEndTime
 }
 
-func printSummary(solution *models.Solution, targets map[models.BuildingType]int, finalFoodUsed, finalFoodCapacity int) {
+func printSummary(solution *models.Solution, targets map[models.BuildingType]int, finalFoodUsed, finalFoodCapacity, totalCompletionTime int) {
 	successColor := color.New(color.FgGreen)
 	errorColor := color.New(color.FgRed)
 
-	totalHours := float64(solution.TotalTimeSeconds) / 3600
+	totalHours := float64(totalCompletionTime) / 3600
 	totalDays := totalHours / 24
 
 	fmt.Printf("\n⏱️  Total completion time: %s (%.1f hours = %.1f days)\n",
-		formatTime(solution.TotalTimeSeconds), totalHours, totalDays)
+		formatTime(totalCompletionTime), totalHours, totalDays)
+
+	// Show breakdown
+	buildHours := float64(solution.TotalTimeSeconds) / 3600
+	buildDays := buildHours / 24
+	fmt.Printf("   • Buildings + Research: %s (%.1f days)\n",
+		formatTime(solution.TotalTimeSeconds), buildDays)
+	if totalCompletionTime > solution.TotalTimeSeconds {
+		armyTime := totalCompletionTime - solution.TotalTimeSeconds
+		armyDays := float64(armyTime) / 3600 / 24
+		fmt.Printf("   • Army training: %s (%.1f days)\n",
+			formatTime(armyTime), armyDays)
+	}
 
 	// Show final food status
 	if finalFoodCapacity > 0 {

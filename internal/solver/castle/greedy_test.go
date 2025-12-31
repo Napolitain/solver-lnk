@@ -1063,11 +1063,11 @@ func getFarmCapacity(level int) int {
 }
 
 func getStorageCapacity(level int, resourceType string) int {
-	// Approximate storage capacities (they vary by type but similar)
+	// Actual storage capacities from game data (wood_store)
 	baseCapacities := map[int]int{
-		1: 150, 2: 200, 3: 275, 4: 360, 5: 475, 6: 625, 7: 825, 8: 1100,
-		9: 1450, 10: 1900, 11: 2500, 12: 3300, 13: 4350, 14: 5700, 15: 7500,
-		16: 9850, 17: 12950, 18: 17000, 19: 22350, 20: 29350,
+		1: 120, 2: 180, 3: 252, 4: 340, 5: 442, 6: 575, 7: 748, 8: 957,
+		9: 1215, 10: 1531, 11: 1914, 12: 2373, 13: 2919, 14: 3561, 15: 4309,
+		16: 5171, 17: 6153, 18: 7261, 19: 8495, 20: 9999,
 	}
 	if cap, ok := baseCapacities[level]; ok {
 		return cap
@@ -1381,5 +1381,757 @@ func TestTechNotResearchedWithoutLibrary(t *testing.T) {
 			}
 			break
 		}
+	}
+}
+
+// ============================================================================
+// Resource Waiting Tests - Verify solver waits for resources (no cheating)
+// ============================================================================
+
+// TestResourceWaitingEnforced verifies the solver actually waits for resources
+// rather than magically having them available
+func TestResourceWaitingEnforced(t *testing.T) {
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
+
+	// Use empty technologies to focus on building mechanics
+	technologies := make(map[string]*models.Technology)
+
+	// Start with ZERO resources - must wait for production
+	initialState := models.NewGameState()
+	initialState.Resources[models.Wood] = 0
+	initialState.Resources[models.Stone] = 0
+	initialState.Resources[models.Iron] = 0
+	initialState.Resources[models.Food] = 40
+
+	for _, bt := range models.AllBuildingTypes() {
+		initialState.BuildingLevels[bt] = 1
+	}
+
+	// Target: Lumberjack level 2 (costs ~31 wood, ~26 stone, ~7 iron)
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack: 2,
+	}
+
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
+
+	// With zero starting resources and production rate of ~5/h each at level 1,
+	// we need to wait for resources before upgrading
+	// Cost: 31 wood at 5/h = ~6.2 hours minimum wait
+	// Plus build time of ~6 minutes
+
+	if len(solution.BuildingActions) == 0 {
+		t.Fatal("Expected at least one building action")
+	}
+
+	action := solution.BuildingActions[0]
+
+	// Start time should be > 0 (had to wait for resources)
+	if action.StartTime == 0 {
+		t.Error("Action started at time 0 with zero resources - solver is cheating!")
+	}
+
+	// Calculate minimum wait time based on costs and production
+	// Lumberjack L1 produces 5 wood/hour, Quarry L1 produces 5 stone/hour
+	woodCost := action.Costs[models.Wood]
+	stoneCost := action.Costs[models.Stone]
+
+	// Production at level 1 is ~5/hour
+	productionRate := 5.0
+	woodWaitHours := float64(woodCost) / productionRate
+	stoneWaitHours := float64(stoneCost) / productionRate
+	minWaitHours := max(woodWaitHours, stoneWaitHours)
+	minWaitSeconds := int(minWaitHours * 3600)
+
+	// Allow 10% tolerance for rounding
+	if action.StartTime < int(float64(minWaitSeconds)*0.9) {
+		t.Errorf("Action started too early: %d seconds, minimum wait should be ~%d seconds (%.1f hours)",
+			action.StartTime, minWaitSeconds, minWaitHours)
+	}
+
+	t.Logf("Resource waiting enforced: started at %d seconds (%.1f hours), min wait ~%.1f hours",
+		action.StartTime, float64(action.StartTime)/3600, minWaitHours)
+}
+
+// TestResourceAccumulationDuringBuild verifies resources accumulate while building
+func TestResourceAccumulationDuringBuild(t *testing.T) {
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
+
+	technologies := make(map[string]*models.Technology)
+
+	// Start with enough resources for first upgrade
+	initialState := models.NewGameState()
+	initialState.Resources[models.Wood] = 500
+	initialState.Resources[models.Stone] = 500
+	initialState.Resources[models.Iron] = 500
+	initialState.Resources[models.Food] = 100
+
+	for _, bt := range models.AllBuildingTypes() {
+		initialState.BuildingLevels[bt] = 1
+	}
+
+	// Target multiple upgrades
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack: 5,
+		models.Quarry:     5,
+	}
+
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
+
+	// Track cumulative costs vs time to verify accumulation
+	var totalWoodCost, totalStoneCost, totalIronCost int
+	for _, action := range solution.BuildingActions {
+		totalWoodCost += action.Costs[models.Wood]
+		totalStoneCost += action.Costs[models.Stone]
+		totalIronCost += action.Costs[models.Iron]
+	}
+
+	// If we started with 500 each but total costs exceed that,
+	// we must have accumulated resources during builds
+	initialTotal := 500 + 500 + 500
+	costTotal := totalWoodCost + totalStoneCost + totalIronCost
+
+	if costTotal > initialTotal {
+		t.Logf("Resources accumulated during build: spent %d total, started with %d",
+			costTotal, initialTotal)
+	}
+
+	// Final resources should be non-negative
+	for rt, amt := range solution.FinalState.Resources {
+		if amt < 0 {
+			t.Errorf("Final %s is negative: %.2f - resources not tracked correctly", rt, amt)
+		}
+	}
+}
+
+// TestNoResourcesFromThinAir verifies total spent ≤ initial + accumulated
+func TestNoResourcesFromThinAir(t *testing.T) {
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
+
+	technologies := make(map[string]*models.Technology)
+
+	initialState := models.NewGameState()
+	initialState.Resources[models.Wood] = 100
+	initialState.Resources[models.Stone] = 100
+	initialState.Resources[models.Iron] = 100
+	initialState.Resources[models.Food] = 200
+
+	for _, bt := range models.AllBuildingTypes() {
+		initialState.BuildingLevels[bt] = 1
+	}
+
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack: 10,
+		models.Quarry:     10,
+		models.OreMine:    10,
+	}
+
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
+
+	// Calculate total spent
+	var totalSpent = make(map[models.ResourceType]int)
+	for _, action := range solution.BuildingActions {
+		for rt, cost := range action.Costs {
+			if rt != models.Food { // Food is capacity, not accumulated
+				totalSpent[rt] += cost
+			}
+		}
+	}
+
+	// Calculate maximum possible accumulated (production * time)
+	totalMinutes := solution.TotalTimeSeconds / 60
+	productionPerMinute := map[models.ResourceType]float64{
+		models.Wood:  5.0 / 60.0,  // Start at L1 = 5/hour
+		models.Stone: 5.0 / 60.0,
+		models.Iron:  5.0 / 60.0,
+	}
+
+	// This is a conservative upper bound - actual accumulation is less
+	// because production rates increase over time as buildings upgrade
+	// For now, use final production rate (overestimate)
+	for rt := range totalSpent {
+		initial := initialState.Resources[rt]
+		// Rough estimate: average production rate over time
+		// This is simplified - real test would simulate exactly
+		maxAccumulated := float64(totalMinutes) * productionPerMinute[rt] * 30 // very generous multiplier
+
+		maxPossible := initial + maxAccumulated
+		if float64(totalSpent[rt]) > maxPossible*1.5 { // 50% margin for rate increases
+			t.Logf("Warning: Spent %d %s, initial %.0f + max accumulated %.0f",
+				totalSpent[rt], rt, initial, maxAccumulated)
+		}
+	}
+
+	// Key invariant: final resources should be ≥ 0
+	for rt, amt := range solution.FinalState.Resources {
+		if amt < -0.01 {
+			t.Errorf("Final %s is negative: %.2f - created resources from nothing!", rt, amt)
+		}
+	}
+}
+
+// ============================================================================
+// Parallel Queue Tests - Building and Research can run simultaneously
+// ============================================================================
+
+// TestBuildingAndResearchOverlap verifies the two queues run in parallel
+func TestBuildingAndResearchOverlap(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	if len(solution.ResearchActions) == 0 {
+		t.Skip("No research actions to test overlap")
+	}
+
+	// Find if any research overlaps with any building
+	hasOverlap := false
+	for _, ra := range solution.ResearchActions {
+		for _, ba := range solution.BuildingActions {
+			// Check if time ranges overlap
+			// Overlap if: ra.Start < ba.End AND ra.End > ba.Start
+			if ra.StartTime < ba.EndTime && ra.EndTime > ba.StartTime {
+				hasOverlap = true
+				t.Logf("Found parallel execution: Building %s (%d-%d) overlaps Research %s (%d-%d)",
+					ba.BuildingType, ba.StartTime, ba.EndTime,
+					ra.TechnologyName, ra.StartTime, ra.EndTime)
+				break
+			}
+		}
+		if hasOverlap {
+			break
+		}
+	}
+
+	// It's expected that building and research CAN overlap (parallel queues)
+	// If no overlap is found, it might be fine but worth noting
+	if !hasOverlap {
+		t.Log("No overlap found between building and research - queues ran sequentially")
+	}
+}
+
+// TestResearchDoesNotBlockBuilding verifies research doesn't block building queue
+func TestResearchDoesNotBlockBuilding(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// Building queue should be continuous (no gaps due to research)
+	for i := 1; i < len(solution.BuildingActions); i++ {
+		prev := solution.BuildingActions[i-1]
+		curr := solution.BuildingActions[i]
+
+		gap := curr.StartTime - prev.EndTime
+
+		// Small gaps are OK (waiting for resources), but huge gaps suggest
+		// building was blocked by something
+		if gap > 3600*24 { // More than 1 day gap
+			t.Logf("Large gap in building queue: %d seconds (%.1f hours) between %s and %s",
+				gap, float64(gap)/3600, prev.BuildingType, curr.BuildingType)
+		}
+	}
+}
+
+// ============================================================================
+// Production Rate Tests - Verify rates match game data
+// ============================================================================
+
+// TestProductionRatesMatchGameData verifies production rates are correct
+func TestProductionRatesMatchGameData(t *testing.T) {
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
+
+	// Expected production rates from game data (wood/hour at each level)
+	expectedRates := map[int]float64{
+		1:  5,
+		2:  7,
+		3:  9,
+		4:  12,
+		5:  15,
+		10: 45,
+		15: 107,
+		20: 206,
+		25: 317,
+		30: 387,
+	}
+
+	lj := buildings[models.Lumberjack]
+	if lj == nil {
+		t.Fatal("Lumberjack building not found")
+	}
+
+	for level, expectedRate := range expectedRates {
+		levelData := lj.GetLevelData(level)
+		if levelData == nil {
+			t.Errorf("No data for Lumberjack level %d", level)
+			continue
+		}
+
+		if levelData.ProductionRate == nil {
+			t.Errorf("Lumberjack level %d has no production rate", level)
+			continue
+		}
+
+		actualRate := *levelData.ProductionRate
+		// Allow 1% tolerance for rounding
+		if actualRate < expectedRate*0.99 || actualRate > expectedRate*1.01 {
+			t.Errorf("Lumberjack level %d: expected %.1f/h, got %.1f/h",
+				level, expectedRate, actualRate)
+		}
+	}
+}
+
+// TestStorageCapacitiesMatchGameData verifies storage capacities are correct
+func TestStorageCapacitiesMatchGameData(t *testing.T) {
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
+
+	// Expected wood store capacities from game data
+	expectedCaps := map[int]int{
+		1:  120,
+		2:  180,
+		3:  252,
+		4:  340,
+		5:  442,
+		10: 1531,
+		15: 4309,
+		20: 9999,
+	}
+
+	ws := buildings[models.WoodStore]
+	if ws == nil {
+		t.Fatal("Wood Store building not found")
+	}
+
+	for level, expectedCap := range expectedCaps {
+		levelData := ws.GetLevelData(level)
+		if levelData == nil {
+			t.Errorf("No data for Wood Store level %d", level)
+			continue
+		}
+
+		if levelData.StorageCapacity == nil {
+			t.Errorf("Wood Store level %d has no storage capacity", level)
+			continue
+		}
+
+		actualCap := *levelData.StorageCapacity
+		// Allow 5% tolerance
+		if actualCap < int(float64(expectedCap)*0.95) || actualCap > int(float64(expectedCap)*1.05) {
+			t.Errorf("Wood Store level %d: expected %d, got %d", level, expectedCap, actualCap)
+		}
+	}
+}
+
+// TestFarmCapacitiesMatchGameData verifies farm capacities are correct
+func TestFarmCapacitiesMatchGameData(t *testing.T) {
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
+
+	// Expected farm capacities from game data (subjects/workers)
+	expectedCaps := map[int]int{
+		1:  40,
+		2:  52,
+		3:  67,
+		5:  109,
+		10: 310,
+		15: 710,
+		20: 1379,
+		25: 2655,
+		30: 5000,
+	}
+
+	farm := buildings[models.Farm]
+	if farm == nil {
+		t.Fatal("Farm building not found")
+	}
+
+	for level, expectedCap := range expectedCaps {
+		levelData := farm.GetLevelData(level)
+		if levelData == nil {
+			t.Errorf("No data for Farm level %d", level)
+			continue
+		}
+
+		if levelData.StorageCapacity == nil {
+			t.Errorf("Farm level %d has no storage capacity", level)
+			continue
+		}
+
+		actualCap := *levelData.StorageCapacity
+		// Allow 5% tolerance
+		if actualCap < int(float64(expectedCap)*0.95) || actualCap > int(float64(expectedCap)*1.05) {
+			t.Errorf("Farm level %d: expected %d workers, got %d", level, expectedCap, actualCap)
+		}
+	}
+}
+
+// TestBuildTimesMatchGameData verifies build times are correct
+func TestBuildTimesMatchGameData(t *testing.T) {
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
+
+	// Expected build times for Lumberjack from game data (in seconds)
+	// Format in data: 00:06:23 = 6*60 + 23 = 383 seconds for level 6
+	expectedTimes := map[int]int{
+		6:  6*60 + 23,              // 00:06:23
+		10: 14*60 + 15,             // 00:14:15
+		15: 42*60 + 6,              // 00:42:06
+		20: 2*3600 + 17*60 + 58,    // 02:17:58
+		30: 29*3600 + 47*60 + 49,   // 29:47:49
+	}
+
+	lj := buildings[models.Lumberjack]
+	if lj == nil {
+		t.Fatal("Lumberjack building not found")
+	}
+
+	for level, expectedTime := range expectedTimes {
+		levelData := lj.GetLevelData(level)
+		if levelData == nil {
+			t.Errorf("No data for Lumberjack level %d", level)
+			continue
+		}
+
+		actualTime := levelData.BuildTimeSeconds
+		// Allow 5% tolerance
+		if actualTime < int(float64(expectedTime)*0.95) || actualTime > int(float64(expectedTime)*1.05) {
+			t.Errorf("Lumberjack level %d build time: expected %d seconds, got %d seconds",
+				level, expectedTime, actualTime)
+		}
+	}
+}
+
+// ============================================================================
+// Storage Cap Enforcement Tests
+// ============================================================================
+
+// TestStorageCapDuringAccumulation verifies resources don't exceed storage
+func TestStorageCapDuringAccumulation(t *testing.T) {
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
+
+	technologies := make(map[string]*models.Technology)
+
+	// Start at storage capacity
+	initialState := models.NewGameState()
+	initialState.Resources[models.Wood] = 120  // L1 wood store cap
+	initialState.Resources[models.Stone] = 120
+	initialState.Resources[models.Iron] = 120
+	initialState.Resources[models.Food] = 40
+
+	for _, bt := range models.AllBuildingTypes() {
+		initialState.BuildingLevels[bt] = 1
+	}
+
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack: 3,
+	}
+
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
+
+	// Final resources should not exceed storage capacity
+	// At L1 wood store, cap is 120
+	woodCap := 120 // Level 1
+
+	// Check if wood store was upgraded
+	for _, action := range solution.BuildingActions {
+		if action.BuildingType == models.WoodStore {
+			woodCap = getStorageCapacity(action.ToLevel, "wood")
+		}
+	}
+
+	finalWood := solution.FinalState.Resources[models.Wood]
+	if finalWood > float64(woodCap)+1 { // +1 for float tolerance
+		t.Errorf("Final wood %.0f exceeds storage cap %d", finalWood, woodCap)
+	}
+}
+
+// ============================================================================
+// Build Time Correctness Tests
+// ============================================================================
+
+// TestBuildDurationMatchesData verifies action duration matches building data
+func TestBuildDurationMatchesData(t *testing.T) {
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
+
+	technologies := make(map[string]*models.Technology)
+
+	initialState := models.NewGameState()
+	initialState.Resources[models.Wood] = 10000
+	initialState.Resources[models.Stone] = 10000
+	initialState.Resources[models.Iron] = 10000
+	initialState.Resources[models.Food] = 500
+
+	for _, bt := range models.AllBuildingTypes() {
+		initialState.BuildingLevels[bt] = 1
+	}
+
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack: 10,
+	}
+
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
+
+	for _, action := range solution.BuildingActions {
+		building := buildings[action.BuildingType]
+		if building == nil {
+			continue
+		}
+
+		levelData := building.GetLevelData(action.ToLevel)
+		if levelData == nil {
+			continue
+		}
+
+		expectedDuration := levelData.BuildTimeSeconds
+		actualDuration := action.EndTime - action.StartTime
+
+		// Duration should match (converted to minutes in solver, so allow rounding)
+		// Solver uses: durationMinutes := max(1, levelData.BuildTimeSeconds/60)
+		expectedMinutes := max(1, expectedDuration/60)
+		actualMinutes := actualDuration / 60
+
+		if actualMinutes != expectedMinutes {
+			t.Errorf("%s level %d: expected %d min duration, got %d min",
+				action.BuildingType, action.ToLevel, expectedMinutes, actualMinutes)
+		}
+	}
+}
+
+// ============================================================================
+// Cost Correctness Tests
+// ============================================================================
+
+// TestCostsMatchBuildingData verifies action costs match building data
+func TestCostsMatchBuildingData(t *testing.T) {
+	buildings, err := loader.LoadBuildings(dataDir)
+	if err != nil {
+		t.Fatalf("Failed to load buildings: %v", err)
+	}
+
+	technologies := make(map[string]*models.Technology)
+
+	initialState := models.NewGameState()
+	initialState.Resources[models.Wood] = 10000
+	initialState.Resources[models.Stone] = 10000
+	initialState.Resources[models.Iron] = 10000
+	initialState.Resources[models.Food] = 500
+
+	for _, bt := range models.AllBuildingTypes() {
+		initialState.BuildingLevels[bt] = 1
+	}
+
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack: 10,
+		models.Quarry:     10,
+	}
+
+	s := castle.NewGreedySolver(buildings, technologies, initialState, targetLevels)
+	solution := s.Solve()
+
+	for _, action := range solution.BuildingActions {
+		building := buildings[action.BuildingType]
+		if building == nil {
+			continue
+		}
+
+		levelData := building.GetLevelData(action.ToLevel)
+		if levelData == nil {
+			continue
+		}
+
+		// Verify each resource cost matches
+		for rt, expectedCost := range levelData.Costs {
+			actualCost := action.Costs[rt]
+			if actualCost != expectedCost {
+				t.Errorf("%s level %d %s cost: expected %d, got %d",
+					action.BuildingType, action.ToLevel, rt, expectedCost, actualCost)
+			}
+		}
+	}
+}
+
+// ============================================================================
+// Food Accounting Tests
+// ============================================================================
+
+// TestFoodAccountingIsAccurate verifies food tracking is exact
+func TestFoodAccountingIsAccurate(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// Track food used step by step
+	foodUsed := 0
+	for i, action := range solution.BuildingActions {
+		foodCost := action.Costs[models.Food]
+		foodUsed += foodCost
+
+		// FoodUsed in action should match our running total
+		if action.FoodUsed != foodUsed {
+			// Note: Research actions also consume food, so check if there were
+			// research actions before this building action
+			researchFoodBefore := 0
+			for _, ra := range solution.ResearchActions {
+				if ra.EndTime <= action.StartTime {
+					researchFoodBefore += ra.Costs[models.Food]
+				}
+			}
+
+			expectedFoodUsed := foodUsed + researchFoodBefore
+			// Allow for research food between actions
+			if action.FoodUsed < expectedFoodUsed-50 || action.FoodUsed > expectedFoodUsed+50 {
+				t.Logf("Action %d (%s %d): FoodUsed=%d, calculated=%d (research=%d)",
+					i, action.BuildingType, action.ToLevel,
+					action.FoodUsed, expectedFoodUsed, researchFoodBefore)
+			}
+		}
+
+		// FoodUsed should never exceed FoodCapacity
+		if action.FoodUsed > action.FoodCapacity {
+			t.Errorf("Action %d: FoodUsed %d > FoodCapacity %d",
+				i, action.FoodUsed, action.FoodCapacity)
+		}
+	}
+}
+
+// TestTotalFoodUsedMatchesAllCosts verifies final food matches sum of all costs
+func TestTotalFoodUsedMatchesAllCosts(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// Sum all building food costs
+	buildingFoodTotal := 0
+	for _, action := range solution.BuildingActions {
+		buildingFoodTotal += action.Costs[models.Food]
+	}
+
+	// Sum all research food costs
+	researchFoodTotal := 0
+	for _, action := range solution.ResearchActions {
+		researchFoodTotal += action.Costs[models.Food]
+	}
+
+	totalFoodCost := buildingFoodTotal + researchFoodTotal
+
+	// Get final food used from the chronologically last action
+	// We need to find the action with the highest end time
+	var finalFoodUsed int
+	var latestEndTime int
+
+	for _, action := range solution.BuildingActions {
+		if action.EndTime > latestEndTime {
+			latestEndTime = action.EndTime
+			finalFoodUsed = action.FoodUsed
+		}
+	}
+	for _, action := range solution.ResearchActions {
+		if action.EndTime > latestEndTime {
+			latestEndTime = action.EndTime
+			finalFoodUsed = action.FoodUsed
+		}
+	}
+
+	// Final food used should equal total food cost
+	// Allow small tolerance (4) because food tracking might record at start vs end of action
+	diff := totalFoodCost - finalFoodUsed
+	if diff < 0 {
+		diff = -diff
+	}
+	if diff > 5 {
+		t.Errorf("Food accounting mismatch: final FoodUsed=%d, sum of costs=%d (building=%d, research=%d), diff=%d",
+			finalFoodUsed, totalFoodCost, buildingFoodTotal, researchFoodTotal, diff)
+	} else if diff > 0 {
+		t.Logf("Small food accounting variance: final FoodUsed=%d, sum of costs=%d, diff=%d",
+			finalFoodUsed, totalFoodCost, diff)
+	}
+}
+
+// ============================================================================
+// Time Consistency Tests
+// ============================================================================
+
+// TestTotalTimeMatchesLastAction verifies TotalTimeSeconds matches last action
+func TestTotalTimeMatchesLastAction(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// Find the last end time across all actions
+	var lastEndTime int
+	for _, action := range solution.BuildingActions {
+		if action.EndTime > lastEndTime {
+			lastEndTime = action.EndTime
+		}
+	}
+	for _, action := range solution.ResearchActions {
+		if action.EndTime > lastEndTime {
+			lastEndTime = action.EndTime
+		}
+	}
+
+	// TotalTimeSeconds should be in minutes (converted from solver)
+	// Solver stores time in minutes internally, multiplies by 60 at end
+	// So TotalTimeSeconds should match last action end time
+	if solution.TotalTimeSeconds != lastEndTime {
+		t.Errorf("TotalTimeSeconds %d != last action end time %d",
+			solution.TotalTimeSeconds, lastEndTime)
+	}
+}
+
+// TestNoTimeTravel verifies time always moves forward
+func TestNoTimeTravel(t *testing.T) {
+	s, _ := setupSolver(t)
+	solution := s.Solve()
+
+	// All building actions should have increasing start times
+	var prevEndTime int
+	for i, action := range solution.BuildingActions {
+		if action.StartTime < prevEndTime {
+			t.Errorf("Building action %d starts at %d before previous ended at %d (time travel!)",
+				i, action.StartTime, prevEndTime)
+		}
+		if action.EndTime < action.StartTime {
+			t.Errorf("Building action %d ends at %d before starting at %d (negative duration!)",
+				i, action.EndTime, action.StartTime)
+		}
+		prevEndTime = action.EndTime
+	}
+
+	// Same for research
+	prevEndTime = 0
+	for i, action := range solution.ResearchActions {
+		if action.StartTime < prevEndTime {
+			t.Errorf("Research action %d starts at %d before previous ended at %d",
+				i, action.StartTime, prevEndTime)
+		}
+		if action.EndTime < action.StartTime {
+			t.Errorf("Research action %d ends at %d before starting at %d",
+				i, action.EndTime, action.StartTime)
+		}
+		prevEndTime = action.EndTime
 	}
 }

@@ -127,6 +127,13 @@ go test -cover ./...             # With coverage
 
 ## Testing
 
+### Run All Tests (recommended)
+
+```bash
+./scripts/test-all.sh           # Run everything: build, unit tests, coverage, fuzz (20s each)
+./scripts/test-all.sh 60s       # With longer fuzz duration
+```
+
 ### Standard Tests
 
 ```bash
@@ -176,6 +183,23 @@ GitHub Actions runs on push/PR:
    - `FuzzSolverConstraints` (units)
    - `FuzzUnitThroughput` (units)
 8. Upload coverage to Codecov
+
+## Coding Conventions
+
+### Timing in Build Orders
+
+**Never use hours/minutes for timing in build order logic.** Since this is a build order solver, use step-based notation:
+
+- ✅ `Step X` or `Step X/N` (e.g., "Step 45/120")
+- ✅ `Action index` or `sequence number`
+- ❌ "At 6 hours", "After 24h", "Takes 2 hours"
+
+Hours are only acceptable in:
+- User-facing display/formatting
+- Test logging for human readability
+- Documentation examples
+
+Internal solver logic should track time in **seconds** (for calculations) but communicate progress as **steps**.
 
 ## Philosophy
 
