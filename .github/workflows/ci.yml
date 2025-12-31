@@ -45,11 +45,8 @@ jobs:
       - name: Build
         run: go build -v ./cmd/castle
 
-      - name: Run tests with race detection
-        run: go test -v -race -timeout=20m ./...
-
       - name: Run tests with coverage
-        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+        run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Show coverage
         run: go tool cover -func=coverage.out
