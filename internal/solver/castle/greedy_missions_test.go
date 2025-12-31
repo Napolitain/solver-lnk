@@ -159,11 +159,10 @@ func TestSolveWithMissions_DoesNotBreakInvariants(t *testing.T) {
 	// Check that building actions are in chronological order
 	lastEnd := 0
 	for i, action := range solution.BuildingActions {
-		if action.StartTime < lastEnd {
-			// Start can overlap with previous end (parallel research), but building queue should not
-			// Actually buildings are sequential, so start should be >= lastEnd
-			// But there might be time jumps, so just check end times are increasing
-		}
+		// Building actions should be sequential (non-overlapping)
+		// Skip this check as timing can be complex with parallel research
+		_ = lastEnd // keep for potential future use
+
 		if action.EndTime < action.StartTime {
 			t.Errorf("Action %d: EndTime %d < StartTime %d", i, action.EndTime, action.StartTime)
 		}

@@ -190,7 +190,7 @@ func (ms *MissionState) GetBestMissionForState(
 		if rate <= 0 {
 			// Can't produce this resource, it's definitely the bottleneck
 			bottleneck = rt
-			maxWaitTime = 999999
+			// Skip setting maxWaitTime as it will be recalculated below if needed
 			break
 		}
 		
