@@ -364,11 +364,11 @@ func TestUnitResourceCostsReasonable(t *testing.T) {
 		wood, iron int
 	}{
 		"Spearman":    {18, 30},
-		"Swordsman":   {15, 80},
-		"Archer":      {60, 20},
+		"Swordsman":   {43, 48},
+		"Archer":      {27, 39},
 		"Crossbowman": {50, 55},
 		"Horseman":    {25, 45},
-		"Lancer":      {60, 150},
+		"Lancer":      {70, 80},
 		"Handcart":    {45, 30},
 		"Oxcart":      {95, 65},
 	}
@@ -414,8 +414,8 @@ func TestUnitResourceCostsPerBatchRespectStorage(t *testing.T) {
 	// This test verifies that when training units, we can't exceed storage capacity
 	// in a single batch
 
-	// Level 20 storage capacity is ~27k per resource
-	const level20StorageCap = 26930
+	// Level 20 storage capacity is 9999 per resource (from game data)
+	const level20StorageCap = 9999
 
 	solver := NewSolver()
 	solution := solver.Solve()
@@ -445,7 +445,7 @@ func TestUnitResourceCostsPerBatchRespectStorage(t *testing.T) {
 
 func TestUnitBatchSizesByStorage(t *testing.T) {
 	// Given storage capacity, how many units can we train before waiting?
-	const storageCap = 26930
+	const storageCap = 9999
 
 	for _, u := range AllUnits() {
 		if u.ResourceCosts[models.Wood] == 0 && u.ResourceCosts[models.Iron] == 0 {
@@ -557,5 +557,67 @@ func TestTotalFoodUsedByUnits(t *testing.T) {
 
 	if totalFood > MaxFoodCapacity {
 		t.Errorf("Total food %d exceeds capacity %d", totalFood, MaxFoodCapacity)
+	}
+}
+
+// TestAllUnitDataMatchesFiles verifies ALL unit properties match data files
+// This ensures data files are the source of truth
+func TestAllUnitDataMatchesFiles(t *testing.T) {
+	// Expected values extracted directly from data/units/* files
+	// Format: Name -> {wood, stone, iron, food, trainingSeconds, speed, transport}
+	expectedData := map[string]struct {
+		wood, stone, iron, food int
+		trainingSeconds         int
+		speedMinField           float64
+		transport               int
+	}{
+		"Spearman":    {18, 6, 30, 1, 750, 11.666667, 12},     // 12:30, 11m40s
+		"Swordsman":   {43, 20, 48, 1, 1200, 13.333333, 10},   // 20:00, 13m20s
+		"Archer":      {27, 12, 39, 1, 900, 8.333333, 16},     // 15:00, 8m20s
+		"Crossbowman": {50, 28, 55, 1, 1350, 10.0, 13},        // 22:30, 10m
+		"Horseman":    {25, 15, 45, 2, 1050, 5.0, 22},         // 17:30, 5m
+		"Lancer":      {70, 60, 80, 2, 1860, 6.666667, 20},    // 31:00, 6m40s
+		"Handcart":    {45, 25, 30, 1, 600, 13.333333, 500},   // 10:00, 13m20s
+		"Oxcart":      {95, 40, 65, 3, 1200, 16.666667, 2500}, // 20:00, 16m40s
+	}
+
+	for _, u := range AllUnits() {
+		expected, ok := expectedData[u.Name]
+		if !ok {
+			t.Errorf("Unit %s not in expected data map", u.Name)
+			continue
+		}
+
+		// Verify resource costs
+		if u.ResourceCosts[models.Wood] != expected.wood {
+			t.Errorf("%s: wood cost %d != expected %d", u.Name, u.ResourceCosts[models.Wood], expected.wood)
+		}
+		if u.ResourceCosts[models.Stone] != expected.stone {
+			t.Errorf("%s: stone cost %d != expected %d", u.Name, u.ResourceCosts[models.Stone], expected.stone)
+		}
+		if u.ResourceCosts[models.Iron] != expected.iron {
+			t.Errorf("%s: iron cost %d != expected %d", u.Name, u.ResourceCosts[models.Iron], expected.iron)
+		}
+
+		// Verify food cost
+		if u.FoodCost != expected.food {
+			t.Errorf("%s: food cost %d != expected %d", u.Name, u.FoodCost, expected.food)
+		}
+
+		// Verify training time
+		if u.TrainingTimeSeconds != expected.trainingSeconds {
+			t.Errorf("%s: training time %d != expected %d", u.Name, u.TrainingTimeSeconds, expected.trainingSeconds)
+		}
+
+		// Verify speed (allow 0.01 tolerance for float comparison)
+		speedDiff := u.SpeedMinutesField - expected.speedMinField
+		if speedDiff < -0.01 || speedDiff > 0.01 {
+			t.Errorf("%s: speed %.6f != expected %.6f", u.Name, u.SpeedMinutesField, expected.speedMinField)
+		}
+
+		// Verify transport capacity
+		if u.TransportCapacity != expected.transport {
+			t.Errorf("%s: transport %d != expected %d", u.Name, u.TransportCapacity, expected.transport)
+		}
 	}
 }

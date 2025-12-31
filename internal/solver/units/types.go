@@ -72,27 +72,27 @@ func AllUnits() []*Unit {
 			DefenseVsArtillery:  20,
 		},
 		{
-			// From data/units/swordsman: Costs estimated similar ratio
+			// From data/units/swordsman: Costs 43, 20, 48, 1
 			Name:                "Swordsman",
 			FoodCost:            1,
-			ResourceCosts:       models.Costs{models.Wood: 15, models.Stone: 8, models.Iron: 80},
+			ResourceCosts:       models.Costs{models.Wood: 43, models.Stone: 20, models.Iron: 48},
 			SpeedMinutesField:   13.333333, // 13 min 20 sec
 			TransportCapacity:   10,
 			UnitType:            "Infantry",
-			TrainingTimeSeconds: 1500, // 25:00
+			TrainingTimeSeconds: 1200, // 20:00
 			DefenseVsCavalry:    38,
 			DefenseVsInfantry:   25,
 			DefenseVsArtillery:  13,
 		},
 		{
-			// From data/units/archer: Costs estimated
+			// From data/units/archer: Costs 27, 12, 39, 1
 			Name:                "Archer",
 			FoodCost:            1,
-			ResourceCosts:       models.Costs{models.Wood: 60, models.Stone: 10, models.Iron: 20},
+			ResourceCosts:       models.Costs{models.Wood: 27, models.Stone: 12, models.Iron: 39},
 			SpeedMinutesField:   8.333333, // 8 min 20 sec
 			TransportCapacity:   16,
 			UnitType:            "Artillery",
-			TrainingTimeSeconds: 750, // 12:30
+			TrainingTimeSeconds: 900, // 15:00
 			DefenseVsCavalry:    10,
 			DefenseVsInfantry:   32,
 			DefenseVsArtillery:  15,
@@ -124,14 +124,14 @@ func AllUnits() []*Unit {
 			DefenseVsArtillery:  60,
 		},
 		{
-			// From data/units/lancer: Costs estimated
+			// From data/units/lancer: Costs 70, 60, 80, 2
 			Name:                "Lancer",
 			FoodCost:            2,
-			ResourceCosts:       models.Costs{models.Wood: 60, models.Stone: 30, models.Iron: 150},
+			ResourceCosts:       models.Costs{models.Wood: 70, models.Stone: 60, models.Iron: 80},
 			SpeedMinutesField:   6.666667, // 6 min 40 sec
 			TransportCapacity:   20,
 			UnitType:            "Cavalry",
-			TrainingTimeSeconds: 3000, // 50:00
+			TrainingTimeSeconds: 1860, // 31:00
 			DefenseVsCavalry:    16,
 			DefenseVsInfantry:   13,
 			DefenseVsArtillery:  25,

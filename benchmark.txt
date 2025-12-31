@@ -1,20 +1,20 @@
-❯ poop ./castle
-Benchmark 1 (215 runs): ./castle
+❯ poop "./castle"
+Benchmark 1 (80 runs): ./castle
   measurement          mean ± σ            min … max           outliers
-  wall_time          23.1ms ±  845us    20.4ms … 25.1ms         26 (12%)        
-  peak_rss           12.9MB ±  186KB    12.5MB … 13.5MB          1 ( 0%)        
-  cpu_cycles         84.4M  ± 3.04M     76.2M  … 94.1M          48 (22%)        
-  instructions        184M  ± 7.01M      165M  …  196M          47 (22%)        
-  cache_references   1.55M  ±  102K     1.42M  … 1.95M          19 ( 9%)        
-  cache_misses       56.6K  ± 15.9K     27.5K  …  129K           2 ( 1%)        
-  branch_misses       269K  ± 9.78K      242K  …  299K          42 (20%)        
-❯ poop ./units
-Benchmark 1 (1748 runs): ./units
+  wall_time          62.7ms ±  687us    60.7ms … 64.6ms          2 ( 3%)        
+  peak_rss           19.0MB ±  294KB    18.2MB … 20.2MB          2 ( 3%)        
+  cpu_cycles          270M  ± 2.45M      266M  …  278M           3 ( 4%)        
+  instructions        652M  ± 1.52M      649M  …  656M           0 ( 0%)        
+  cache_references   4.80M  ±  118K     4.56M  … 5.16M           3 ( 4%)        
+  cache_misses        120K  ± 53.0K     75.7K  …  427K           3 ( 4%)        
+  branch_misses       819K  ± 15.0K      770K  …  850K           1 ( 1%)        
+❯ poop "./castle --next"
+Benchmark 1 (93 runs): ./castle --next
   measurement          mean ± σ            min … max           outliers
-  wall_time          2.83ms ±  144us    2.56ms … 3.90ms         96 ( 5%)        
-  peak_rss           8.77MB ± 50.7KB    8.56MB … 9.08MB        391 (22%)        
-  cpu_cycles         4.65M  ±  104K     4.47M  … 6.93M         125 ( 7%)        
-  instructions       6.97M  ± 22.4K     6.91M  … 7.17M         328 (19%)        
-  cache_references    176K  ± 6.57K      159K  …  246K          11 ( 1%)        
-  cache_misses       5.02K  ± 1.69K     2.55K  … 38.7K          35 ( 2%)        
-  branch_misses      26.8K  ±  349      24.4K  … 28.1K         146 ( 8%)        
+  wall_time          53.6ms ± 2.29ms    51.2ms … 73.0ms          6 ( 6%)        
+  peak_rss           17.9MB ±  203KB    17.5MB … 18.4MB          0 ( 0%)        
+  cpu_cycles          227M  ± 7.94M      223M  …  299M           6 ( 6%)        
+  instructions        552M  ± 1.17M      550M  …  556M           0 ( 0%)        
+  cache_references   3.97M  ± 98.6K     3.77M  … 4.31M           3 ( 3%)        
+  cache_misses       95.2K  ± 25.3K     67.3K  …  259K           2 ( 2%)        
+  branch_misses       709K  ± 17.5K      670K  …  753K           0 ( 0%)        
