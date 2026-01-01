@@ -68,7 +68,7 @@ func (a *BuildingAction) Duration() int {
 }
 
 func (a *BuildingAction) ROI(state *State) float64 {
-	// For production buildings: ROI = production gain / build time (in hours)
+	// For production buildings: ROI considers production gain, build time, and resource scarcity
 	if a.LevelData.ProductionRate == nil {
 		// Non-production buildings get base ROI of 0
 		// They're built reactively when needed
@@ -92,7 +92,72 @@ func (a *BuildingAction) ROI(state *State) float64 {
 		return gain * 1000 // Very fast builds have very high ROI
 	}
 
-	return gain / buildHours
+	// Calculate resource scarcity multiplier
+	// A resource is more valuable if its production is low relative to others
+	scarcityMultiplier := a.calculateScarcityMultiplier(state)
+
+	// Base ROI
+	baseROI := gain / buildHours
+
+	return baseROI * scarcityMultiplier
+}
+
+// calculateScarcityMultiplier returns a multiplier based on how scarce the produced resource is
+func (a *BuildingAction) calculateScarcityMultiplier(state *State) float64 {
+	// Get production rates
+	woodRate := state.GetProductionRate(models.Wood)
+	stoneRate := state.GetProductionRate(models.Stone)
+	ironRate := state.GetProductionRate(models.Iron)
+
+	// Avoid division by zero
+	if woodRate < 0.1 {
+		woodRate = 0.1
+	}
+	if stoneRate < 0.1 {
+		stoneRate = 0.1
+	}
+	if ironRate < 0.1 {
+		ironRate = 0.1
+	}
+
+	// Total production
+	totalRate := woodRate + stoneRate + ironRate
+
+	// Resource demand ratios (based on typical building costs)
+	// Early game buildings need roughly: Wood 40%, Stone 40%, Iron 20%
+	woodDemand := 0.40
+	stoneDemand := 0.40
+	ironDemand := 0.20
+
+	// Current production ratios
+	woodRatio := woodRate / totalRate
+	stoneRatio := stoneRate / totalRate
+	ironRatio := ironRate / totalRate
+
+	// Scarcity = demand / supply ratio
+	// If demand > supply ratio, the resource is scarce
+	var scarcity float64
+	switch a.BuildingType {
+	case models.Lumberjack:
+		scarcity = woodDemand / woodRatio
+	case models.Quarry:
+		scarcity = stoneDemand / stoneRatio
+	case models.OreMine:
+		scarcity = ironDemand / ironRatio
+	default:
+		return 1.0
+	}
+
+	// Normalize: scarcity of 1.0 means balanced
+	// Cap the multiplier to avoid extreme values
+	if scarcity < 0.5 {
+		scarcity = 0.5
+	}
+	if scarcity > 2.0 {
+		scarcity = 2.0
+	}
+
+	return scarcity
 }
 
 func (a *BuildingAction) Execute(state *State) {

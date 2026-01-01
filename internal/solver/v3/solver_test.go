@@ -87,29 +87,20 @@ func TestSolverWithStrategy(t *testing.T) {
 		initialState.BuildingLevels[bt] = 1
 	}
 
-	strategy := v3.ResourceStrategy{
-		WoodLead:   3,
-		QuarryLead: 2,
-	}
-
-	solver := v3.NewSolverWithStrategy(buildings, technologies, targetLevels, strategy)
+	solver := v3.NewSolver(buildings, technologies, targetLevels)
 	solution := solver.Solve(initialState)
 
 	if solution == nil {
 		t.Fatal("Solution should not be nil")
 	}
 
-	// Verify strategy was followed - first action should be Lumberjack (has lead)
+	// With ROI-based selection, highest ROI building should be first
 	if len(solution.BuildingActions) > 0 {
 		first := solution.BuildingActions[0]
-		if first.BuildingType != models.Lumberjack && first.BuildingType != models.Farm && 
-		   first.BuildingType != models.WoodStore && first.BuildingType != models.StoneStore {
-			// First action should be Lumberjack or a reactive building
-			t.Logf("First action: %s %d->%d", first.BuildingType, first.FromLevel, first.ToLevel)
-		}
+		t.Logf("First action: %s %d->%d (ROI-based)", first.BuildingType, first.FromLevel, first.ToLevel)
 	}
 
-	t.Logf("Strategy %s completed in %.2f days", strategy.String(), float64(solution.TotalTimeSeconds)/86400.0)
+	t.Logf("ROI-based completed in %.2f days", float64(solution.TotalTimeSeconds)/86400.0)
 }
 
 func TestSolveAllStrategies(t *testing.T) {
@@ -255,10 +246,7 @@ func TestDeterminism(t *testing.T) {
 		return s
 	}
 
-	solver := v3.NewSolverWithStrategy(buildings, technologies, targetLevels, v3.ResourceStrategy{
-		WoodLead:   3,
-		QuarryLead: 3,
-	})
+	solver := v3.NewSolver(buildings, technologies, targetLevels)
 
 	// Run multiple times
 	var firstTime int

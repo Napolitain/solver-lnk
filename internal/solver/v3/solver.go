@@ -1,7 +1,6 @@
 package v3
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/napolitain/solver-lnk/internal/models"
@@ -12,33 +11,6 @@ type Solver struct {
 	Buildings    map[models.BuildingType]*models.Building
 	Technologies map[string]*models.Technology
 	TargetLevels map[models.BuildingType]int
-	Strategy     ResourceStrategy
-}
-
-// ResourceStrategy defines how resource buildings are prioritized
-type ResourceStrategy struct {
-	WoodLead       int
-	QuarryLead     int
-	SwitchLevel    int // OreMine level at which to switch strategy
-	LateWoodLead   int
-	LateQuarryLead int
-}
-
-// String returns the strategy name
-func (s ResourceStrategy) String() string {
-	base := fmt.Sprintf("W+%d/Q+%d", s.WoodLead, s.QuarryLead)
-	if s.WoodLead == 0 && s.QuarryLead == 0 {
-		base = "RoundRobin"
-	}
-
-	if s.SwitchLevel > 0 {
-		late := fmt.Sprintf("W+%d/Q+%d", s.LateWoodLead, s.LateQuarryLead)
-		if s.LateWoodLead == 0 && s.LateQuarryLead == 0 {
-			late = "RoundRobin"
-		}
-		return fmt.Sprintf("%s -> @OM%d %s", base, s.SwitchLevel, late)
-	}
-	return base
 }
 
 // NewSolver creates a new V3 solver
@@ -51,22 +23,6 @@ func NewSolver(
 		Buildings:    buildings,
 		Technologies: technologies,
 		TargetLevels: targetLevels,
-		Strategy:     ResourceStrategy{},
-	}
-}
-
-// NewSolverWithStrategy creates a solver with a specific strategy
-func NewSolverWithStrategy(
-	buildings map[models.BuildingType]*models.Building,
-	technologies map[string]*models.Technology,
-	targetLevels map[models.BuildingType]int,
-	strategy ResourceStrategy,
-) *Solver {
-	return &Solver{
-		Buildings:    buildings,
-		Technologies: technologies,
-		TargetLevels: targetLevels,
-		Strategy:     strategy,
 	}
 }
 
@@ -389,24 +345,13 @@ func (s *Solver) initializeState(state *State) {
 	}
 }
 
-// getNextAction returns the next building action based on strategy
+// getNextAction returns the next building action based on ROI
 func (s *Solver) getNextAction(state *State) *BuildingAction {
-	// First check for resource buildings based on strategy
-	resourceAction := s.getNextResourceAction(state)
-	if resourceAction != nil {
-		if ba, ok := resourceAction.(*BuildingAction); ok {
-			return ba
-		}
-	}
+	// Collect all possible building actions
+	var candidates []*BuildingAction
 
-	// Then check reactive buildings that have targets (Farm, Storage)
-	for _, bt := range []models.BuildingType{
-		models.Farm, models.WoodStore, models.StoneStore, models.OreStore,
-	} {
-		target, ok := s.TargetLevels[bt]
-		if !ok {
-			continue
-		}
+	// Add all target buildings that aren't at target level yet
+	for bt, target := range s.TargetLevels {
 		current := state.GetBuildingLevel(bt)
 		if current >= target {
 			continue
@@ -423,50 +368,32 @@ func (s *Solver) getNextAction(state *State) *BuildingAction {
 			continue
 		}
 
-		return &BuildingAction{
+		candidates = append(candidates, &BuildingAction{
 			BuildingType: bt,
 			FromLevel:    current,
 			ToLevel:      toLevel,
 			Building:     building,
 			LevelData:    levelData,
-		}
+		})
 	}
 
-	// Then check other target buildings (non-resource, non-reactive)
-	for _, bt := range []models.BuildingType{
-		models.Keep, models.Arsenal, models.Library, models.Tavern,
-		models.Market, models.Fortifications,
-	} {
-		target, ok := s.TargetLevels[bt]
-		if !ok {
-			continue
-		}
-		current := state.GetBuildingLevel(bt)
-		if current >= target {
-			continue
-		}
-
-		building := s.Buildings[bt]
-		if building == nil {
-			continue
-		}
-
-		toLevel := current + 1
-		levelData := building.GetLevelData(toLevel)
-		if levelData == nil {
-			continue
-		}
-
-		return &BuildingAction{
-			BuildingType: bt,
-			FromLevel:    current,
-			ToLevel:      toLevel,
-			Building:     building,
-			LevelData:    levelData,
-		}
+	if len(candidates) == 0 {
+		return nil
 	}
 
-	return nil
+	// Sort by ROI (descending), then by building type name for determinism
+	sort.Slice(candidates, func(i, j int) bool {
+		roiI := candidates[i].ROI(state)
+		roiJ := candidates[j].ROI(state)
+		if roiI != roiJ {
+			return roiI > roiJ
+		}
+		// Tie-breaker: alphabetical by building type
+		return candidates[i].BuildingType < candidates[j].BuildingType
+	})
+
+	// Return highest ROI action
+	return candidates[0]
 }
 
 // checkPrerequisites checks if action has prerequisites and returns a prereq action if needed
@@ -601,45 +528,10 @@ func (s *Solver) advanceTime(state *State, seconds int) {
 func (s *Solver) getPossibleActions(state *State) []Action {
 	var actions []Action
 
-	// Building actions
-	actions = append(actions, s.getBuildingActions(state)...)
-
-	// Research actions
-	actions = append(actions, s.getResearchActions(state)...)
-
-	return actions
-}
-
-// getBuildingActions returns possible building upgrade actions
-// nolint:unused // Reserved for future multi-queue extension
-func (s *Solver) getBuildingActions(state *State) []Action {
-	var actions []Action
-
-	// First, check for reactive upgrades (storage, farm) that are blocking
-	if reactiveAction := s.getReactiveAction(state); reactiveAction != nil {
-		return []Action{reactiveAction}
-	}
-
-	// Get next resource building based on strategy
-	resourceAction := s.getNextResourceAction(state)
-	if resourceAction != nil {
-		actions = append(actions, resourceAction)
-	}
-
-	// Add other target buildings
+	// Add all target buildings that aren't at target level yet
 	for bt, target := range s.TargetLevels {
 		current := state.GetBuildingLevel(bt)
 		if current >= target {
-			continue
-		}
-
-		// Skip resource buildings (handled by strategy)
-		if bt == models.Lumberjack || bt == models.Quarry || bt == models.OreMine {
-			continue
-		}
-
-		// Skip reactive buildings (handled separately)
-		if bt == models.Farm || bt == models.WoodStore || bt == models.StoneStore || bt == models.OreStore {
 			continue
 		}
 
@@ -663,62 +555,10 @@ func (s *Solver) getBuildingActions(state *State) []Action {
 		})
 	}
 
+	// Research actions
+	actions = append(actions, s.getResearchActions(state)...)
+
 	return actions
-}
-
-// getReactiveAction returns a reactive building action if one is needed
-// nolint:unused // Reserved for future multi-queue extension
-func (s *Solver) getReactiveAction(state *State) Action {
-	// Check what building we're trying to build next
-	nextAction := s.getNextResourceAction(state)
-	if nextAction == nil {
-		return nil
-	}
-
-	ba, ok := nextAction.(*BuildingAction)
-	if !ok {
-		return nil
-	}
-
-	costs := ba.Costs()
-
-	// Check food capacity
-	foodCost := costs[models.Food]
-	if state.FoodUsed+foodCost > state.FoodCapacity {
-		// Need Farm upgrade
-		return s.createFarmUpgrade(state, state.FoodUsed+foodCost)
-	}
-
-	// Check storage capacity
-	for _, rt := range []models.ResourceType{models.Wood, models.Stone, models.Iron} {
-		cost := costs[rt]
-		if cost == 0 {
-			continue
-		}
-		cap := state.GetStorageCap(rt)
-		if cost > cap {
-			return s.createStorageUpgrade(state, rt, cost)
-		}
-	}
-
-	// Check tech prerequisite
-	building := s.Buildings[ba.BuildingType]
-	if building != nil {
-		if techName, ok := building.TechnologyPrerequisites[ba.ToLevel]; ok {
-			if !state.ResearchedTechs[techName] {
-				// Need Library first, then research
-				tech := s.Technologies[techName]
-				if tech != nil {
-					libraryLevel := state.GetBuildingLevel(models.Library)
-					if libraryLevel < tech.RequiredLibraryLevel {
-						return s.createLibraryUpgrade(state, tech.RequiredLibraryLevel)
-					}
-				}
-			}
-		}
-	}
-
-	return nil
 }
 
 // createFarmUpgrade creates a Farm upgrade action to reach required food capacity
@@ -795,78 +635,6 @@ func (s *Solver) createLibraryUpgrade(state *State, requiredLevel int) Action {
 		BuildingType: models.Library,
 		FromLevel:    currentLevel,
 		ToLevel:      currentLevel + 1,
-		Building:     building,
-		LevelData:    levelData,
-	}
-}
-
-// getNextResourceAction returns the next resource building upgrade based on strategy
-func (s *Solver) getNextResourceAction(state *State) Action {
-	omLevel := state.GetBuildingLevel(models.OreMine)
-
-	// Determine effective leads based on current stage
-	woodLead := s.Strategy.WoodLead
-	quarryLead := s.Strategy.QuarryLead
-	if s.Strategy.SwitchLevel > 0 && omLevel >= s.Strategy.SwitchLevel {
-		woodLead = s.Strategy.LateWoodLead
-		quarryLead = s.Strategy.LateQuarryLead
-	}
-
-	ljLevel := state.GetBuildingLevel(models.Lumberjack)
-	qLevel := state.GetBuildingLevel(models.Quarry)
-
-	ljTarget := s.TargetLevels[models.Lumberjack]
-	qTarget := s.TargetLevels[models.Quarry]
-	omTarget := s.TargetLevels[models.OreMine]
-
-	// Determine which resource building to upgrade next
-	var bt models.BuildingType
-	var currentLevel, targetLevel int
-
-	// Priority: keep leads, then round-robin
-	if ljLevel < omLevel+woodLead && ljLevel < ljTarget {
-		bt = models.Lumberjack
-		currentLevel = ljLevel
-		targetLevel = ljTarget
-	} else if qLevel < omLevel+quarryLead && qLevel < qTarget {
-		bt = models.Quarry
-		currentLevel = qLevel
-		targetLevel = qTarget
-	} else if omLevel < omTarget {
-		bt = models.OreMine
-		currentLevel = omLevel
-		targetLevel = omTarget
-	} else if ljLevel < ljTarget {
-		bt = models.Lumberjack
-		currentLevel = ljLevel
-		targetLevel = ljTarget
-	} else if qLevel < qTarget {
-		bt = models.Quarry
-		currentLevel = qLevel
-		targetLevel = qTarget
-	} else {
-		return nil // All resource buildings at target
-	}
-
-	if currentLevel >= targetLevel {
-		return nil
-	}
-
-	building := s.Buildings[bt]
-	if building == nil {
-		return nil
-	}
-
-	toLevel := currentLevel + 1
-	levelData := building.GetLevelData(toLevel)
-	if levelData == nil {
-		return nil
-	}
-
-	return &BuildingAction{
-		BuildingType: bt,
-		FromLevel:    currentLevel,
-		ToLevel:      toLevel,
 		Building:     building,
 		LevelData:    levelData,
 	}
@@ -1080,93 +848,45 @@ func resourceToStorage(rt models.ResourceType) models.BuildingType {
 	}
 }
 
-// SolveAllStrategies tries all strategies and returns the best solution
+// SolveAllStrategies runs the ROI-based solver (no longer needs multiple strategies)
+// Kept for API compatibility with castle CLI
 func SolveAllStrategies(
 	buildings map[models.BuildingType]*models.Building,
 	technologies map[string]*models.Technology,
 	initialState *models.GameState,
 	targetLevels map[models.BuildingType]int,
 ) (*models.Solution, string, []StrategyResult) {
-	strategies := generateStrategies()
-	results := make([]StrategyResult, 0, len(strategies))
+	solver := NewSolver(buildings, technologies, targetLevels)
 
-	var bestSolution *models.Solution
-	var bestStrategy ResourceStrategy
-	bestTime := int(^uint(0) >> 1) // Max int
-
-	for _, strategy := range strategies {
-		solver := NewSolverWithStrategy(buildings, technologies, targetLevels, strategy)
-		
-		// Clone initial state for each run
-		stateCopy := &models.GameState{
-			BuildingLevels:         make(map[models.BuildingType]int),
-			Resources:              make(map[models.ResourceType]float64),
-			ResearchedTechnologies: make(map[string]bool),
-		}
-		for k, v := range initialState.BuildingLevels {
-			stateCopy.BuildingLevels[k] = v
-		}
-		for k, v := range initialState.Resources {
-			stateCopy.Resources[k] = v
-		}
-		for k, v := range initialState.ResearchedTechnologies {
-			stateCopy.ResearchedTechnologies[k] = v
-		}
-
-		solution := solver.Solve(stateCopy)
-		results = append(results, StrategyResult{
-			Strategy: strategy,
-			Solution: solution,
-		})
-
-		if solution.TotalTimeSeconds < bestTime {
-			bestTime = solution.TotalTimeSeconds
-			bestSolution = solution
-			bestStrategy = strategy
-		}
+	// Clone initial state
+	stateCopy := &models.GameState{
+		BuildingLevels:         make(map[models.BuildingType]int),
+		Resources:              make(map[models.ResourceType]float64),
+		ResearchedTechnologies: make(map[string]bool),
+	}
+	for k, v := range initialState.BuildingLevels {
+		stateCopy.BuildingLevels[k] = v
+	}
+	for k, v := range initialState.Resources {
+		stateCopy.Resources[k] = v
+	}
+	for k, v := range initialState.ResearchedTechnologies {
+		stateCopy.ResearchedTechnologies[k] = v
 	}
 
-	return bestSolution, bestStrategy.String(), results
+	solution := solver.Solve(stateCopy)
+
+	// Return single result for compatibility
+	results := []StrategyResult{{
+		Strategy: "ROI-based",
+		Solution: solution,
+	}}
+
+	return solution, "ROI-based", results
 }
 
-// StrategyResult holds the result of running a single strategy
+// StrategyResult holds the result of running the solver
 type StrategyResult struct {
-	Strategy ResourceStrategy
+	Strategy string
 	Solution *models.Solution
-}
-
-func generateStrategies() []ResourceStrategy {
-	var strategies []ResourceStrategy
-
-	// Round robin
-	strategies = append(strategies, ResourceStrategy{})
-
-	// Static strategies: W+X/Q+Y for X,Y in 1..7
-	for w := 1; w <= 7; w++ {
-		for q := 0; q <= w; q++ {
-			strategies = append(strategies, ResourceStrategy{
-				WoodLead:   w,
-				QuarryLead: q,
-			})
-		}
-	}
-
-	// Staged strategies: switch at OM level 15
-	for w := 1; w <= 5; w++ {
-		for q := 0; q <= w; q++ {
-			for lw := 0; lw <= 2; lw++ {
-				for lq := 0; lq <= lw; lq++ {
-					strategies = append(strategies, ResourceStrategy{
-						WoodLead:       w,
-						QuarryLead:     q,
-						SwitchLevel:    15,
-						LateWoodLead:   lw,
-						LateQuarryLead: lq,
-					})
-				}
-			}
-		}
-	}
-
-	return strategies
 }
