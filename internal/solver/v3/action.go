@@ -256,18 +256,158 @@ func (a *ResearchAction) Execute(state *State) {
 	// Deduct food if any
 	state.FoodUsed += costs.Food
 
-	// Mark as researched
-	state.ResearchedTechs[a.Technology.Name] = true
-
-	// Apply production bonus
-	if a.Technology.Name == "Beer tester" || a.Technology.Name == "Wheelbarrow" {
-		state.ProductionBonus += 0.05
-	}
+	// NOTE: Don't mark as researched yet - that happens at completion
+	// Don't apply production bonus yet - that also happens at completion
 
 	// Update queue
 	state.ResearchQueueFreeAt = state.Now + a.Technology.ResearchTimeSeconds
 }
 
 func (a *ResearchAction) Description() string {
+	return a.Technology.Name
+}
+
+// ProductionTechAction represents a production boost tech with its full cost path
+// This includes any required Library upgrades
+type ProductionTechAction struct {
+	Technology           *models.Technology
+	LibraryUpgradesNeeded int  // How many Library levels needed
+	LibraryBuilding      *models.Building
+	CurrentLibraryLevel  int
+}
+
+func (a *ProductionTechAction) Queue() QueueType {
+	// This is a "meta-action" that triggers Library upgrades (building queue)
+	// followed by research (research queue)
+	return QueueBuilding
+}
+
+func (a *ProductionTechAction) CanExecute(state *State) bool {
+	if state.ResearchedTechs[a.Technology.Name] {
+		return false
+	}
+	// Can start if building queue is free (for Library) or Library already high enough
+	return state.Now >= state.BuildingQueueFreeAt
+}
+
+// TotalLibraryCosts returns the sum of all Library upgrade costs needed
+func (a *ProductionTechAction) TotalLibraryCosts() models.Costs {
+	var total models.Costs
+	if a.LibraryBuilding == nil {
+		return total
+	}
+	for level := a.CurrentLibraryLevel + 1; level <= a.Technology.RequiredLibraryLevel; level++ {
+		levelData := a.LibraryBuilding.GetLevelData(level)
+		if levelData != nil {
+			total.Wood += levelData.Costs.Wood
+			total.Stone += levelData.Costs.Stone
+			total.Iron += levelData.Costs.Iron
+			total.Food += levelData.Costs.Food
+		}
+	}
+	return total
+}
+
+// TotalLibraryBuildTime returns the sum of all Library upgrade times
+func (a *ProductionTechAction) TotalLibraryBuildTime() int {
+	var total int
+	if a.LibraryBuilding == nil {
+		return total
+	}
+	for level := a.CurrentLibraryLevel + 1; level <= a.Technology.RequiredLibraryLevel; level++ {
+		levelData := a.LibraryBuilding.GetLevelData(level)
+		if levelData != nil {
+			total += levelData.BuildTimeSeconds
+		}
+	}
+	return total
+}
+
+func (a *ProductionTechAction) Costs() models.Costs {
+	// Return just the first action's cost (Library or Research)
+	if a.LibraryUpgradesNeeded > 0 {
+		levelData := a.LibraryBuilding.GetLevelData(a.CurrentLibraryLevel + 1)
+		if levelData != nil {
+			return levelData.Costs
+		}
+	}
+	return a.Technology.Costs
+}
+
+func (a *ProductionTechAction) Duration() int {
+	// Return just the first action's duration
+	if a.LibraryUpgradesNeeded > 0 {
+		levelData := a.LibraryBuilding.GetLevelData(a.CurrentLibraryLevel + 1)
+		if levelData != nil {
+			return levelData.BuildTimeSeconds
+		}
+	}
+	return a.Technology.ResearchTimeSeconds
+}
+
+func (a *ProductionTechAction) ROI(state *State) float64 {
+	// Calculate effective ROI for the full path to this production tech
+	// 
+	// The benefit: 5% of total production rate, forever
+	// The cost: Library build time (blocks building queue) + research time (parallel)
+	//
+	// Since Library blocks building queue, we weight it heavily
+	// Research runs in parallel, so it's "free" in terms of blocking
+	
+	totalProduction := state.GetProductionRate(models.Wood) +
+		state.GetProductionRate(models.Stone) +
+		state.GetProductionRate(models.Iron)
+	
+	// 5% boost = gain per hour
+	gainPerHour := totalProduction * 0.05 * state.ProductionBonus
+	
+	// Library time is expensive (blocks building queue)
+	libraryBuildSeconds := a.TotalLibraryBuildTime()
+	libraryBuildHours := float64(libraryBuildSeconds) / 3600.0
+	
+	// Research time is cheap (runs in parallel) - weight it at 10%
+	researchSeconds := a.Technology.ResearchTimeSeconds
+	researchHours := float64(researchSeconds) / 3600.0 * 0.1
+	
+	totalTimeHours := libraryBuildHours + researchHours
+	if totalTimeHours <= 0 {
+		return gainPerHour * 100 // Very fast = very good
+	}
+	
+	// ROI = perpetual gain / investment time
+	// We estimate "perpetual" as 24 hours of benefit for comparison
+	estimatedBenefitHours := 24.0
+	totalBenefit := gainPerHour * estimatedBenefitHours
+	
+	return totalBenefit / totalTimeHours
+}
+
+func (a *ProductionTechAction) Execute(state *State) {
+	// This shouldn't be called directly - the solver handles the multi-step execution
+	// But if called, just start the first Library upgrade
+	if a.LibraryUpgradesNeeded > 0 && a.LibraryBuilding != nil {
+		levelData := a.LibraryBuilding.GetLevelData(a.CurrentLibraryLevel + 1)
+		if levelData != nil {
+			costs := levelData.Costs
+			if costs.Wood > 0 {
+				state.SetResource(models.Wood, state.GetResource(models.Wood)-float64(costs.Wood))
+			}
+			if costs.Stone > 0 {
+				state.SetResource(models.Stone, state.GetResource(models.Stone)-float64(costs.Stone))
+			}
+			if costs.Iron > 0 {
+				state.SetResource(models.Iron, state.GetResource(models.Iron)-float64(costs.Iron))
+			}
+			state.FoodUsed += costs.Food
+			state.SetBuildingLevel(models.Library, a.CurrentLibraryLevel+1)
+			state.BuildingQueueFreeAt = state.Now + levelData.BuildTimeSeconds
+		}
+	}
+}
+
+func (a *ProductionTechAction) Description() string {
+	if a.LibraryUpgradesNeeded > 0 {
+		return "Library (for " + a.Technology.Name + ")"
+	}
 	return a.Technology.Name
 }
