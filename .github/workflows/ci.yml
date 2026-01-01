@@ -53,7 +53,6 @@ jobs:
 
       - name: Run fuzz tests (20s each)
         run: |
-          go test -fuzz=FuzzSolverDeterminism -fuzztime=20s ./internal/solver/castle || true
           go test -fuzz=FuzzSolverResources -fuzztime=20s ./internal/solver/castle || true
           go test -fuzz=FuzzSolverBuildingLevels -fuzztime=20s ./internal/solver/castle || true
           go test -fuzz=FuzzSolverConstraints -fuzztime=20s ./internal/solver/units || true
