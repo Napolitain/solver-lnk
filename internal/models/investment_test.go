@@ -17,10 +17,7 @@ func (p *InvestmentPath) TimeToPayoff() float64 {
 	if p.ProductionRatePerHour <= 0 {
 		return -1 // Never pays off
 	}
-	totalCost := 0.0
-	for _, cost := range p.TotalResourceCost {
-		totalCost += float64(cost)
-	}
+	totalCost := float64(p.TotalResourceCost.Wood + p.TotalResourceCost.Stone + p.TotalResourceCost.Iron + p.TotalResourceCost.Food)
 	hoursToPayoff := totalCost / p.ProductionRatePerHour
 	return hoursToPayoff * 3600 // return in seconds
 }
@@ -230,9 +227,9 @@ func TestMission_InvestmentBreakdown(t *testing.T) {
 	numArchers := 15
 	
 	totalArcherCost := Costs{
-		Wood:  archerCost[Wood] * numArchers,
-		Stone: archerCost[Stone] * numArchers,
-		Iron:  archerCost[Iron] * numArchers,
+		Wood:  archerCost.Wood * numArchers,
+		Stone: archerCost.Stone * numArchers,
+		Iron:  archerCost.Iron * numArchers,
 	}
 	
 	// Training can be parallel in arsenal, so time = 15 min * 15 = 225 min (sequential)
@@ -241,9 +238,9 @@ func TestMission_InvestmentBreakdown(t *testing.T) {
 	
 	// Total investment
 	totalCost := Costs{
-		Wood:  tavernCost[Wood] + totalArcherCost[Wood],
-		Stone: tavernCost[Stone] + totalArcherCost[Stone],
-		Iron:  tavernCost[Iron] + totalArcherCost[Iron],
+		Wood:  tavernCost.Wood + totalArcherCost.Wood,
+		Stone: tavernCost.Stone + totalArcherCost.Stone,
+		Iron:  tavernCost.Iron + totalArcherCost.Iron,
 	}
 	
 	// Time: tavern build + archer training (sequential or parallel?)
@@ -252,16 +249,16 @@ func TestMission_InvestmentBreakdown(t *testing.T) {
 	
 	t.Log("Investment to enable Hunting missions:")
 	t.Logf("  Tavern 1: Wood=%d, Stone=%d, Iron=%d (%.0f min build)",
-		tavernCost[Wood], tavernCost[Stone], tavernCost[Iron], float64(tavernBuildTime)/60)
+		tavernCost.Wood, tavernCost.Stone, tavernCost.Iron, float64(tavernBuildTime)/60)
 	t.Logf("  15 Archers: Wood=%d, Stone=%d, Iron=%d (%.0f min train)",
-		totalArcherCost[Wood], totalArcherCost[Stone], totalArcherCost[Iron], float64(totalTrainTime)/60)
+		totalArcherCost.Wood, totalArcherCost.Stone, totalArcherCost.Iron, float64(totalTrainTime)/60)
 	t.Logf("  TOTAL: Wood=%d, Stone=%d, Iron=%d (%.1f hours)",
-		totalCost[Wood], totalCost[Stone], totalCost[Iron], float64(totalTime)/3600)
+		totalCost.Wood, totalCost.Stone, totalCost.Iron, float64(totalTime)/3600)
 	
 	// Payoff calculation
 	// Hunting: ~180 resources/hour
 	huntingRate := 180.0
-	totalInvestmentResources := float64(totalCost[Wood] + totalCost[Stone] + totalCost[Iron])
+	totalInvestmentResources := float64(totalCost.Wood + totalCost.Stone + totalCost.Iron)
 	payoffHours := totalInvestmentResources / huntingRate
 	
 	t.Logf("  Payoff time: %.1f hours of continuous hunting", payoffHours)

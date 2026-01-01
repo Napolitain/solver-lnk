@@ -336,15 +336,15 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 
 			for remainingCount > 0 {
 				// Calculate how many units we can afford with current resources
-				maxByWood := int(currentResources[models.Wood]) / max(1, u.ResourceCosts[models.Wood])
-				maxByIron := int(currentResources[models.Iron]) / max(1, u.ResourceCosts[models.Iron])
+				maxByWood := int(currentResources[models.Wood]) / max(1, u.ResourceCosts.Wood)
+				maxByIron := int(currentResources[models.Iron]) / max(1, u.ResourceCosts.Iron)
 				maxByFood := (finalFoodCapacity - currentFoodUsed) / u.FoodCost
 
 				canTrain := min(remainingCount, maxByFood)
-				if u.ResourceCosts[models.Wood] > 0 {
+				if u.ResourceCosts.Wood > 0 {
 					canTrain = min(canTrain, maxByWood)
 				}
-				if u.ResourceCosts[models.Iron] > 0 {
+				if u.ResourceCosts.Iron > 0 {
 					canTrain = min(canTrain, maxByIron)
 				}
 
@@ -353,16 +353,16 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 					batchCount += canTrain
 					batchTrainingTime += canTrain * u.TrainingTimeSeconds
 					currentFoodUsed += canTrain * u.FoodCost
-					currentResources[models.Wood] -= float64(canTrain * u.ResourceCosts[models.Wood])
-					currentResources[models.Iron] -= float64(canTrain * u.ResourceCosts[models.Iron])
+					currentResources[models.Wood] -= float64(canTrain * u.ResourceCosts.Wood)
+					currentResources[models.Iron] -= float64(canTrain * u.ResourceCosts.Iron)
 					remainingCount -= canTrain
 				}
 
 				if remainingCount > 0 {
 					// Need to wait for resources - advance time and accumulate
 					// Calculate time needed to afford next unit
-					woodNeeded := float64(u.ResourceCosts[models.Wood]) - currentResources[models.Wood]
-					ironNeeded := float64(u.ResourceCosts[models.Iron]) - currentResources[models.Iron]
+					woodNeeded := float64(u.ResourceCosts.Wood) - currentResources[models.Wood]
+					ironNeeded := float64(u.ResourceCosts.Iron) - currentResources[models.Iron]
 
 					waitHours := 0.0
 					if woodNeeded > 0 && productionRates[models.Wood] > 0 {
@@ -385,10 +385,10 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 			// Add the complete batch as one action
 			if batchCount > 0 {
 				unitCosts := models.Costs{
-					models.Wood:  u.ResourceCosts[models.Wood] * batchCount,
-					models.Stone: u.ResourceCosts[models.Stone] * batchCount,
-					models.Iron:  u.ResourceCosts[models.Iron] * batchCount,
-					models.Food:  batchCount * u.FoodCost,
+					Wood:  u.ResourceCosts.Wood * batchCount,
+					Stone: u.ResourceCosts.Stone * batchCount,
+					Iron:  u.ResourceCosts.Iron * batchCount,
+					Food:  batchCount * u.FoodCost,
 				}
 
 				allActions = append(allActions, action{
@@ -562,10 +562,10 @@ func formatTime(seconds int) string {
 
 func formatCosts(costs models.Costs) string {
 	return fmt.Sprintf("W:%5d S:%5d I:%4d F:%2d",
-		costs[models.Wood],
-		costs[models.Stone],
-		costs[models.Iron],
-		costs[models.Food])
+		costs.Wood,
+		costs.Stone,
+		costs.Iron,
+		costs.Food)
 }
 
 func formatBuildingName(name string) string {

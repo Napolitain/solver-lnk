@@ -62,7 +62,7 @@ func AllUnits() []*Unit {
 			// From data/units/spearman: Costs 18, 6, 30, 1
 			Name:                "Spearman",
 			FoodCost:            1,
-			ResourceCosts:       models.Costs{models.Wood: 18, models.Stone: 6, models.Iron: 30},
+			ResourceCosts:       models.Costs{Wood: 18, Stone: 6, Iron: 30},
 			SpeedMinutesField:   11.666667, // 11 min 40 sec
 			TransportCapacity:   12,
 			UnitType:            "Infantry",
@@ -75,7 +75,7 @@ func AllUnits() []*Unit {
 			// From data/units/swordsman: Costs 43, 20, 48, 1
 			Name:                "Swordsman",
 			FoodCost:            1,
-			ResourceCosts:       models.Costs{models.Wood: 43, models.Stone: 20, models.Iron: 48},
+			ResourceCosts:       models.Costs{Wood: 43, Stone: 20, Iron: 48},
 			SpeedMinutesField:   13.333333, // 13 min 20 sec
 			TransportCapacity:   10,
 			UnitType:            "Infantry",
@@ -88,7 +88,7 @@ func AllUnits() []*Unit {
 			// From data/units/archer: Costs 27, 12, 39, 1
 			Name:                "Archer",
 			FoodCost:            1,
-			ResourceCosts:       models.Costs{models.Wood: 27, models.Stone: 12, models.Iron: 39},
+			ResourceCosts:       models.Costs{Wood: 27, Stone: 12, Iron: 39},
 			SpeedMinutesField:   8.333333, // 8 min 20 sec
 			TransportCapacity:   16,
 			UnitType:            "Artillery",
@@ -101,7 +101,7 @@ func AllUnits() []*Unit {
 			// From data/units/crossbowman: Costs 50, 28, 55, 1
 			Name:                "Crossbowman",
 			FoodCost:            1,
-			ResourceCosts:       models.Costs{models.Wood: 50, models.Stone: 28, models.Iron: 55},
+			ResourceCosts:       models.Costs{Wood: 50, Stone: 28, Iron: 55},
 			SpeedMinutesField:   10.0,
 			TransportCapacity:   13,
 			UnitType:            "Artillery",
@@ -114,7 +114,7 @@ func AllUnits() []*Unit {
 			// From data/units/horseman: Costs 25, 15, 45, 2
 			Name:                "Horseman",
 			FoodCost:            2,
-			ResourceCosts:       models.Costs{models.Wood: 25, models.Stone: 15, models.Iron: 45},
+			ResourceCosts:       models.Costs{Wood: 25, Stone: 15, Iron: 45},
 			SpeedMinutesField:   5.0,
 			TransportCapacity:   22,
 			UnitType:            "Cavalry",
@@ -127,7 +127,7 @@ func AllUnits() []*Unit {
 			// From data/units/lancer: Costs 70, 60, 80, 2
 			Name:                "Lancer",
 			FoodCost:            2,
-			ResourceCosts:       models.Costs{models.Wood: 70, models.Stone: 60, models.Iron: 80},
+			ResourceCosts:       models.Costs{Wood: 70, Stone: 60, Iron: 80},
 			SpeedMinutesField:   6.666667, // 6 min 40 sec
 			TransportCapacity:   20,
 			UnitType:            "Cavalry",
@@ -140,7 +140,7 @@ func AllUnits() []*Unit {
 			// From data/units/handcart: Costs 45, 25, 30, 1
 			Name:                "Handcart",
 			FoodCost:            1,
-			ResourceCosts:       models.Costs{models.Wood: 45, models.Stone: 25, models.Iron: 30},
+			ResourceCosts:       models.Costs{Wood: 45, Stone: 25, Iron: 30},
 			SpeedMinutesField:   13.333333, // 13 min 20 sec
 			TransportCapacity:   500,
 			UnitType:            "Transport",
@@ -150,7 +150,7 @@ func AllUnits() []*Unit {
 			// From data/units/oxcart: Costs 95, 40, 65, 3
 			Name:                "Oxcart",
 			FoodCost:            3,
-			ResourceCosts:       models.Costs{models.Wood: 95, models.Stone: 40, models.Iron: 65},
+			ResourceCosts:       models.Costs{Wood: 95, Stone: 40, Iron: 65},
 			SpeedMinutesField:   16.666667, // 16 min 40 sec
 			TransportCapacity:   2500,
 			UnitType:            "Transport",

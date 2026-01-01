@@ -520,22 +520,19 @@ func TestGameRulesValidation(t *testing.T) {
 
 				// Rule 3: Must have enough resources
 				costs := levelData.Costs
-				for rt, cost := range costs {
-					if rt == models.Food {
-						continue
-					}
+				checkResource := func(rt models.ResourceType, cost int) {
 					if cost > 0 && simResources[rt] < float64(cost)-0.01 {
 						t.Errorf("Building %d (%s %d->%d): needs %d %s but only have %.2f",
 							ev.buildIdx, action.BuildingType, action.FromLevel, action.ToLevel,
 							cost, rt, simResources[rt])
 					}
 				}
+				checkResource(models.Wood, costs.Wood)
+				checkResource(models.Stone, costs.Stone)
+				checkResource(models.Iron, costs.Iron)
 
 				// Rule 4: Storage capacity check
-				for rt, cost := range costs {
-					if rt == models.Food {
-						continue
-					}
+				checkStorage := func(rt models.ResourceType, cost int) {
 					cap := simStorageCaps[rt]
 					if cost > cap {
 						t.Errorf("Building %d (%s %d->%d): cost %d %s exceeds storage cap %d",
@@ -543,9 +540,12 @@ func TestGameRulesValidation(t *testing.T) {
 							cost, rt, cap)
 					}
 				}
+				checkStorage(models.Wood, costs.Wood)
+				checkStorage(models.Stone, costs.Stone)
+				checkStorage(models.Iron, costs.Iron)
 
 				// Rule 5: Food capacity
-				foodCost := costs[models.Food]
+				foodCost := costs.Food
 				if simFoodUsed+foodCost > simFoodCapacity {
 					t.Errorf("Building %d (%s %d->%d): needs %d food workers, but %d/%d already used",
 						ev.buildIdx, action.BuildingType, action.FromLevel, action.ToLevel,
@@ -561,13 +561,14 @@ func TestGameRulesValidation(t *testing.T) {
 				}
 
 				// Deduct resources at start
-				for rt, cost := range costs {
-					if rt == models.Food {
-						continue
-					}
-					if cost > 0 {
-						simResources[rt] -= float64(cost)
-					}
+				if costs.Wood > 0 {
+					simResources[models.Wood] -= float64(costs.Wood)
+				}
+				if costs.Stone > 0 {
+					simResources[models.Stone] -= float64(costs.Stone)
+				}
+				if costs.Iron > 0 {
+					simResources[models.Iron] -= float64(costs.Iron)
 				}
 				simFoodUsed += foodCost
 
@@ -628,24 +629,26 @@ func TestGameRulesValidation(t *testing.T) {
 
 				// Rule: Must have enough resources
 				if tech != nil {
-					for rt, cost := range tech.Costs {
-						if rt == models.Food {
-							continue
-						}
+					costs := tech.Costs
+					checkRes := func(rt models.ResourceType, cost int) {
 						if cost > 0 && simResources[rt] < float64(cost)-0.01 {
 							t.Errorf("Research %d (%s): needs %d %s but only have %.2f",
 								ev.resIdx, action.TechnologyName, cost, rt, simResources[rt])
 						}
 					}
+					checkRes(models.Wood, costs.Wood)
+					checkRes(models.Stone, costs.Stone)
+					checkRes(models.Iron, costs.Iron)
 
 					// Deduct resources
-					for rt, cost := range tech.Costs {
-						if rt == models.Food {
-							continue
-						}
-						if cost > 0 {
-							simResources[rt] -= float64(cost)
-						}
+					if costs.Wood > 0 {
+						simResources[models.Wood] -= float64(costs.Wood)
+					}
+					if costs.Stone > 0 {
+						simResources[models.Stone] -= float64(costs.Stone)
+					}
+					if costs.Iron > 0 {
+						simResources[models.Iron] -= float64(costs.Iron)
 					}
 				}
 
@@ -662,14 +665,80 @@ func TestGameRulesValidation(t *testing.T) {
 		}
 	}
 
-	// Final validation
-	for rt, amount := range simResources {
-		if amount < -0.01 {
-			t.Errorf("Final resources for %s is negative: %.2f", rt, amount)
-		}
+	// Final validation - check resources aren't negative
+	if simResources[models.Wood] < -0.01 {
+		t.Errorf("Final wood is negative: %.2f", simResources[models.Wood])
+	}
+	if simResources[models.Stone] < -0.01 {
+		t.Errorf("Final stone is negative: %.2f", simResources[models.Stone])
+	}
+	if simResources[models.Iron] < -0.01 {
+		t.Errorf("Final iron is negative: %.2f", simResources[models.Iron])
 	}
 
 	t.Logf("Game rules validation completed!")
 	t.Logf("Final state: %d buildings upgraded, %d techs researched",
 		len(solution.BuildingActions), len(solution.ResearchActions))
+}
+
+func TestCompareWithV2(t *testing.T) {
+buildings, err := loader.LoadBuildings(dataDir)
+if err != nil {
+t.Fatalf("Failed to load buildings: %v", err)
+}
+
+technologies, err := loader.LoadTechnologies(dataDir)
+if err != nil {
+t.Fatalf("Failed to load technologies: %v", err)
+}
+
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack: 15,
+models.Quarry:     15,
+models.OreMine:    15,
+}
+
+initialState := models.NewGameState()
+initialState.Resources[models.Wood] = 120
+initialState.Resources[models.Stone] = 120
+initialState.Resources[models.Iron] = 120
+initialState.Resources[models.Food] = 40
+for _, bt := range models.AllBuildingTypes() {
+initialState.BuildingLevels[bt] = 1
+}
+
+// V3 ROI-based
+solver := v3.NewSolver(buildings, technologies, targetLevels)
+solution := solver.Solve(initialState)
+
+t.Logf("V3 ROI-based: %.2f days, %d actions", float64(solution.TotalTimeSeconds)/86400.0, len(solution.BuildingActions))
+
+// Print first 20 actions
+t.Log("V3 Build Order (first 20):")
+for i := 0; i < 20 && i < len(solution.BuildingActions); i++ {
+a := solution.BuildingActions[i]
+t.Logf("  %2d: %s %d->%d", i+1, a.BuildingType, a.FromLevel, a.ToLevel)
+}
+}
+
+func TestV2BuildOrder(t *testing.T) {
+// Import V2 solver
+// This is just to document what V2 does with W+4/Q+4 strategy
+// Based on V2 logic: LJ leads OM by 4, Q leads OM by 4
+// So order should be: LJ, LJ, LJ, LJ, Q, Q, Q, Q, OM, LJ, Q, OM, ...
+
+t.Log("V2 W+4/Q+4 expected pattern:")
+t.Log("  Build LJ until LJ = OM + 4")
+t.Log("  Build Q until Q = OM + 4")
+t.Log("  Build OM")
+t.Log("  Repeat...")
+t.Log("")
+t.Log("Expected first 20 with W+4/Q+4 from level 1:")
+t.Log("  1-4: LJ 1->2, 2->3, 3->4, 4->5 (get 4 levels ahead)")
+t.Log("  5-8: Q 1->2, 2->3, 3->4, 4->5 (get 4 levels ahead)")
+t.Log("  9: OM 1->2")
+t.Log("  10: LJ 5->6 (maintain lead)")
+t.Log("  11: Q 5->6")
+t.Log("  12: OM 2->3")
+t.Log("  ...")
 }

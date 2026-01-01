@@ -9,10 +9,10 @@ import (
 
 func TestCostsToProtoResources(t *testing.T) {
 	costs := models.Costs{
-		models.Wood:  100,
-		models.Stone: 200,
-		models.Iron:  50,
-		models.Food:  10,
+		Wood:  100,
+		Stone: 200,
+		Iron:  50,
+		Food:  10,
 	}
 
 	resources := CostsToProtoResources(costs)
@@ -161,8 +161,8 @@ func TestBuildingActionToProto(t *testing.T) {
 		StartTime:    1000,
 		EndTime:      2000,
 		Costs: models.Costs{
-			models.Wood:  100,
-			models.Stone: 50,
+			Wood:  100,
+			Stone: 50,
 		},
 		FoodUsed:     100,
 		FoodCapacity: 500,
@@ -202,8 +202,8 @@ func TestResearchActionToProto(t *testing.T) {
 		StartTime:      500,
 		EndTime:        1500,
 		Costs: models.Costs{
-			models.Wood: 200,
-			models.Iron: 100,
+			Wood: 200,
+			Iron: 100,
 		},
 	}
 
