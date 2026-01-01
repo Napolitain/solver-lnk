@@ -118,7 +118,7 @@ func LoadMissions() []*models.Mission {
 				{Type: models.Swordsman, Count: 30},
 			},
 			ResourceCosts: models.Costs{
-				models.Iron: 100,
+				Iron: 100,
 			},
 			Rewards: []models.ResourceReward{
 				{Type: models.Wood, Min: 100, Max: 200},
@@ -136,7 +136,7 @@ func LoadMissions() []*models.Mission {
 				{Type: models.Swordsman, Count: 40},
 			},
 			ResourceCosts: models.Costs{
-				models.Wood: 200,
+				Wood: 200,
 			},
 			Rewards: []models.ResourceReward{
 				{Type: models.Stone, Min: 300, Max: 500},
@@ -153,9 +153,9 @@ func LoadMissions() []*models.Mission {
 				{Type: models.Archer, Count: 50},
 			},
 			ResourceCosts: models.Costs{
-				models.Wood:  400,
-				models.Stone: 400,
-				models.Iron:  400,
+				Wood:  400,
+				Stone: 400,
+				Iron:  400,
 			},
 			Rewards: []models.ResourceReward{
 				{Type: models.Wood, Min: 400, Max: 800},
@@ -176,9 +176,9 @@ func LoadMissions() []*models.Mission {
 				{Type: models.Horseman, Count: 30},
 			},
 			ResourceCosts: models.Costs{
-				models.Wood:  700,
-				models.Stone: 700,
-				models.Iron:  700,
+				Wood:  700,
+				Stone: 700,
+				Iron:  700,
 			},
 			Rewards: []models.ResourceReward{
 				{Type: models.Wood, Min: 750, Max: 1500},
@@ -215,9 +215,9 @@ func LoadMissions() []*models.Mission {
 				{Type: models.Horseman, Count: 20},
 			},
 			ResourceCosts: models.Costs{
-				models.Wood:  300,
-				models.Stone: 300,
-				models.Food:  200,
+				Wood:  300,
+				Stone: 300,
+				Food:  200,
 			},
 			Rewards: []models.ResourceReward{
 				{Type: models.Iron, Min: 1000, Max: 2000},

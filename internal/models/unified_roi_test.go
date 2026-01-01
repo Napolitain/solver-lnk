@@ -226,7 +226,7 @@ func TestUnifiedROI_MissionWithSetupCost(t *testing.T) {
 	archerTrainTime := 15 * 60 // 15 min per archer
 	archersNeeded := 15
 
-	totalSetupCost := float64(tavernCosts[Wood] + tavernCosts[Stone] + tavernCosts[Iron])
+	totalSetupCost := float64(tavernCosts.Wood + tavernCosts.Stone + tavernCosts.Iron)
 	totalSetupCost += float64(archerCost * archersNeeded)
 	totalSetupTime := tavernBuildTime + archerTrainTime*archersNeeded
 

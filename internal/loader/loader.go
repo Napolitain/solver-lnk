@@ -58,9 +58,20 @@ func LoadBuildings(dataDir string) (map[models.BuildingType]*models.Building, er
 
 		for levelStr, levelData := range raw.Levels {
 			level, _ := strconv.Atoi(levelStr)
-			costs := make(models.Costs)
+			
+			// Build Costs struct from map
+			var costs models.Costs
 			for res, amount := range levelData.Costs {
-				costs[models.ResourceType(res)] = amount
+				switch models.ResourceType(res) {
+				case models.Wood:
+					costs.Wood = amount
+				case models.Stone:
+					costs.Stone = amount
+				case models.Iron:
+					costs.Iron = amount
+				case models.Food:
+					costs.Food = amount
+				}
 			}
 
 			bl := &models.BuildingLevel{
@@ -187,7 +198,6 @@ func parseTechFile(filePath, internalName string) (*models.Technology, error) {
 	tech := &models.Technology{
 		InternalName:         internalName,
 		RequiredLibraryLevel: 1,
-		Costs:                make(models.Costs),
 	}
 
 	scanner := bufio.NewScanner(file)
@@ -232,18 +242,16 @@ func parseTechFile(filePath, internalName string) (*models.Technology, error) {
 
 	// Assign costs based on position (wood, stone, iron, food)
 	if len(costLines) >= 1 {
-		tech.Costs[models.Wood] = costLines[0]
+		tech.Costs.Wood = costLines[0]
 	}
 	if len(costLines) >= 2 {
-		tech.Costs[models.Stone] = costLines[1]
+		tech.Costs.Stone = costLines[1]
 	}
 	if len(costLines) >= 3 {
-		tech.Costs[models.Iron] = costLines[2]
+		tech.Costs.Iron = costLines[2]
 	}
 	if len(costLines) >= 4 {
-		tech.Costs[models.Food] = costLines[3]
-	} else {
-		tech.Costs[models.Food] = 0
+		tech.Costs.Food = costLines[3]
 	}
 
 	return tech, nil

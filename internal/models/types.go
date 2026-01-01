@@ -43,8 +43,28 @@ func AllBuildingTypes() []BuildingType {
 	}
 }
 
-// Costs represents resource costs for an upgrade
-type Costs map[ResourceType]int
+// Costs represents resource costs for an upgrade (no maps)
+type Costs struct {
+	Wood  int
+	Stone int
+	Iron  int
+	Food  int
+}
+
+// Get returns the cost for a specific resource type
+func (c Costs) Get(rt ResourceType) int {
+	switch rt {
+	case Wood:
+		return c.Wood
+	case Stone:
+		return c.Stone
+	case Iron:
+		return c.Iron
+	case Food:
+		return c.Food
+	}
+	return 0
+}
 
 // BuildingLevel represents data for a specific building level
 type BuildingLevel struct {

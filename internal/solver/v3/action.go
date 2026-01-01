@@ -161,17 +161,21 @@ func (a *BuildingAction) calculateScarcityMultiplier(state *State) float64 {
 }
 
 func (a *BuildingAction) Execute(state *State) {
+	costs := a.LevelData.Costs
+	
 	// Deduct costs
-	for rt, cost := range a.LevelData.Costs {
-		if cost > 0 {
-			current := state.GetResource(rt)
-			state.SetResource(rt, current-float64(cost))
-		}
+	if costs.Wood > 0 {
+		state.SetResource(models.Wood, state.GetResource(models.Wood)-float64(costs.Wood))
+	}
+	if costs.Stone > 0 {
+		state.SetResource(models.Stone, state.GetResource(models.Stone)-float64(costs.Stone))
+	}
+	if costs.Iron > 0 {
+		state.SetResource(models.Iron, state.GetResource(models.Iron)-float64(costs.Iron))
 	}
 
 	// Deduct food (workers)
-	foodCost := a.LevelData.Costs[models.Food]
-	state.FoodUsed += foodCost
+	state.FoodUsed += costs.Food
 
 	// Update building level
 	state.SetBuildingLevel(a.BuildingType, a.ToLevel)
@@ -236,17 +240,21 @@ func (a *ResearchAction) ROI(state *State) float64 {
 }
 
 func (a *ResearchAction) Execute(state *State) {
+	costs := a.Technology.Costs
+	
 	// Deduct costs
-	for rt, cost := range a.Technology.Costs {
-		if cost > 0 {
-			current := state.GetResource(rt)
-			state.SetResource(rt, current-float64(cost))
-		}
+	if costs.Wood > 0 {
+		state.SetResource(models.Wood, state.GetResource(models.Wood)-float64(costs.Wood))
+	}
+	if costs.Stone > 0 {
+		state.SetResource(models.Stone, state.GetResource(models.Stone)-float64(costs.Stone))
+	}
+	if costs.Iron > 0 {
+		state.SetResource(models.Iron, state.GetResource(models.Iron)-float64(costs.Iron))
 	}
 
 	// Deduct food if any
-	foodCost := a.Technology.Costs[models.Food]
-	state.FoodUsed += foodCost
+	state.FoodUsed += costs.Food
 
 	// Mark as researched
 	state.ResearchedTechs[a.Technology.Name] = true

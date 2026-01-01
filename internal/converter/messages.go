@@ -8,10 +8,28 @@ import (
 // CostsToProtoResources converts model Costs to proto Resources
 func CostsToProtoResources(costs models.Costs) []*pb.Resource {
 	var resources []*pb.Resource
-	for rt, amount := range costs {
+	if costs.Wood > 0 {
 		resources = append(resources, &pb.Resource{
-			Type:   ModelToProtoResourceType(rt),
-			Amount: float64(amount),
+			Type:   pb.ResourceType_WOOD,
+			Amount: float64(costs.Wood),
+		})
+	}
+	if costs.Stone > 0 {
+		resources = append(resources, &pb.Resource{
+			Type:   pb.ResourceType_STONE,
+			Amount: float64(costs.Stone),
+		})
+	}
+	if costs.Iron > 0 {
+		resources = append(resources, &pb.Resource{
+			Type:   pb.ResourceType_IRON,
+			Amount: float64(costs.Iron),
+		})
+	}
+	if costs.Food > 0 {
+		resources = append(resources, &pb.Resource{
+			Type:   pb.ResourceType_FOOD,
+			Amount: float64(costs.Food),
 		})
 	}
 	return resources

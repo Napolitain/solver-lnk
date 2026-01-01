@@ -116,10 +116,7 @@ func TestMission_NetRewardPerHour_Positive(t *testing.T) {
 func TestMission_NetRewardCalculation(t *testing.T) {
 	for _, m := range sampleMissions() {
 		totalReward := m.AverageTotalReward()
-		totalCost := 0.0
-		for _, cost := range m.ResourceCosts {
-			totalCost += float64(cost)
-		}
+		totalCost := float64(m.ResourceCosts.Wood + m.ResourceCosts.Stone + m.ResourceCosts.Iron + m.ResourceCosts.Food)
 		expected := totalReward - totalCost
 		got := m.NetAverageReward()
 
@@ -333,7 +330,7 @@ func TestMission_SpecificResourceROI(t *testing.T) {
 	// Average wood reward: 1125, cost: 700, net: 425
 	if woodROI <= 0 {
 		t.Logf("Trading post wood ROI: %.2f (reward: %.2f, cost: %d)",
-			woodROI, tradingPost.AverageRewardByType(Wood), tradingPost.ResourceCosts[Wood])
+			woodROI, tradingPost.AverageRewardByType(Wood), tradingPost.ResourceCosts.Wood)
 	}
 }
 

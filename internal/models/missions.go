@@ -74,9 +74,10 @@ func (m *Mission) AverageTotalReward() float64 {
 // NetAverageReward returns average reward minus resource costs
 func (m *Mission) NetAverageReward() float64 {
 	reward := m.AverageTotalReward()
-	for _, cost := range m.ResourceCosts {
-		reward -= float64(cost)
-	}
+	reward -= float64(m.ResourceCosts.Wood)
+	reward -= float64(m.ResourceCosts.Stone)
+	reward -= float64(m.ResourceCosts.Iron)
+	reward -= float64(m.ResourceCosts.Food)
 	return reward
 }
 
@@ -112,9 +113,7 @@ func (m *Mission) AverageRewardByType(rt ResourceType) float64 {
 // NetRewardByType returns net reward (reward - cost) for a specific resource type
 func (m *Mission) NetRewardByType(rt ResourceType) float64 {
 	reward := m.AverageRewardByType(rt)
-	if cost, ok := m.ResourceCosts[rt]; ok {
-		reward -= float64(cost)
-	}
+	reward -= float64(m.ResourceCosts.Get(rt))
 	return reward
 }
 

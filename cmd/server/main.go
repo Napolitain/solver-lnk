@@ -13,7 +13,7 @@ import (
 	"github.com/napolitain/solver-lnk/internal/converter"
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
-	"github.com/napolitain/solver-lnk/internal/solver/castle"
+	v3 "github.com/napolitain/solver-lnk/internal/solver/v3"
 	"github.com/napolitain/solver-lnk/internal/solver/units"
 	pb "github.com/napolitain/solver-lnk/proto"
 )
@@ -58,12 +58,12 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 	}
 
 	// Run solver
-	solution, bestStrategy, _ := castle.SolveAllStrategies(s.buildings, s.technologies, initialState, targetLevels)
+	solution, bestStrategy, _ := v3.SolveAllStrategies(s.buildings, s.technologies, initialState, targetLevels)
 
 	// Convert solution to proto
 	response := &pb.SolveResponse{
 		TotalTimeSeconds: int32(solution.TotalTimeSeconds),
-		Strategy:         bestStrategy.String(),
+		Strategy:         bestStrategy,
 	}
 
 	// Add building actions (legacy)
@@ -164,9 +164,7 @@ func (s *server) generateUnitsRecommendation(state *models.GameState) *pb.UnitsR
 		if building, ok := s.buildings[bt]; ok {
 			for l := 1; l <= level; l++ {
 				if levelData := building.GetLevelData(l); levelData != nil {
-					if cost, ok := levelData.Costs[models.Food]; ok {
-						foodUsedByBuildings += cost
-					}
+					foodUsedByBuildings += levelData.Costs.Food
 				}
 			}
 		}

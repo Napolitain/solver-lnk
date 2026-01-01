@@ -105,7 +105,7 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 		}
 
 		// Check food
-		foodCost := action.Costs()[models.Food]
+		foodCost := action.Costs().Food
 		if state.FoodUsed+foodCost > state.FoodCapacity {
 			// Need Farm - this should have been caught by prereq check
 			continue
@@ -207,7 +207,7 @@ func (s *Solver) executeResearch(state *State, ra *ResearchAction, researchActio
 	}
 
 	// Check food
-	foodCost := ra.Costs()[models.Food]
+	foodCost := ra.Costs().Food
 	if state.FoodUsed+foodCost > state.FoodCapacity {
 		return nil // Need more food capacity
 	}
@@ -283,7 +283,7 @@ func (s *Solver) researchRemainingTechs(state *State, researchActions *[]models.
 		}
 
 		// Check food
-		foodCost := ra.Costs()[models.Food]
+		foodCost := ra.Costs().Food
 		if state.FoodUsed+foodCost > state.FoodCapacity {
 			continue
 		}
@@ -401,7 +401,7 @@ func (s *Solver) checkPrerequisites(state *State, action *BuildingAction) *Build
 	costs := action.Costs()
 
 	// Check food capacity
-	foodCost := costs[models.Food]
+	foodCost := costs.Food
 	if state.FoodUsed+foodCost > state.FoodCapacity {
 		farmAction := s.createFarmUpgrade(state, state.FoodUsed+foodCost)
 		if farmAction != nil {
@@ -409,18 +409,23 @@ func (s *Solver) checkPrerequisites(state *State, action *BuildingAction) *Build
 		}
 	}
 
-	// Check storage capacity
-	for _, rt := range []models.ResourceType{models.Wood, models.Stone, models.Iron} {
-		cost := costs[rt]
-		if cost == 0 {
-			continue
+	// Check storage capacity for each resource
+	if costs.Wood > state.GetStorageCap(models.Wood) {
+		storageAction := s.createStorageUpgrade(state, models.Wood, costs.Wood)
+		if storageAction != nil {
+			return storageAction.(*BuildingAction)
 		}
-		cap := state.GetStorageCap(rt)
-		if cost > cap {
-			storageAction := s.createStorageUpgrade(state, rt, cost)
-			if storageAction != nil {
-				return storageAction.(*BuildingAction)
-			}
+	}
+	if costs.Stone > state.GetStorageCap(models.Stone) {
+		storageAction := s.createStorageUpgrade(state, models.Stone, costs.Stone)
+		if storageAction != nil {
+			return storageAction.(*BuildingAction)
+		}
+	}
+	if costs.Iron > state.GetStorageCap(models.Iron) {
+		storageAction := s.createStorageUpgrade(state, models.Iron, costs.Iron)
+		if storageAction != nil {
+			return storageAction.(*BuildingAction)
 		}
 	}
 
@@ -740,18 +745,16 @@ func (s *Solver) selectBestAffordable(state *State, actions []Action) Action {
 
 // canAfford returns true if the state has enough resources for the costs
 func (s *Solver) canAfford(state *State, costs models.Costs) bool {
-	for rt, cost := range costs {
-		if cost == 0 {
-			continue
-		}
-		if rt == models.Food {
-			// Food is checked separately (capacity vs used)
-			continue
-		}
-		if state.GetResource(rt) < float64(cost) {
-			return false
-		}
+	if costs.Wood > 0 && state.GetResource(models.Wood) < float64(costs.Wood) {
+		return false
 	}
+	if costs.Stone > 0 && state.GetResource(models.Stone) < float64(costs.Stone) {
+		return false
+	}
+	if costs.Iron > 0 && state.GetResource(models.Iron) < float64(costs.Iron) {
+		return false
+	}
+	// Food is checked separately (capacity vs used)
 	return true
 }
 
@@ -794,27 +797,41 @@ func (s *Solver) waitTimeForAction(state *State, action Action) int {
 	costs := action.Costs()
 	maxWait := 0
 
-	for _, rt := range []models.ResourceType{models.Wood, models.Stone, models.Iron} {
-		cost := costs[rt]
+	// Check each resource type
+	checkResource := func(rt models.ResourceType, cost int) {
 		if cost == 0 {
-			continue
+			return
 		}
 
 		available := state.GetResource(rt)
 		if available >= float64(cost) {
-			continue
+			return
 		}
 
 		shortfall := float64(cost) - available
 		rate := state.GetProductionRate(rt) * state.ProductionBonus
 		if rate <= 0 {
-			return -1 // Cannot produce this resource
+			maxWait = -1 // Cannot produce this resource
+			return
 		}
 
 		secondsNeeded := int(shortfall/rate*3600) + 1
 		if secondsNeeded > maxWait {
 			maxWait = secondsNeeded
 		}
+	}
+
+	checkResource(models.Wood, costs.Wood)
+	if maxWait < 0 {
+		return -1
+	}
+	checkResource(models.Stone, costs.Stone)
+	if maxWait < 0 {
+		return -1
+	}
+	checkResource(models.Iron, costs.Iron)
+	if maxWait < 0 {
+		return -1
 	}
 
 	return maxWait
