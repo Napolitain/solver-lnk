@@ -12,7 +12,7 @@ import (
 
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
-	"github.com/napolitain/solver-lnk/internal/solver/castle"
+	v3 "github.com/napolitain/solver-lnk/internal/solver/v3"
 	"github.com/napolitain/solver-lnk/internal/solver/units"
 )
 
@@ -130,7 +130,7 @@ func runSolver(cmd *cobra.Command, args []string) {
 		infoColor.Println("🔄 Solving with multiple strategies...")
 	}
 
-	solution, bestStrategy, allResults := castle.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
+	solution, bestStrategy, allResults := v3.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
 
 	// If --next flag is set, just show the first action and exit
 	if nextOnly {
@@ -145,10 +145,10 @@ func runSolver(cmd *cobra.Command, args []string) {
 			hours := float64(r.Solution.TotalTimeSeconds) / 3600
 			days := hours / 24
 			marker := "  "
-			if r.Strategy == bestStrategy {
+			if r.Strategy.String() == bestStrategy {
 				marker = "✓ "
 			}
-			fmt.Printf("   %s%-15s: %.1f days (%.1f hours)\n", marker, r.Strategy, days, hours)
+			fmt.Printf("   %s%-15s: %.1f days (%.1f hours)\n", marker, r.Strategy.String(), days, hours)
 		}
 	}
 
