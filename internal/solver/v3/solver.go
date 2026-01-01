@@ -37,12 +37,21 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 	// Track pending production updates (building type -> new level)
 	// These get applied when the building completes
 	var pendingBuildingUpdate *BuildingAction
+	
+	// Track pending research for completion handling
+	var pendingResearch *ResearchAction
 
 	maxIterations := 100000 // Safety limit
 	iterations := 0
 
 	for !s.allTargetsReached(state) && iterations < maxIterations {
 		iterations++
+
+		// 0. Check if pending research has completed
+		if pendingResearch != nil && state.Now >= state.ResearchQueueFreeAt {
+			s.completeResearch(state, pendingResearch)
+			pendingResearch = nil
+		}
 
 		// 1. Wait for building queue if busy - and apply pending production update
 		if state.Now < state.BuildingQueueFreeAt {
@@ -52,6 +61,16 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 				s.updateAfterBuild(state, pendingBuildingUpdate)
 				pendingBuildingUpdate = nil
 			}
+			// Also check if research completed during this time
+			if pendingResearch != nil && state.Now >= state.ResearchQueueFreeAt {
+				s.completeResearch(state, pendingResearch)
+				pendingResearch = nil
+			}
+		}
+
+		// 1b. Try to start production tech research in parallel if Library is ready
+		if pendingResearch == nil {
+			pendingResearch = s.tryStartProductionTechResearch(state, &researchActions)
 		}
 
 		// 2. Get next building action to execute
@@ -82,6 +101,8 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 			if state.ResearchQueueFreeAt > state.Now {
 				s.advanceTime(state, state.ResearchQueueFreeAt-state.Now)
 			}
+			// Now complete the research and apply effects
+			s.completeResearch(state, researchAction)
 			// Now the tech should be researched, continue with the building
 		}
 
@@ -155,6 +176,64 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 		TotalTimeSeconds: finalTime,
 		FinalState:       state.ToGameState(),
 	}
+}
+
+// tryStartProductionTechResearch tries to start production tech research if Library is ready
+// and research queue is free. This runs research in parallel with building.
+// Returns the started research action if one was started, nil otherwise.
+func (s *Solver) tryStartProductionTechResearch(state *State, researchActions *[]models.ResearchAction) *ResearchAction {
+	// Check if research queue is free
+	if state.Now < state.ResearchQueueFreeAt {
+		return nil
+	}
+
+	libraryLevel := state.GetBuildingLevel(models.Library)
+
+	// Try production techs in order of Library requirement
+	for _, techName := range []string{"Beer tester", "Wheelbarrow"} {
+		if state.ResearchedTechs[techName] {
+			continue
+		}
+
+		tech := s.Technologies[techName]
+		if tech == nil {
+			continue
+		}
+
+		// Check Library level
+		if libraryLevel < tech.RequiredLibraryLevel {
+			continue
+		}
+
+		// Check if we can afford it
+		ra := &ResearchAction{Technology: tech}
+		if !s.canAfford(state, ra.Costs()) {
+			continue
+		}
+
+		// Check food
+		if state.FoodUsed+ra.Costs().Food > state.FoodCapacity {
+			continue
+		}
+
+		// Start the research
+		startTime := state.Now
+		ra.Execute(state)
+		endTime := startTime + ra.Duration()
+
+		*researchActions = append(*researchActions, models.ResearchAction{
+			TechnologyName: tech.Name,
+			StartTime:      startTime,
+			EndTime:        endTime,
+			Costs:          ra.Costs(),
+			FoodUsed:       state.FoodUsed,
+			FoodCapacity:   state.FoodCapacity,
+		})
+
+		// Only start one research at a time
+		return ra
+	}
+	return nil
 }
 
 // checkResearchPrerequisite checks if a building upgrade requires research
@@ -292,6 +371,10 @@ func (s *Solver) researchRemainingTechs(state *State, researchActions *[]models.
 		startTime := state.Now
 		ra.Execute(state)
 		endTime := startTime + ra.Duration()
+		
+		// For final phase, mark research as completed immediately
+		// (no more building decisions depend on this)
+		state.ResearchedTechs[tech.Name] = true
 
 		*researchActions = append(*researchActions, models.ResearchAction{
 			TechnologyName: tech.Name,
@@ -381,6 +464,38 @@ func (s *Solver) getNextAction(state *State) *BuildingAction {
 		return nil
 	}
 
+	// Check if any production tech has better ROI than the best building
+	bestBuildingROI := 0.0
+	for _, c := range candidates {
+		roi := c.ROI(state)
+		if roi > bestBuildingROI {
+			bestBuildingROI = roi
+		}
+	}
+
+	// Check production techs
+	prodTechAction := s.getBestProductionTechAction(state)
+	if prodTechAction != nil {
+		prodTechROI := prodTechAction.ROI(state)
+		if prodTechROI > bestBuildingROI {
+			// Production tech is better - return the Library upgrade if needed
+			if prodTechAction.LibraryUpgradesNeeded > 0 {
+				levelData := prodTechAction.LibraryBuilding.GetLevelData(prodTechAction.CurrentLibraryLevel + 1)
+				if levelData != nil {
+					return &BuildingAction{
+						BuildingType: models.Library,
+						FromLevel:    prodTechAction.CurrentLibraryLevel,
+						ToLevel:      prodTechAction.CurrentLibraryLevel + 1,
+						Building:     prodTechAction.LibraryBuilding,
+						LevelData:    levelData,
+					}
+				}
+			}
+			// Library is ready - schedule the research (handled elsewhere)
+			// For now, just continue with building - research will be scheduled in parallel
+		}
+	}
+
 	// Sort by ROI (descending), then by building type name for determinism
 	sort.Slice(candidates, func(i, j int) bool {
 		roiI := candidates[i].ROI(state)
@@ -394,6 +509,49 @@ func (s *Solver) getNextAction(state *State) *BuildingAction {
 
 	// Return highest ROI action
 	return candidates[0]
+}
+
+// getBestProductionTechAction returns the best production tech action if any
+func (s *Solver) getBestProductionTechAction(state *State) *ProductionTechAction {
+	libraryBuilding := s.Buildings[models.Library]
+	if libraryBuilding == nil {
+		return nil
+	}
+
+	currentLibraryLevel := state.GetBuildingLevel(models.Library)
+	var best *ProductionTechAction
+	bestROI := 0.0
+
+	for _, techName := range []string{"Beer tester", "Wheelbarrow"} {
+		if state.ResearchedTechs[techName] {
+			continue
+		}
+
+		tech := s.Technologies[techName]
+		if tech == nil {
+			continue
+		}
+
+		libraryUpgradesNeeded := 0
+		if currentLibraryLevel < tech.RequiredLibraryLevel {
+			libraryUpgradesNeeded = tech.RequiredLibraryLevel - currentLibraryLevel
+		}
+
+		action := &ProductionTechAction{
+			Technology:            tech,
+			LibraryUpgradesNeeded: libraryUpgradesNeeded,
+			LibraryBuilding:       libraryBuilding,
+			CurrentLibraryLevel:   currentLibraryLevel,
+		}
+
+		roi := action.ROI(state)
+		if roi > bestROI {
+			bestROI = roi
+			best = action
+		}
+	}
+
+	return best
 }
 
 // checkPrerequisites checks if action has prerequisites and returns a prereq action if needed
@@ -475,6 +633,17 @@ func (s *Solver) updateAfterBuild(state *State, ba *BuildingAction) {
 		case models.Farm:
 			state.FoodCapacity = *levelData.StorageCapacity
 		}
+	}
+}
+
+// completeResearch applies the effects of completing a research
+func (s *Solver) completeResearch(state *State, ra *ResearchAction) {
+	// Mark as researched
+	state.ResearchedTechs[ra.Technology.Name] = true
+	
+	// Apply production bonus for production techs
+	if ra.Technology.Name == "Beer tester" || ra.Technology.Name == "Wheelbarrow" {
+		state.ProductionBonus += 0.05
 	}
 }
 
