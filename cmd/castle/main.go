@@ -145,10 +145,10 @@ func runSolver(cmd *cobra.Command, args []string) {
 			hours := float64(r.Solution.TotalTimeSeconds) / 3600
 			days := hours / 24
 			marker := "  "
-			if r.Strategy.String() == bestStrategy {
+			if r.Strategy == bestStrategy {
 				marker = "✓ "
 			}
-			fmt.Printf("   %s%-15s: %.1f days (%.1f hours)\n", marker, r.Strategy.String(), days, hours)
+			fmt.Printf("   %s%-15s: %.1f days (%.1f hours)\n", marker, r.Strategy, days, hours)
 		}
 	}
 
