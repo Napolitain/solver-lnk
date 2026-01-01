@@ -221,18 +221,18 @@ func FuzzUnitResourceCosts(f *testing.F) {
 		var totalWood, totalIron int
 		for _, u := range AllUnits() {
 			count := solution.UnitCounts[u.Name]
-			totalWood += u.ResourceCosts["wood"] * count
-			totalIron += u.ResourceCosts["iron"] * count
+			totalWood += u.ResourceCosts.Wood * count
+			totalIron += u.ResourceCosts.Iron * count
 		}
 
 		// Invariant: Single unit should never cost more than storage
 		for _, u := range AllUnits() {
-			if u.ResourceCosts["wood"] > int(storageCap) {
+			if u.ResourceCosts.Wood > int(storageCap) {
 				// This would be a data issue, not solver issue
-				t.Logf("Warning: %s wood cost %d exceeds storage %d", u.Name, u.ResourceCosts["wood"], storageCap)
+				t.Logf("Warning: %s wood cost %d exceeds storage %d", u.Name, u.ResourceCosts.Wood, storageCap)
 			}
-			if u.ResourceCosts["iron"] > int(storageCap) {
-				t.Logf("Warning: %s iron cost %d exceeds storage %d", u.Name, u.ResourceCosts["iron"], storageCap)
+			if u.ResourceCosts.Iron > int(storageCap) {
+				t.Logf("Warning: %s iron cost %d exceeds storage %d", u.Name, u.ResourceCosts.Iron, storageCap)
 			}
 		}
 

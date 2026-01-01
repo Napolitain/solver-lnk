@@ -2,8 +2,6 @@ package units
 
 import (
 	"testing"
-
-	"github.com/napolitain/solver-lnk/internal/models"
 )
 
 func TestSolverThroughputConstraint(t *testing.T) {
@@ -351,7 +349,7 @@ func TestTrainingTimeCalculation(t *testing.T) {
 func TestUnitResourceCostsAreSet(t *testing.T) {
 	// All combat units should have resource costs
 	for _, u := range AllUnits() {
-		totalResourceCost := u.ResourceCosts[models.Wood] + u.ResourceCosts[models.Stone] + u.ResourceCosts[models.Iron]
+		totalResourceCost := u.ResourceCosts.Wood + u.ResourceCosts.Stone + u.ResourceCosts.Iron
 		if totalResourceCost == 0 {
 			t.Errorf("Unit %s has no resource costs", u.Name)
 		}
@@ -378,11 +376,11 @@ func TestUnitResourceCostsReasonable(t *testing.T) {
 		if !ok {
 			continue
 		}
-		if u.ResourceCosts[models.Wood] != expected.wood {
-			t.Errorf("Unit %s wood cost %d != expected %d", u.Name, u.ResourceCosts[models.Wood], expected.wood)
+		if u.ResourceCosts.Wood != expected.wood {
+			t.Errorf("Unit %s wood cost %d != expected %d", u.Name, u.ResourceCosts.Wood, expected.wood)
 		}
-		if u.ResourceCosts[models.Iron] != expected.iron {
-			t.Errorf("Unit %s iron cost %d != expected %d", u.Name, u.ResourceCosts[models.Iron], expected.iron)
+		if u.ResourceCosts.Iron != expected.iron {
+			t.Errorf("Unit %s iron cost %d != expected %d", u.Name, u.ResourceCosts.Iron, expected.iron)
 		}
 	}
 }
@@ -395,8 +393,8 @@ func TestTotalUnitResourceCosts(t *testing.T) {
 	var totalWood, totalIron int
 	for _, u := range AllUnits() {
 		count := solution.UnitCounts[u.Name]
-		totalWood += u.ResourceCosts[models.Wood] * count
-		totalIron += u.ResourceCosts[models.Iron] * count
+		totalWood += u.ResourceCosts.Wood * count
+		totalIron += u.ResourceCosts.Iron * count
 	}
 
 	t.Logf("Total army resource costs: Wood=%d, Iron=%d", totalWood, totalIron)
@@ -427,18 +425,18 @@ func TestUnitResourceCostsPerBatchRespectStorage(t *testing.T) {
 			continue
 		}
 
-		woodCost := u.ResourceCosts[models.Wood] * count
-		ironCost := u.ResourceCosts[models.Iron] * count
+		woodCost := u.ResourceCosts.Wood * count
+		ironCost := u.ResourceCosts.Iron * count
 
 		// Log total costs per unit type
 		t.Logf("%s x%d: Wood=%d, Iron=%d", u.Name, count, woodCost, ironCost)
 
 		// Single unit should never exceed storage
-		if u.ResourceCosts[models.Wood] > level20StorageCap {
-			t.Errorf("Single %s wood cost %d exceeds storage %d", u.Name, u.ResourceCosts[models.Wood], level20StorageCap)
+		if u.ResourceCosts.Wood > level20StorageCap {
+			t.Errorf("Single %s wood cost %d exceeds storage %d", u.Name, u.ResourceCosts.Wood, level20StorageCap)
 		}
-		if u.ResourceCosts[models.Iron] > level20StorageCap {
-			t.Errorf("Single %s iron cost %d exceeds storage %d", u.Name, u.ResourceCosts[models.Iron], level20StorageCap)
+		if u.ResourceCosts.Iron > level20StorageCap {
+			t.Errorf("Single %s iron cost %d exceeds storage %d", u.Name, u.ResourceCosts.Iron, level20StorageCap)
 		}
 	}
 }
@@ -448,22 +446,22 @@ func TestUnitBatchSizesByStorage(t *testing.T) {
 	const storageCap = 9999
 
 	for _, u := range AllUnits() {
-		if u.ResourceCosts[models.Wood] == 0 && u.ResourceCosts[models.Iron] == 0 {
+		if u.ResourceCosts.Wood == 0 && u.ResourceCosts.Iron == 0 {
 			continue // Skip units without resource costs
 		}
 
 		maxByWood := storageCap
-		if u.ResourceCosts[models.Wood] > 0 {
-			maxByWood = storageCap / u.ResourceCosts[models.Wood]
+		if u.ResourceCosts.Wood > 0 {
+			maxByWood = storageCap / u.ResourceCosts.Wood
 		}
 		maxByIron := storageCap
-		if u.ResourceCosts[models.Iron] > 0 {
-			maxByIron = storageCap / u.ResourceCosts[models.Iron]
+		if u.ResourceCosts.Iron > 0 {
+			maxByIron = storageCap / u.ResourceCosts.Iron
 		}
 
 		batchSize := min(maxByWood, maxByIron)
 		t.Logf("%s: max batch size with %d storage = %d units (wood: %d/unit, iron: %d/unit)",
-			u.Name, storageCap, batchSize, u.ResourceCosts[models.Wood], u.ResourceCosts[models.Iron])
+			u.Name, storageCap, batchSize, u.ResourceCosts.Wood, u.ResourceCosts.Iron)
 
 		// Should be able to train at least 100 units per batch
 		if batchSize < 100 {
@@ -496,8 +494,8 @@ func TestUnitTrainingTimeWithResourceWait(t *testing.T) {
 		totalTrainingSeconds += trainingSeconds
 
 		// Resource accumulation time (worst case: storage empty, need to wait)
-		totalWood := u.ResourceCosts[models.Wood] * count
-		totalIron := u.ResourceCosts[models.Iron] * count
+		totalWood := u.ResourceCosts.Wood * count
+		totalIron := u.ResourceCosts.Iron * count
 
 		woodWaitHours := float64(totalWood) / productionRate
 		ironWaitHours := float64(totalIron) / productionRate
@@ -589,14 +587,14 @@ func TestAllUnitDataMatchesFiles(t *testing.T) {
 		}
 
 		// Verify resource costs
-		if u.ResourceCosts[models.Wood] != expected.wood {
-			t.Errorf("%s: wood cost %d != expected %d", u.Name, u.ResourceCosts[models.Wood], expected.wood)
+		if u.ResourceCosts.Wood != expected.wood {
+			t.Errorf("%s: wood cost %d != expected %d", u.Name, u.ResourceCosts.Wood, expected.wood)
 		}
-		if u.ResourceCosts[models.Stone] != expected.stone {
-			t.Errorf("%s: stone cost %d != expected %d", u.Name, u.ResourceCosts[models.Stone], expected.stone)
+		if u.ResourceCosts.Stone != expected.stone {
+			t.Errorf("%s: stone cost %d != expected %d", u.Name, u.ResourceCosts.Stone, expected.stone)
 		}
-		if u.ResourceCosts[models.Iron] != expected.iron {
-			t.Errorf("%s: iron cost %d != expected %d", u.Name, u.ResourceCosts[models.Iron], expected.iron)
+		if u.ResourceCosts.Iron != expected.iron {
+			t.Errorf("%s: iron cost %d != expected %d", u.Name, u.ResourceCosts.Iron, expected.iron)
 		}
 
 		// Verify food cost
