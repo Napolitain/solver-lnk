@@ -1063,13 +1063,18 @@ func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
 		return nil
 	}
 
-	// Only train units for missions AFTER all building targets are reached
-	// This prevents training from competing with buildings for resources/food
-	if !s.allTargetsReached(state) {
-		return nil
+	// Check if we have food headroom for training
+	// Units cost 1-2 food each; only train if we have spare capacity
+	foodHeadroom := state.FoodCapacity - state.FoodUsed
+	if foodHeadroom < 10 {
+		return nil // Not enough food buffer for training
 	}
 
 	tavernLevel := state.GetBuildingLevel(models.Tavern)
+	arsenalLevel := state.GetBuildingLevel(models.Arsenal)
+	if arsenalLevel < 1 {
+		return nil // Can't train without arsenal
+	}
 
 	// Sort missions by ROI (best first)
 	sortedMissions := make([]*models.Mission, len(s.Missions))
@@ -1102,10 +1107,9 @@ func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
 					continue // Skip - need to research tech first
 				}
 
-				// Check arsenal level
-				arsenalLevel := state.GetBuildingLevel(models.Arsenal)
-				if arsenalLevel < 1 {
-					continue // Can't train without arsenal
+				// Check food cost for this unit
+				if state.FoodUsed+def.FoodCost > state.FoodCapacity {
+					continue // Would exceed food capacity
 				}
 
 				return &TrainUnitAction{
@@ -1121,10 +1125,8 @@ func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
 
 // pickBestMissionToStart selects the best mission to start
 func (s *Solver) pickBestMissionToStart(state *State) *models.Mission {
-	// Only start missions AFTER all building targets are reached
-	if !s.allTargetsReached(state) {
-		return nil
-	}
+	// Allow missions during building if we have units available
+	// Missions provide resources which help building progress
 
 	var best *models.Mission
 	var bestROI float64
@@ -1135,8 +1137,18 @@ func (s *Solver) pickBestMissionToStart(state *State) *models.Mission {
 			continue
 		}
 
-		// Check unit availability
-		if !state.Army.CanSatisfy(mission.UnitsRequired) {
+		// Check unit availability (subtract units on mission)
+		canRun := true
+		for _, req := range mission.UnitsRequired {
+			have := state.Army.Get(req.Type)
+			onMission := state.UnitsOnMission.Get(req.Type)
+			available := have - onMission
+			if available < req.Count {
+				canRun = false
+				break
+			}
+		}
+		if !canRun {
 			continue
 		}
 

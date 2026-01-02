@@ -566,3 +566,59 @@ t.Logf("Game rules validation completed!")
 t.Logf("Final state: %d buildings upgraded, %d techs researched",
 len(solution.BuildingActions), len(solution.ResearchActions))
 }
+
+func TestMissionsIntegration(t *testing.T) {
+buildings, err := loader.LoadBuildings(dataDir)
+if err != nil {
+t.Fatalf("Failed to load buildings: %v", err)
+}
+
+technologies, err := loader.LoadTechnologies(dataDir)
+if err != nil {
+t.Fatalf("Failed to load technologies: %v", err)
+}
+
+missions := loader.LoadMissions()
+if len(missions) == 0 {
+t.Fatal("Should have missions loaded")
+}
+
+// Test with small targets to verify missions work during building
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack: 5,
+models.Quarry:     5,
+models.OreMine:    5,
+models.Farm:       5,
+models.Arsenal:    5,
+models.Tavern:     3,
+}
+
+initialState := models.NewGameState()
+initialState.Resources[models.Wood] = 500
+initialState.Resources[models.Stone] = 500
+initialState.Resources[models.Iron] = 500
+initialState.Resources[models.Food] = 40
+
+for _, bt := range models.AllBuildingTypes() {
+initialState.BuildingLevels[bt] = 1
+}
+
+solver := v4.NewSolver(buildings, technologies, missions, targetLevels)
+solution := solver.Solve(initialState)
+
+if solution == nil {
+t.Fatal("Solution should not be nil")
+}
+
+// Verify all targets reached
+for bt, target := range targetLevels {
+if solution.FinalState.BuildingLevels[bt] < target {
+t.Errorf("%s: expected level %d, got %d", bt, target, solution.FinalState.BuildingLevels[bt])
+}
+}
+
+// With Tavern 3, we should be able to run some missions
+// The food headroom check should allow training during building
+t.Logf("Buildings: %d, Research: %d", len(solution.BuildingActions), len(solution.ResearchActions))
+t.Logf("Completion time: %.2f days", float64(solution.TotalTimeSeconds)/3600/24)
+}
