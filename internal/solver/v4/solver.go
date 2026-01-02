@@ -58,6 +58,23 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 		s.processEvent(state, event, events, &buildingActions, &researchActions)
 	}
 
+	// Process any remaining completion events (for buildings that were started but not yet recorded)
+	for !events.Empty() {
+		event := events.Pop()
+		
+		// Only process completion events, skip StateChanged
+		if event.Type == EventStateChanged {
+			continue
+		}
+
+		// Advance time
+		if event.Time > state.Now {
+			s.advanceTime(state, event.Time-state.Now)
+		}
+
+		s.processEvent(state, event, events, &buildingActions, &researchActions)
+	}
+
 	// Calculate final time
 	finalTime := state.Now
 	if state.BuildingQueueFreeAt > finalTime {
@@ -210,11 +227,7 @@ func (s *Solver) handleStateChanged(
 ) {
 	// Building queue
 	if state.Now >= state.BuildingQueueFreeAt && state.PendingBuilding == nil {
-		if action := s.pickBestBuildingAction(state); action != nil {
-			if s.canAfford(state, action.Costs()) && state.CanAffordFood(action.Costs().Food) {
-				s.executeBuilding(state, action, events)
-			}
-		}
+		s.tryStartBuilding(state, events)
 	}
 
 	// Research queue
@@ -249,6 +262,237 @@ func (s *Solver) handleStateChanged(
 
 	// Schedule wake-up when resources become available
 	s.scheduleResourceWakeup(state, events)
+}
+
+// tryStartBuilding attempts to start a building, handling prerequisites
+func (s *Solver) tryStartBuilding(state *State, events *EventQueue) {
+	// Get best building action by ROI (ignoring prerequisites for now)
+	action := s.pickBestBuildingActionIgnoringPrereqs(state)
+	if action == nil {
+		return
+	}
+
+	// Check prerequisites and get the actual action to execute
+	action = s.resolvePrerequisites(state, action)
+	if action == nil {
+		return
+	}
+
+	// Check if we can afford it
+	costs := action.Costs()
+	if !s.canAfford(state, costs) {
+		return
+	}
+
+	// Check food
+	if !state.CanAffordFood(costs.Food) {
+		return
+	}
+
+	// Execute the action
+	s.executeBuilding(state, action, events)
+}
+
+// pickBestBuildingActionIgnoringPrereqs selects the best building without checking prereqs
+func (s *Solver) pickBestBuildingActionIgnoringPrereqs(state *State) *BuildingAction {
+	var candidates []*BuildingAction
+
+	for bt, target := range s.TargetLevels {
+		current := state.GetBuildingLevel(bt)
+		if current >= target {
+			continue
+		}
+
+		building := s.Buildings[bt]
+		if building == nil {
+			continue
+		}
+
+		toLevel := current + 1
+		levelData := building.GetLevelData(toLevel)
+		if levelData == nil {
+			continue
+		}
+
+		candidates = append(candidates, &BuildingAction{
+			BuildingType: bt,
+			FromLevel:    current,
+			ToLevel:      toLevel,
+			Building:     building,
+			LevelData:    levelData,
+		})
+	}
+
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	// Sort by ROI
+	sort.Slice(candidates, func(i, j int) bool {
+		roiI := s.buildingROI(state, candidates[i])
+		roiJ := s.buildingROI(state, candidates[j])
+		if roiI != roiJ {
+			return roiI > roiJ
+		}
+		return candidates[i].BuildingType < candidates[j].BuildingType
+	})
+
+	return candidates[0]
+}
+
+// resolvePrerequisites checks if action needs prerequisites and returns the prereq action if so
+func (s *Solver) resolvePrerequisites(state *State, action *BuildingAction) *BuildingAction {
+	costs := action.Costs()
+
+	// Check food capacity first
+	if state.FoodUsed+costs.Food > state.FoodCapacity {
+		farmAction := s.createFarmUpgrade(state, state.FoodUsed+costs.Food)
+		if farmAction != nil {
+			return farmAction
+		}
+	}
+
+	// Check storage capacity for wood
+	if costs.Wood > state.GetStorageCap(models.Wood) {
+		storageAction := s.createStorageUpgrade(state, models.Wood, costs.Wood)
+		if storageAction != nil {
+			return storageAction
+		}
+	}
+
+	// Check storage capacity for stone
+	if costs.Stone > state.GetStorageCap(models.Stone) {
+		storageAction := s.createStorageUpgrade(state, models.Stone, costs.Stone)
+		if storageAction != nil {
+			return storageAction
+		}
+	}
+
+	// Check storage capacity for iron
+	if costs.Iron > state.GetStorageCap(models.Iron) {
+		storageAction := s.createStorageUpgrade(state, models.Iron, costs.Iron)
+		if storageAction != nil {
+			return storageAction
+		}
+	}
+
+	// Check technology prerequisites
+	building := s.Buildings[action.BuildingType]
+	if building != nil {
+		if techName, ok := building.TechnologyPrerequisites[action.ToLevel]; ok {
+			if !state.ResearchedTechs[techName] {
+				tech := s.Technologies[techName]
+				if tech != nil {
+					libraryLevel := state.GetBuildingLevel(models.Library)
+					if libraryLevel < tech.RequiredLibraryLevel {
+						return s.createLibraryUpgrade(state, tech.RequiredLibraryLevel)
+					}
+					// Tech needs to be researched - this is handled by research queue
+					// For now, skip this building until tech is researched
+					return nil
+				}
+			}
+		}
+	}
+
+	// No prerequisites needed, return original action
+	return action
+}
+
+// createFarmUpgrade creates a Farm upgrade action to reach required food capacity
+func (s *Solver) createFarmUpgrade(state *State, requiredFood int) *BuildingAction {
+	farmBuilding := s.Buildings[models.Farm]
+	if farmBuilding == nil {
+		return nil
+	}
+
+	currentLevel := state.GetBuildingLevel(models.Farm)
+
+	// Check tech prerequisites for next farm level
+	nextLevel := currentLevel + 1
+	if techName, ok := farmBuilding.TechnologyPrerequisites[nextLevel]; ok {
+		if !state.ResearchedTechs[techName] {
+			// Need to research tech first - can't upgrade farm yet
+			return nil
+		}
+	}
+
+	levelData := farmBuilding.GetLevelData(nextLevel)
+	if levelData == nil {
+		return nil
+	}
+
+	return &BuildingAction{
+		BuildingType: models.Farm,
+		FromLevel:    currentLevel,
+		ToLevel:      nextLevel,
+		Building:     farmBuilding,
+		LevelData:    levelData,
+	}
+}
+
+// createStorageUpgrade creates a storage upgrade action
+func (s *Solver) createStorageUpgrade(state *State, rt models.ResourceType, requiredCap int) *BuildingAction {
+	storageType := resourceToStorage(rt)
+	building := s.Buildings[storageType]
+	if building == nil {
+		return nil
+	}
+
+	currentLevel := state.GetBuildingLevel(storageType)
+	nextLevel := currentLevel + 1
+	levelData := building.GetLevelData(nextLevel)
+	if levelData == nil {
+		return nil
+	}
+
+	return &BuildingAction{
+		BuildingType: storageType,
+		FromLevel:    currentLevel,
+		ToLevel:      nextLevel,
+		Building:     building,
+		LevelData:    levelData,
+	}
+}
+
+// createLibraryUpgrade creates a Library upgrade action
+func (s *Solver) createLibraryUpgrade(state *State, requiredLevel int) *BuildingAction {
+	building := s.Buildings[models.Library]
+	if building == nil {
+		return nil
+	}
+
+	currentLevel := state.GetBuildingLevel(models.Library)
+	if currentLevel >= requiredLevel {
+		return nil
+	}
+
+	nextLevel := currentLevel + 1
+	levelData := building.GetLevelData(nextLevel)
+	if levelData == nil {
+		return nil
+	}
+
+	return &BuildingAction{
+		BuildingType: models.Library,
+		FromLevel:    currentLevel,
+		ToLevel:      nextLevel,
+		Building:     building,
+		LevelData:    levelData,
+	}
+}
+
+func resourceToStorage(rt models.ResourceType) models.BuildingType {
+	switch rt {
+	case models.Wood:
+		return models.WoodStore
+	case models.Stone:
+		return models.StoneStore
+	case models.Iron:
+		return models.OreStore
+	default:
+		return models.WoodStore
+	}
 }
 
 // executeBuilding starts a building upgrade
@@ -363,12 +607,16 @@ func (s *Solver) scheduleResourceWakeup(state *State, events *EventQueue) {
 
 	// Check building queue
 	if state.Now >= state.BuildingQueueFreeAt && state.PendingBuilding == nil {
-		if action := s.pickBestBuildingAction(state); action != nil {
-			waitTime := s.waitTimeForCosts(state, action.Costs())
-			if waitTime > 0 {
-				t := state.Now + waitTime
-				if wakeupTime < 0 || t < wakeupTime {
-					wakeupTime = t
+		if action := s.pickBestBuildingActionIgnoringPrereqs(state); action != nil {
+			// Resolve to actual action (may be prerequisite)
+			action = s.resolvePrerequisites(state, action)
+			if action != nil {
+				waitTime := s.waitTimeForCosts(state, action.Costs())
+				if waitTime > 0 {
+					t := state.Now + waitTime
+					if wakeupTime < 0 || t < wakeupTime {
+						wakeupTime = t
+					}
 				}
 			}
 		}
@@ -580,77 +828,7 @@ func buildingToResource(bt models.BuildingType) models.ResourceType {
 	}
 }
 
-// pickBestBuildingAction selects the best building to upgrade
-func (s *Solver) pickBestBuildingAction(state *State) *BuildingAction {
-	var candidates []*BuildingAction
 
-	for bt, target := range s.TargetLevels {
-		current := state.GetBuildingLevel(bt)
-		if current >= target {
-			continue
-		}
-
-		building := s.Buildings[bt]
-		if building == nil {
-			continue
-		}
-
-		toLevel := current + 1
-		levelData := building.GetLevelData(toLevel)
-		if levelData == nil {
-			continue
-		}
-
-		// Check prerequisites
-		if !s.checkBuildingPrerequisites(state, building, toLevel) {
-			continue
-		}
-
-		candidates = append(candidates, &BuildingAction{
-			BuildingType: bt,
-			FromLevel:    current,
-			ToLevel:      toLevel,
-			Building:     building,
-			LevelData:    levelData,
-		})
-	}
-
-	if len(candidates) == 0 {
-		return nil
-	}
-
-	// Sort by ROI
-	sort.Slice(candidates, func(i, j int) bool {
-		roiI := s.buildingROI(state, candidates[i])
-		roiJ := s.buildingROI(state, candidates[j])
-		if roiI != roiJ {
-			return roiI > roiJ
-		}
-		return candidates[i].BuildingType < candidates[j].BuildingType
-	})
-
-	return candidates[0]
-}
-
-func (s *Solver) checkBuildingPrerequisites(state *State, building *models.Building, level int) bool {
-	// Check technology prerequisites
-	if techName, ok := building.TechnologyPrerequisites[level]; ok {
-		if !state.ResearchedTechs[techName] {
-			return false
-		}
-	}
-
-	// Check building prerequisites
-	if prereqs, ok := building.Prerequisites[level]; ok {
-		for reqBuilding, reqLevel := range prereqs {
-			if state.GetBuildingLevel(reqBuilding) < reqLevel {
-				return false
-			}
-		}
-	}
-
-	return true
-}
 
 func (s *Solver) buildingROI(state *State, action *BuildingAction) float64 {
 	if action.LevelData.ProductionRate == nil {
