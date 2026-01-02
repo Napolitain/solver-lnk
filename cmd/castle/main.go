@@ -214,6 +214,7 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 		actionBuilding actionType = iota
 		actionResearch
 		actionUnit
+		actionMission
 	)
 
 	type action struct {
@@ -255,7 +256,21 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 		})
 	}
 
-	// Add unit training actions after all other actions complete
+	// Add training actions from solver (during building phase)
+	for _, a := range solution.TrainingActions {
+		allActions = append(allActions, action{
+			actionType:   actionUnit,
+			startTime:    a.StartTime,
+			endTime:      a.EndTime,
+			name:         string(a.UnitType),
+			count:        a.Count,
+			costs:        a.Costs,
+			foodUsed:     a.FoodUsed,
+			foodCapacity: a.FoodCapacity,
+		})
+	}
+
+	// Add unit training actions after all other actions complete (post-building units)
 	foodAvailable := finalFoodCapacity - finalFoodUsed
 	if foodAvailable > 0 && solution.FinalState != nil {
 		solver := units.NewSolverWithConfig(int32(foodAvailable), units.ResourceProductionPerHour, units.MarketDistanceFields)

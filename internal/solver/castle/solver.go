@@ -45,6 +45,8 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 
 	var buildingActions []models.BuildingUpgradeAction
 	var researchActions []models.ResearchAction
+	var trainingActions []models.TrainUnitAction
+	var missionActions []models.MissionAction
 
 	// Bootstrap: evaluate initial state
 	events.Push(Event{Time: 0, Type: EventStateChanged})
@@ -62,7 +64,7 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 			s.advanceTime(state, event.Time-state.Now)
 		}
 
-		s.processEvent(state, event, events, &buildingActions, &researchActions)
+		s.processEvent(state, event, events, &buildingActions, &researchActions, &trainingActions, &missionActions)
 	}
 
 	// Process any remaining completion events (for buildings that were started but not yet recorded)
@@ -79,7 +81,7 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 			s.advanceTime(state, event.Time-state.Now)
 		}
 
-		s.processEvent(state, event, events, &buildingActions, &researchActions)
+		s.processEvent(state, event, events, &buildingActions, &researchActions, &trainingActions, &missionActions)
 	}
 
 	// Research ALL remaining technologies after buildings are done
@@ -97,6 +99,8 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 	return &models.Solution{
 		BuildingActions:  buildingActions,
 		ResearchActions:  researchActions,
+		TrainingActions:  trainingActions,
+		MissionActions:   missionActions,
 		TotalTimeSeconds: finalTime,
 		FinalState:       state.ToGameState(),
 	}
@@ -112,6 +116,8 @@ func (s *Solver) SolveWithMissionTracking(initialState *models.GameState) (*mode
 
 	var buildingActions []models.BuildingUpgradeAction
 	var researchActions []models.ResearchAction
+	var trainingActions []models.TrainUnitAction
+	var missionActions []models.MissionAction
 
 	// Bootstrap: evaluate initial state
 	events.Push(Event{Time: 0, Type: EventStateChanged})
@@ -137,7 +143,7 @@ func (s *Solver) SolveWithMissionTracking(initialState *models.GameState) (*mode
 		}
 
 		// Process the event normally
-		s.processEvent(state, event, events, &buildingActions, &researchActions)
+		s.processEvent(state, event, events, &buildingActions, &researchActions, &trainingActions, &missionActions)
 
 		// After processing StateChanged, check what missions were started
 		if event.Type == EventStateChanged {
@@ -163,7 +169,7 @@ func (s *Solver) SolveWithMissionTracking(initialState *models.GameState) (*mode
 		if event.Time > state.Now {
 			s.advanceTime(state, event.Time-state.Now)
 		}
-		s.processEvent(state, event, events, &buildingActions, &researchActions)
+		s.processEvent(state, event, events, &buildingActions, &researchActions, &trainingActions, &missionActions)
 	}
 
 	s.researchRemainingTechs(state, &researchActions)
@@ -179,6 +185,8 @@ func (s *Solver) SolveWithMissionTracking(initialState *models.GameState) (*mode
 	return &models.Solution{
 		BuildingActions:  buildingActions,
 		ResearchActions:  researchActions,
+		TrainingActions:  trainingActions,
+		MissionActions:   missionActions,
 		TotalTimeSeconds: finalTime,
 		FinalState:       state.ToGameState(),
 	}, missionEvents
@@ -191,10 +199,12 @@ func (s *Solver) processEvent(
 	events *EventQueue,
 	buildingActions *[]models.BuildingUpgradeAction,
 	researchActions *[]models.ResearchAction,
+	trainingActions *[]models.TrainUnitAction,
+	missionActions *[]models.MissionAction,
 ) {
 	switch event.Type {
 	case EventMissionComplete:
-		s.handleMissionComplete(state, event, events)
+		s.handleMissionComplete(state, event, events, missionActions)
 
 	case EventBuildingComplete:
 		s.handleBuildingComplete(state, event, events, buildingActions)
@@ -203,7 +213,7 @@ func (s *Solver) processEvent(
 		s.handleResearchComplete(state, event, events, researchActions)
 
 	case EventTrainingComplete:
-		s.handleTrainingComplete(state, event, events)
+		s.handleTrainingComplete(state, event, events, trainingActions)
 
 	case EventStateChanged:
 		s.handleStateChanged(state, events, buildingActions, researchActions)
@@ -211,8 +221,17 @@ func (s *Solver) processEvent(
 }
 
 // handleMissionComplete processes a completed mission
-func (s *Solver) handleMissionComplete(state *State, event Event, events *EventQueue) {
+func (s *Solver) handleMissionComplete(state *State, event Event, events *EventQueue, missionActions *[]models.MissionAction) {
 	ms := event.Payload.(*models.MissionState)
+
+	// Record mission action
+	*missionActions = append(*missionActions, models.MissionAction{
+		MissionName:  ms.Mission.Name,
+		StartTime:    ms.StartTime,
+		EndTime:      ms.EndTime,
+		ResourceCost: ms.Mission.ResourceCosts,
+		Rewards:      ms.Mission.Rewards,
+	})
 
 	// Add resources from mission rewards
 	for _, reward := range ms.Mission.Rewards {
@@ -300,8 +319,19 @@ func (s *Solver) handleResearchComplete(
 }
 
 // handleTrainingComplete processes a completed unit training
-func (s *Solver) handleTrainingComplete(state *State, event Event, events *EventQueue) {
+func (s *Solver) handleTrainingComplete(state *State, event Event, events *EventQueue, trainingActions *[]models.TrainUnitAction) {
 	ta := event.Payload.(*TrainUnitAction)
+
+	// Record training action
+	*trainingActions = append(*trainingActions, models.TrainUnitAction{
+		UnitType:     ta.UnitType,
+		Count:        1,
+		StartTime:    state.Now - ta.Duration(),
+		EndTime:      state.Now,
+		Costs:        ta.Costs(),
+		FoodUsed:     state.FoodUsed,
+		FoodCapacity: state.FoodCapacity,
+	})
 
 	// Add unit to army
 	state.Army.Add(ta.UnitType, 1)
@@ -943,6 +973,22 @@ func buildingToResource(bt models.BuildingType) models.ResourceType {
 }
 
 func (s *Solver) buildingROI(state *State, action *BuildingAction) float64 {
+	buildHours := float64(action.LevelData.BuildTimeSeconds) / 3600.0
+	if buildHours <= 0 {
+		buildHours = 0.01
+	}
+
+	// Special handling for Tavern - calculate mission ROI
+	if action.BuildingType == models.Tavern {
+		return s.tavernROI(state, action.ToLevel, buildHours)
+	}
+
+	// Special handling for Arsenal - calculate training ROI for missions
+	if action.BuildingType == models.Arsenal {
+		return s.arsenalROI(state, action.ToLevel, buildHours)
+	}
+
+	// For non-production buildings (Keep, Fortifications, etc.), return 0
 	if action.LevelData.ProductionRate == nil {
 		return 0
 	}
@@ -957,11 +1003,6 @@ func (s *Solver) buildingROI(state *State, action *BuildingAction) float64 {
 
 	newRate := *action.LevelData.ProductionRate
 	gain := newRate - currentRate
-	buildHours := float64(action.LevelData.BuildTimeSeconds) / 3600.0
-
-	if buildHours <= 0 {
-		return gain * 1000
-	}
 
 	// Base ROI
 	baseROI := gain / buildHours
@@ -970,6 +1011,83 @@ func (s *Solver) buildingROI(state *State, action *BuildingAction) float64 {
 	scarcityMultiplier := s.calculateScarcityMultiplier(state, action.BuildingType)
 
 	return baseROI * scarcityMultiplier
+}
+
+// tavernROI calculates ROI for Tavern upgrade based on missions unlocked
+func (s *Solver) tavernROI(state *State, toLevel int, buildHours float64) float64 {
+	if len(s.Missions) == 0 {
+		return 0
+	}
+
+	// Find missions unlocked at this level
+	var bestNewMissionROI float64
+	for _, mission := range s.Missions {
+		if mission.TavernLevel == toLevel {
+			roi := mission.NetAverageRewardPerHour()
+			if roi > bestNewMissionROI {
+				bestNewMissionROI = roi
+			}
+		}
+	}
+
+	if bestNewMissionROI == 0 {
+		// No new missions at this level, but still needed for progression
+		// Check if higher levels have better missions
+		for _, mission := range s.Missions {
+			if mission.TavernLevel > toLevel {
+				roi := mission.NetAverageRewardPerHour()
+				if roi > bestNewMissionROI {
+					// Discount by levels away
+					levelsAway := mission.TavernLevel - toLevel
+					bestNewMissionROI = roi / float64(levelsAway+1)
+				}
+			}
+		}
+	}
+
+	// Return the mission ROI divided by build time
+	// This gives us a comparable metric to production building ROI
+	return bestNewMissionROI / buildHours
+}
+
+// arsenalROI calculates ROI for Arsenal upgrade based on enabling unit training for missions
+func (s *Solver) arsenalROI(state *State, toLevel int, buildHours float64) float64 {
+	if len(s.Missions) == 0 {
+		return 0
+	}
+
+	// Arsenal level 1+ enables training
+	// Higher levels = faster training (but we don't model that yet)
+	// For now, give Arsenal a base ROI that makes it get built early
+
+	// Find the best mission we could run if we had units
+	var bestMissionROI float64
+	tavernLevel := state.GetBuildingLevel(models.Tavern)
+
+	for _, mission := range s.Missions {
+		if mission.TavernLevel <= tavernLevel {
+			roi := mission.NetAverageRewardPerHour()
+			if roi > bestMissionROI {
+				bestMissionROI = roi
+			}
+		}
+	}
+
+	if bestMissionROI == 0 {
+		// Tavern not high enough - check future missions
+		for _, mission := range s.Missions {
+			roi := mission.NetAverageRewardPerHour()
+			if roi > bestMissionROI {
+				bestMissionROI = roi
+			}
+		}
+		// Discount heavily since we need Tavern too
+		bestMissionROI /= 10.0
+	}
+
+	// Arsenal enables getting units, which enables missions
+	// Give it ROI proportional to mission value
+	return bestMissionROI / buildHours
 }
 
 // calculateScarcityMultiplier returns a multiplier based on how scarce the produced resource is
