@@ -13,7 +13,7 @@ import (
 	"github.com/napolitain/solver-lnk/internal/converter"
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
-	v3 "github.com/napolitain/solver-lnk/internal/solver/v3"
+	castle "github.com/napolitain/solver-lnk/internal/solver/castle"
 	"github.com/napolitain/solver-lnk/internal/solver/units"
 	pb "github.com/napolitain/solver-lnk/proto"
 )
@@ -28,6 +28,7 @@ type server struct {
 	pb.UnimplementedCastleSolverServiceServer
 	buildings    map[models.BuildingType]*models.Building
 	technologies map[string]*models.Technology
+	missions     []*models.Mission
 }
 
 // Solve implements the Solve RPC
@@ -58,12 +59,13 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 	}
 
 	// Run solver
-	solution, bestStrategy, _ := v3.SolveAllStrategies(s.buildings, s.technologies, initialState, targetLevels)
+	solver := castle.NewSolver(s.buildings, s.technologies, s.missions, targetLevels)
+	solution := solver.Solve(initialState)
 
 	// Convert solution to proto
 	response := &pb.SolveResponse{
 		TotalTimeSeconds: int32(solution.TotalTimeSeconds),
-		Strategy:         bestStrategy,
+		Strategy:         "EventDriven",
 	}
 
 	// Add building actions (legacy)
@@ -244,7 +246,9 @@ func main() {
 		technologies = make(map[string]*models.Technology)
 	}
 
-	log.Printf("Loaded %d buildings, %d technologies", len(buildings), len(technologies))
+	missions := loader.LoadMissions()
+
+	log.Printf("Loaded %d buildings, %d technologies, %d missions", len(buildings), len(technologies), len(missions))
 
 	// Start gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
@@ -256,6 +260,7 @@ func main() {
 	pb.RegisterCastleSolverServiceServer(s, &server{
 		buildings:    buildings,
 		technologies: technologies,
+		missions:     missions,
 	})
 
 	log.Printf("gRPC server listening on port %d", *port)

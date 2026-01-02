@@ -1,4 +1,4 @@
-package v4
+package castle
 
 import "github.com/napolitain/solver-lnk/internal/models"
 
