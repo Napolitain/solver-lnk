@@ -1,0 +1,235 @@
+{
+  "overtime_wood": {
+    "name": "Overtime wood",
+    "tavern_level": 1,
+    "duration_minutes": 5,
+    "units_required": [
+      {"type": "spearman", "count": 5}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "wood", "min": 5, "max": 10}
+    ]
+  },
+  "overtime_stone": {
+    "name": "Overtime stone",
+    "tavern_level": 1,
+    "duration_minutes": 5,
+    "units_required": [
+      {"type": "spearman", "count": 5}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "stone", "min": 5, "max": 10}
+    ]
+  },
+  "overtime_ore": {
+    "name": "Overtime ore",
+    "tavern_level": 1,
+    "duration_minutes": 5,
+    "units_required": [
+      {"type": "spearman", "count": 5}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "iron", "min": 5, "max": 10}
+    ]
+  },
+  "mandatory_overtime": {
+    "name": "Mandatory overtime",
+    "tavern_level": 1,
+    "duration_minutes": 5,
+    "units_required": [
+      {"type": "spearman", "count": 15}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "wood", "min": 5, "max": 10},
+      {"type": "stone", "min": 5, "max": 10},
+      {"type": "iron", "min": 5, "max": 10}
+    ]
+  },
+  "hunting": {
+    "name": "Hunting",
+    "tavern_level": 2,
+    "duration_minutes": 15,
+    "units_required": [
+      {"type": "spearman", "count": 15}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "wood", "min": 10, "max": 20},
+      {"type": "stone", "min": 10, "max": 20},
+      {"type": "iron", "min": 10, "max": 20}
+    ]
+  },
+  "chop_wood": {
+    "name": "Chop wood",
+    "tavern_level": 2,
+    "duration_minutes": 30,
+    "units_required": [
+      {"type": "spearman", "count": 20},
+      {"type": "horseman", "count": 20}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "wood", "min": 50, "max": 100}
+    ]
+  },
+  "help_stone_cutters": {
+    "name": "Help stone cutters",
+    "tavern_level": 2,
+    "duration_minutes": 120,
+    "units_required": [
+      {"type": "spearman", "count": 40}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "stone", "min": 100, "max": 200}
+    ]
+  },
+  "forging_tools": {
+    "name": "Forging tools",
+    "tavern_level": 3,
+    "duration_minutes": 45,
+    "units_required": [
+      {"type": "spearman", "count": 20},
+      {"type": "archer", "count": 40},
+      {"type": "horseman", "count": 30}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "wood", "min": 60, "max": 120},
+      {"type": "stone", "min": 100, "max": 200},
+      {"type": "iron", "min": 60, "max": 120}
+    ]
+  },
+  "market_day": {
+    "name": "Market day",
+    "tavern_level": 4,
+    "duration_minutes": 240,
+    "units_required": [
+      {"type": "spearman", "count": 50},
+      {"type": "archer", "count": 50},
+      {"type": "horseman", "count": 50}
+    ],
+    "resource_costs": {"wood": 400, "stone": 400, "iron": 400},
+    "rewards": [
+      {"type": "wood", "min": 400, "max": 800},
+      {"type": "stone", "min": 400, "max": 800},
+      {"type": "iron", "min": 400, "max": 800}
+    ]
+  },
+  "hire_stone_cutters": {
+    "name": "Hire stone cutters",
+    "tavern_level": 4,
+    "duration_minutes": 360,
+    "units_required": [
+      {"type": "spearman", "count": 30}
+    ],
+    "resource_costs": {"wood": 75, "stone": 75},
+    "rewards": [
+      {"type": "stone", "min": 396, "max": 600}
+    ]
+  },
+  "feed_miners": {
+    "name": "Feed miners",
+    "tavern_level": 5,
+    "duration_minutes": 360,
+    "units_required": [
+      {"type": "spearman", "count": 20},
+      {"type": "archer", "count": 20},
+      {"type": "horseman", "count": 20},
+      {"type": "crossbowman", "count": 20}
+    ],
+    "resource_costs": {"wood": 300, "stone": 300, "iron": 200},
+    "rewards": [
+      {"type": "iron", "min": 1000, "max": 2000}
+    ]
+  },
+  "create_a_trading_post": {
+    "name": "Create a trading post",
+    "tavern_level": 6,
+    "duration_minutes": 300,
+    "units_required": [
+      {"type": "spearman", "count": 70},
+      {"type": "archer", "count": 70},
+      {"type": "horseman", "count": 70},
+      {"type": "crossbowman", "count": 30}
+    ],
+    "resource_costs": {"wood": 700, "stone": 700, "iron": 700},
+    "rewards": [
+      {"type": "wood", "min": 750, "max": 1500},
+      {"type": "stone", "min": 750, "max": 1500},
+      {"type": "iron", "min": 1250, "max": 2500}
+    ]
+  },
+  "chase_bandits_away": {
+    "name": "Chase bandits away",
+    "tavern_level": 7,
+    "duration_minutes": 360,
+    "units_required": [
+      {"type": "spearman", "count": 100},
+      {"type": "archer", "count": 150},
+      {"type": "horseman", "count": 50},
+      {"type": "crossbowman", "count": 100}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "wood", "min": 300, "max": 1500},
+      {"type": "stone", "min": 300, "max": 1500},
+      {"type": "iron", "min": 520, "max": 2600}
+    ]
+  },
+  "collect_taxes": {
+    "name": "Collect taxes",
+    "tavern_level": 8,
+    "duration_minutes": 1440,
+    "units_required": [
+      {"type": "spearman", "count": 200},
+      {"type": "archer", "count": 200},
+      {"type": "horseman", "count": 100},
+      {"type": "crossbowman", "count": 50}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "wood", "min": 920, "max": 2300},
+      {"type": "stone", "min": 920, "max": 2300},
+      {"type": "iron", "min": 1200, "max": 3000}
+    ]
+  },
+  "jousting": {
+    "name": "Jousting",
+    "tavern_level": 9,
+    "duration_minutes": 600,
+    "units_required": [
+      {"type": "spearman", "count": 100},
+      {"type": "archer", "count": 100},
+      {"type": "horseman", "count": 100},
+      {"type": "lancer", "count": 100}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "wood", "min": 960, "max": 1600},
+      {"type": "stone", "min": 960, "max": 1600},
+      {"type": "iron", "min": 1920, "max": 3200}
+    ]
+  },
+  "castle_festival": {
+    "name": "Castle festival",
+    "tavern_level": 10,
+    "duration_minutes": 720,
+    "units_required": [
+      {"type": "spearman", "count": 100},
+      {"type": "archer", "count": 100},
+      {"type": "horseman", "count": 100},
+      {"type": "lancer", "count": 100}
+    ],
+    "resource_costs": {},
+    "rewards": [
+      {"type": "wood", "min": 800, "max": 1000},
+      {"type": "stone", "min": 800, "max": 1000},
+      {"type": "iron", "min": 1600, "max": 2000}
+    ]
+  }
+}
