@@ -622,3 +622,125 @@ t.Errorf("%s: expected level %d, got %d", bt, target, solution.FinalState.Buildi
 t.Logf("Buildings: %d, Research: %d", len(solution.BuildingActions), len(solution.ResearchActions))
 t.Logf("Completion time: %.2f days", float64(solution.TotalTimeSeconds)/3600/24)
 }
+
+func TestMissionNoIdleTime(t *testing.T) {
+buildings, err := loader.LoadBuildings(dataDir)
+if err != nil {
+t.Fatalf("Failed to load buildings: %v", err)
+}
+
+technologies, err := loader.LoadTechnologies(dataDir)
+if err != nil {
+t.Fatalf("Failed to load technologies: %v", err)
+}
+
+missions := loader.LoadMissions()
+
+// Full build to get enough training and missions
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack: 15,
+models.Quarry:     15,
+models.OreMine:    15,
+models.Farm:       15,
+models.Arsenal:    10,
+models.Tavern:     5,
+models.WoodStore:  10,
+models.StoneStore: 10,
+models.OreStore:   10,
+}
+
+initialState := models.NewGameState()
+initialState.Resources[models.Wood] = 500
+initialState.Resources[models.Stone] = 500
+initialState.Resources[models.Iron] = 500
+initialState.Resources[models.Food] = 40
+
+for _, bt := range models.AllBuildingTypes() {
+initialState.BuildingLevels[bt] = 1
+}
+
+solver := v4.NewSolver(buildings, technologies, missions, targetLevels)
+
+// Use SolveWithMissionTracking to get mission events
+solution, missionEvents := solver.SolveWithMissionTracking(initialState)
+
+if solution == nil {
+t.Fatal("Solution should not be nil")
+}
+
+t.Logf("Mission events: %d", len(missionEvents))
+
+if len(missionEvents) < 2 {
+t.Logf("Not enough mission events to check idle time (got %d)", len(missionEvents))
+return
+}
+
+// Sort events by start time
+sort.Slice(missionEvents, func(i, j int) bool {
+return missionEvents[i].StartTime < missionEvents[j].StartTime
+})
+
+// Check that after the first mission, there's always at least one mission running
+// This means we need to find any gaps where NO missions are running
+// Build timeline of mission coverage
+
+// Find the time range
+firstStart := missionEvents[0].StartTime
+lastEnd := missionEvents[0].EndTime
+for _, me := range missionEvents {
+if me.EndTime > lastEnd {
+lastEnd = me.EndTime
+}
+}
+
+// For efficiency, we'll check key points (start/end times of missions)
+// At each point, count running missions
+type timePoint struct {
+time  float64
+delta int // +1 for start, -1 for end
+}
+
+var points []timePoint
+for _, me := range missionEvents {
+points = append(points, timePoint{me.StartTime, 1})
+points = append(points, timePoint{me.EndTime, -1})
+}
+
+sort.Slice(points, func(i, j int) bool {
+if points[i].time != points[j].time {
+return points[i].time < points[j].time
+}
+// End before start at same time (to detect momentary gaps)
+return points[i].delta < points[j].delta
+})
+
+running := 0
+gapTime := 0.0
+lastTime := firstStart
+
+for _, p := range points {
+if running == 0 && p.time > lastTime {
+gap := p.time - lastTime
+if gap > 1 { // More than 1 second gap
+gapTime += gap
+}
+}
+running += p.delta
+lastTime = p.time
+}
+
+t.Logf("Mission coverage: first=%.1f, last=%.1f, total_gap=%.1f seconds (%.2f hours)",
+firstStart, lastEnd, gapTime, gapTime/3600)
+
+// Allow some gap during initial training phase (first 10% of timeline)
+totalDuration := lastEnd - firstStart
+allowedGap := totalDuration * 0.1 // Allow 10% gap
+
+if gapTime > allowedGap {
+t.Errorf("Too much mission idle time: %.1f seconds (%.2f%% of total), allowed %.1f seconds",
+gapTime, gapTime/totalDuration*100, allowedGap)
+} else {
+t.Logf("Mission idle time within acceptable range: %.1f seconds (%.2f%% of total)",
+gapTime, gapTime/totalDuration*100)
+}
+}

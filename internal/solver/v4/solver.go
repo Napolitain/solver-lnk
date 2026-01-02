@@ -14,6 +14,13 @@ type Solver struct {
 	TargetLevels map[models.BuildingType]int
 }
 
+// MissionEvent tracks when a mission started and ended (for testing)
+type MissionEvent struct {
+	MissionName string
+	StartTime   float64
+	EndTime     float64
+}
+
 // NewSolver creates a new V4 solver
 func NewSolver(
 	buildings map[models.BuildingType]*models.Building,
@@ -93,6 +100,88 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 		TotalTimeSeconds: finalTime,
 		FinalState:       state.ToGameState(),
 	}
+}
+
+// SolveWithMissionTracking is like Solve but also returns mission events for testing
+func (s *Solver) SolveWithMissionTracking(initialState *models.GameState) (*models.Solution, []MissionEvent) {
+	state := NewState(initialState)
+	s.initializeState(state)
+
+	events := NewEventQueue()
+	var missionEvents []MissionEvent
+
+	var buildingActions []models.BuildingUpgradeAction
+	var researchActions []models.ResearchAction
+
+	// Bootstrap: evaluate initial state
+	events.Push(Event{Time: 0, Type: EventStateChanged})
+
+	maxIterations := 1000000
+	iterations := 0
+
+	for !events.Empty() && !s.allTargetsReached(state) && iterations < maxIterations {
+		iterations++
+
+		event := events.Pop()
+
+		// Advance time (accumulate resources)
+		if event.Time > state.Now {
+			s.advanceTime(state, event.Time-state.Now)
+		}
+
+		// Track mission starts from EventMissionComplete (previous mission ended)
+		if event.Type == EventMissionComplete {
+			// Record the mission that just completed
+			ms := event.Payload.(*models.MissionState)
+			_ = ms // Already tracked when started
+		}
+
+		// Process the event normally
+		s.processEvent(state, event, events, &buildingActions, &researchActions)
+
+		// After processing StateChanged, check what missions were started
+		if event.Type == EventStateChanged {
+			for _, rm := range state.RunningMissions {
+				// Check if this mission was just started (started at current time)
+				if rm.StartTime == state.Now {
+					missionEvents = append(missionEvents, MissionEvent{
+						MissionName: rm.Mission.Name,
+						StartTime:   float64(rm.StartTime),
+						EndTime:     float64(rm.EndTime),
+					})
+				}
+			}
+		}
+	}
+
+	// Process remaining events
+	for !events.Empty() {
+		event := events.Pop()
+		if event.Type == EventStateChanged {
+			continue
+		}
+		if event.Time > state.Now {
+			s.advanceTime(state, event.Time-state.Now)
+		}
+		s.processEvent(state, event, events, &buildingActions, &researchActions)
+	}
+
+	s.researchRemainingTechs(state, &researchActions)
+
+	finalTime := state.Now
+	if state.BuildingQueueFreeAt > finalTime {
+		finalTime = state.BuildingQueueFreeAt
+	}
+	if state.ResearchQueueFreeAt > finalTime {
+		finalTime = state.ResearchQueueFreeAt
+	}
+
+	return &models.Solution{
+		BuildingActions:  buildingActions,
+		ResearchActions:  researchActions,
+		TotalTimeSeconds: finalTime,
+		FinalState:       state.ToGameState(),
+	}, missionEvents
 }
 
 // processEvent handles a single event
