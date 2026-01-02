@@ -272,6 +272,25 @@ func (s *Solver) tryStartBuilding(state *State, events *EventQueue) {
 		return
 	}
 
+	// Check if production tech (Beer Tester, Wheelbarrow) has better ROI
+	// If so, prioritize Library upgrade to enable that research
+	prodTechAction := s.getBestProductionTechAction(state)
+	if prodTechAction != nil {
+		buildingROI := s.buildingROI(state, action)
+		techROI := s.productionTechROI(state, prodTechAction)
+		if techROI > buildingROI {
+			// Production tech is better - check if we need Library upgrade
+			libraryLevel := state.GetBuildingLevel(models.Library)
+			if libraryLevel < prodTechAction.RequiredLibraryLevel {
+				// Need to upgrade Library first
+				action = s.createLibraryUpgrade(state, prodTechAction.RequiredLibraryLevel)
+				if action == nil {
+					return
+				}
+			}
+		}
+	}
+
 	// Check prerequisites and get the actual action to execute
 	action = s.resolvePrerequisites(state, action)
 	if action == nil {
@@ -828,8 +847,6 @@ func buildingToResource(bt models.BuildingType) models.ResourceType {
 	}
 }
 
-
-
 func (s *Solver) buildingROI(state *State, action *BuildingAction) float64 {
 	if action.LevelData.ProductionRate == nil {
 		return 0
@@ -851,7 +868,149 @@ func (s *Solver) buildingROI(state *State, action *BuildingAction) float64 {
 		return gain * 1000
 	}
 
-	return gain / buildHours
+	// Base ROI
+	baseROI := gain / buildHours
+
+	// Apply scarcity multiplier
+	scarcityMultiplier := s.calculateScarcityMultiplier(state, action.BuildingType)
+
+	return baseROI * scarcityMultiplier
+}
+
+// calculateScarcityMultiplier returns a multiplier based on how scarce the produced resource is
+func (s *Solver) calculateScarcityMultiplier(state *State, bt models.BuildingType) float64 {
+	// Get production rates
+	woodRate := state.GetProductionRate(models.Wood)
+	stoneRate := state.GetProductionRate(models.Stone)
+	ironRate := state.GetProductionRate(models.Iron)
+
+	// Avoid division by zero
+	if woodRate < 0.1 {
+		woodRate = 0.1
+	}
+	if stoneRate < 0.1 {
+		stoneRate = 0.1
+	}
+	if ironRate < 0.1 {
+		ironRate = 0.1
+	}
+
+	// Total production
+	totalRate := woodRate + stoneRate + ironRate
+
+	// Resource demand ratios (based on typical building costs)
+	// Early game buildings need roughly: Wood 40%, Stone 40%, Iron 20%
+	woodDemand := 0.40
+	stoneDemand := 0.40
+	ironDemand := 0.20
+
+	// Current production ratios
+	woodRatio := woodRate / totalRate
+	stoneRatio := stoneRate / totalRate
+	ironRatio := ironRate / totalRate
+
+	// Scarcity = demand / supply ratio
+	var scarcity float64
+	switch bt {
+	case models.Lumberjack:
+		scarcity = woodDemand / woodRatio
+	case models.Quarry:
+		scarcity = stoneDemand / stoneRatio
+	case models.OreMine:
+		scarcity = ironDemand / ironRatio
+	default:
+		return 1.0
+	}
+
+	// Normalize: scarcity of 1.0 means balanced
+	// Cap the multiplier to avoid extreme values
+	if scarcity < 0.5 {
+		scarcity = 0.5
+	}
+	if scarcity > 2.0 {
+		scarcity = 2.0
+	}
+
+	return scarcity
+}
+
+// ProductionTechAction represents a production tech that can be researched
+type ProductionTechAction struct {
+	Technology           *models.Technology
+	RequiredLibraryLevel int
+}
+
+// getBestProductionTechAction returns the best production tech to research
+func (s *Solver) getBestProductionTechAction(state *State) *ProductionTechAction {
+	libraryBuilding := s.Buildings[models.Library]
+	if libraryBuilding == nil {
+		return nil
+	}
+
+	var best *ProductionTechAction
+	var bestROI float64
+
+	for _, techName := range []string{"Beer tester", "Wheelbarrow"} {
+		if state.ResearchedTechs[techName] {
+			continue
+		}
+		tech := s.Technologies[techName]
+		if tech == nil {
+			continue
+		}
+
+		action := &ProductionTechAction{
+			Technology:           tech,
+			RequiredLibraryLevel: tech.RequiredLibraryLevel,
+		}
+
+		roi := s.productionTechROI(state, action)
+		if roi > bestROI {
+			bestROI = roi
+			best = action
+		}
+	}
+
+	return best
+}
+
+// productionTechROI calculates the ROI for a production tech
+func (s *Solver) productionTechROI(state *State, action *ProductionTechAction) float64 {
+	// Production bonus: 5% = 0.05 multiplier on all production
+	bonusMultiplier := 0.05
+
+	// Current total production rate
+	totalRate := state.GetProductionRate(models.Wood) +
+		state.GetProductionRate(models.Stone) +
+		state.GetProductionRate(models.Iron)
+
+	// Gain in production rate
+	gain := totalRate * bonusMultiplier
+
+	// Time to get the tech (research time + Library upgrades if needed)
+	researchHours := float64(action.Technology.ResearchTimeSeconds) / 3600.0
+
+	libraryLevel := state.GetBuildingLevel(models.Library)
+	libraryUpgradeHours := 0.0
+	if libraryLevel < action.RequiredLibraryLevel {
+		// Calculate time needed for Library upgrades
+		libraryBuilding := s.Buildings[models.Library]
+		if libraryBuilding != nil {
+			for level := libraryLevel + 1; level <= action.RequiredLibraryLevel; level++ {
+				levelData := libraryBuilding.GetLevelData(level)
+				if levelData != nil {
+					libraryUpgradeHours += float64(levelData.BuildTimeSeconds) / 3600.0
+				}
+			}
+		}
+	}
+
+	totalHours := researchHours + libraryUpgradeHours
+	if totalHours <= 0 {
+		return gain * 1000
+	}
+
+	return gain / totalHours
 }
 
 // pickBestResearchAction selects the best research to start
