@@ -144,10 +144,32 @@ type ResearchAction struct {
 	FoodCapacity   int // Food capacity after this action
 }
 
+// TrainUnitAction represents training units at Arsenal
+type TrainUnitAction struct {
+	UnitType     UnitType
+	Count        int
+	StartTime    int
+	EndTime      int
+	Costs        Costs
+	FoodUsed     int
+	FoodCapacity int
+}
+
+// MissionAction represents a tavern mission run
+type MissionAction struct {
+	MissionName  string
+	StartTime    int
+	EndTime      int
+	ResourceCost Costs
+	Rewards      []ResourceReward // Expected rewards
+}
+
 // Solution represents a complete build order solution
 type Solution struct {
 	BuildingActions  []BuildingUpgradeAction
 	ResearchActions  []ResearchAction
+	TrainingActions  []TrainUnitAction  // Unit training during build phase
+	MissionActions   []MissionAction    // Missions run during build phase
 	TotalTimeSeconds int
 	FinalState       *GameState
 }
