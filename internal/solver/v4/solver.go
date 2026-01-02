@@ -61,7 +61,7 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 	// Process any remaining completion events (for buildings that were started but not yet recorded)
 	for !events.Empty() {
 		event := events.Pop()
-		
+
 		// Only process completion events, skip StateChanged
 		if event.Type == EventStateChanged {
 			continue
@@ -74,6 +74,9 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 
 		s.processEvent(state, event, events, &buildingActions, &researchActions)
 	}
+
+	// Research ALL remaining technologies after buildings are done
+	s.researchRemainingTechs(state, &researchActions)
 
 	// Calculate final time
 	finalTime := state.Now
@@ -147,6 +150,9 @@ func (s *Solver) handleBuildingComplete(
 	buildingActions *[]models.BuildingUpgradeAction,
 ) {
 	ba := event.Payload.(*BuildingAction)
+
+	// Update building level on completion
+	state.SetBuildingLevel(ba.BuildingType, ba.ToLevel)
 
 	// Update production rates and storage caps
 	s.updateAfterBuild(state, ba)
@@ -526,8 +532,8 @@ func (s *Solver) executeBuilding(state *State, action *BuildingAction, events *E
 	// Deduct food
 	state.FoodUsed += costs.Food
 
-	// Update building level immediately (workers assigned)
-	state.SetBuildingLevel(action.BuildingType, action.ToLevel)
+	// NOTE: Building level is updated on COMPLETION, not start
+	// This is important for correct Library level checks in research
 
 	// Set queue busy
 	state.BuildingQueueFreeAt = state.Now + action.Duration()
@@ -1112,4 +1118,93 @@ func (s *Solver) pickBestMissionToStart(state *State) *models.Mission {
 	}
 
 	return best
+}
+
+// researchRemainingTechs researches ALL remaining technologies after buildings are done
+func (s *Solver) researchRemainingTechs(state *State, researchActions *[]models.ResearchAction) {
+	// Research all technologies in order of Library level requirement
+	type techWithLevel struct {
+		name  string
+		level int
+	}
+	var techsToResearch []techWithLevel
+
+	for name, tech := range s.Technologies {
+		if state.ResearchedTechs[name] {
+			continue
+		}
+		techsToResearch = append(techsToResearch, techWithLevel{name, tech.RequiredLibraryLevel})
+	}
+
+	// Sort by Library level requirement, then by name for determinism
+	sort.Slice(techsToResearch, func(i, j int) bool {
+		if techsToResearch[i].level != techsToResearch[j].level {
+			return techsToResearch[i].level < techsToResearch[j].level
+		}
+		return techsToResearch[i].name < techsToResearch[j].name
+	})
+
+	libraryLevel := state.GetBuildingLevel(models.Library)
+
+	for _, t := range techsToResearch {
+		tech := s.Technologies[t.name]
+		if tech == nil {
+			continue
+		}
+
+		// Check Library level
+		if libraryLevel < tech.RequiredLibraryLevel {
+			continue // Can't research without Library
+		}
+
+		// Wait for research queue
+		if state.Now < state.ResearchQueueFreeAt {
+			s.advanceTime(state, state.ResearchQueueFreeAt-state.Now)
+		}
+
+		// Wait for resources
+		costs := tech.Costs
+		waitTime := s.waitTimeForCosts(state, costs)
+		if waitTime > 0 {
+			s.advanceTime(state, waitTime)
+		} else if waitTime < 0 {
+			continue
+		}
+
+		// Check food
+		foodCost := costs.Food
+		if state.FoodUsed+foodCost > state.FoodCapacity {
+			continue
+		}
+
+		// Execute research
+		startTime := state.Now
+
+		// Deduct resources
+		state.SetResource(models.Wood, state.GetResource(models.Wood)-float64(costs.Wood))
+		state.SetResource(models.Stone, state.GetResource(models.Stone)-float64(costs.Stone))
+		state.SetResource(models.Iron, state.GetResource(models.Iron)-float64(costs.Iron))
+		state.FoodUsed += foodCost
+
+		// Update queue
+		state.ResearchQueueFreeAt = state.Now + tech.ResearchTimeSeconds
+		endTime := state.ResearchQueueFreeAt
+
+		// Mark as researched immediately (no more building decisions depend on this)
+		state.ResearchedTechs[tech.Name] = true
+
+		// Apply production bonus
+		if tech.Name == "Beer tester" || tech.Name == "Wheelbarrow" {
+			state.ProductionBonus += 0.05
+		}
+
+		*researchActions = append(*researchActions, models.ResearchAction{
+			TechnologyName: tech.Name,
+			StartTime:      startTime,
+			EndTime:        endTime,
+			Costs:          costs,
+			FoodUsed:       state.FoodUsed,
+			FoodCapacity:   state.FoodCapacity,
+		})
+	}
 }
