@@ -1057,20 +1057,40 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 	return nil
 }
 
-// pickBestTrainingAction selects the best unit to train
+// pickBestTrainingAction selects the best unit to train for missions
 func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
-	// For now, only train units if we need them for missions
-	// TODO: Implement mission-based unit training
+	if len(s.Missions) == 0 {
+		return nil
+	}
 
-	// Check if any mission needs more units
-	for _, mission := range s.Missions {
-		if state.GetBuildingLevel(models.Tavern) < mission.TavernLevel {
+	// Only train units for missions AFTER all building targets are reached
+	// This prevents training from competing with buildings for resources/food
+	if !s.allTargetsReached(state) {
+		return nil
+	}
+
+	tavernLevel := state.GetBuildingLevel(models.Tavern)
+
+	// Sort missions by ROI (best first)
+	sortedMissions := make([]*models.Mission, len(s.Missions))
+	copy(sortedMissions, s.Missions)
+	sort.Slice(sortedMissions, func(i, j int) bool {
+		return sortedMissions[i].NetAverageRewardPerHour() > sortedMissions[j].NetAverageRewardPerHour()
+	})
+
+	// Find the best mission we can train for
+	for _, mission := range sortedMissions {
+		if tavernLevel < mission.TavernLevel {
 			continue
 		}
 
+		// Check each unit requirement
 		for _, req := range mission.UnitsRequired {
 			have := state.Army.Get(req.Type)
-			if have < req.Count {
+			onMission := state.UnitsOnMission.Get(req.Type)
+			available := have - onMission
+
+			if available < req.Count {
 				// Need more of this unit type
 				def := models.GetUnitDefinition(req.Type)
 				if def == nil {
@@ -1079,7 +1099,13 @@ func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
 
 				// Check tech requirement
 				if def.RequiredTech != "" && !state.ResearchedTechs[def.RequiredTech] {
-					continue
+					continue // Skip - need to research tech first
+				}
+
+				// Check arsenal level
+				arsenalLevel := state.GetBuildingLevel(models.Arsenal)
+				if arsenalLevel < 1 {
+					continue // Can't train without arsenal
 				}
 
 				return &TrainUnitAction{
@@ -1095,6 +1121,11 @@ func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
 
 // pickBestMissionToStart selects the best mission to start
 func (s *Solver) pickBestMissionToStart(state *State) *models.Mission {
+	// Only start missions AFTER all building targets are reached
+	if !s.allTargetsReached(state) {
+		return nil
+	}
+
 	var best *models.Mission
 	var bestROI float64
 

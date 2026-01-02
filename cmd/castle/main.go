@@ -139,7 +139,8 @@ func runSolver(cmd *cobra.Command, args []string) {
 
 	if useV4 {
 		// Use V4 event-driven solver
-		v4Solver := v4.NewSolver(buildings, technologies, nil, targetLevels)
+		missions := loader.LoadMissions()
+		v4Solver := v4.NewSolver(buildings, technologies, missions, targetLevels)
 		solution = v4Solver.Solve(initialState)
 		bestStrategy = "V4-EventDriven"
 		allResults = []v3.StrategyResult{{Strategy: bestStrategy, Solution: solution}}
