@@ -13,6 +13,7 @@ import (
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
 	v3 "github.com/napolitain/solver-lnk/internal/solver/v3"
+	v4 "github.com/napolitain/solver-lnk/internal/solver/v4"
 	"github.com/napolitain/solver-lnk/internal/solver/units"
 )
 
@@ -21,6 +22,7 @@ var (
 	configFile string
 	quiet      bool
 	nextOnly   bool
+	useV4      bool
 )
 
 func main() {
@@ -36,6 +38,7 @@ for Lords and Knights castle development.`,
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to JSON config file")
 	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Minimal output")
 	rootCmd.Flags().BoolVarP(&nextOnly, "next", "n", false, "Show only the next action")
+	rootCmd.Flags().BoolVar(&useV4, "v4", false, "Use V4 event-driven solver")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -130,7 +133,20 @@ func runSolver(cmd *cobra.Command, args []string) {
 		infoColor.Println("🔄 Solving with multiple strategies...")
 	}
 
-	solution, bestStrategy, allResults := v3.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
+	var solution *models.Solution
+	var bestStrategy string
+	var allResults []v3.StrategyResult
+
+	if useV4 {
+		// Use V4 event-driven solver
+		v4Solver := v4.NewSolver(buildings, technologies, nil, targetLevels)
+		solution = v4Solver.Solve(initialState)
+		bestStrategy = "V4-EventDriven"
+		allResults = []v3.StrategyResult{{Strategy: bestStrategy, Solution: solution}}
+	} else {
+		// Use V3 ROI-based solver
+		solution, bestStrategy, allResults = v3.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
+	}
 
 	// If --next flag is set, just show the first action and exit
 	if nextOnly {
