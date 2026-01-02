@@ -1,4 +1,4 @@
-package v4_test
+package castle_test
 
 import (
 "sort"
@@ -6,7 +6,7 @@ import (
 
 "github.com/napolitain/solver-lnk/internal/loader"
 "github.com/napolitain/solver-lnk/internal/models"
-v4 "github.com/napolitain/solver-lnk/internal/solver/v4"
+castle "github.com/napolitain/solver-lnk/internal/solver/castle"
 )
 
 const dataDir = "../../../data"
@@ -38,7 +38,7 @@ for _, bt := range models.AllBuildingTypes() {
 initialState.BuildingLevels[bt] = 1
 }
 
-solver := v4.NewSolver(buildings, technologies, nil, targetLevels)
+solver := castle.NewSolver(buildings, technologies, nil, targetLevels)
 solution := solver.Solve(initialState)
 
 if solution == nil {
@@ -98,7 +98,7 @@ for _, bt := range models.AllBuildingTypes() {
 initialState.BuildingLevels[bt] = 1
 }
 
-solver := v4.NewSolver(buildings, technologies, nil, targetLevels)
+solver := castle.NewSolver(buildings, technologies, nil, targetLevels)
 solution := solver.Solve(initialState)
 
 if solution == nil {
@@ -165,7 +165,7 @@ s.BuildingLevels[bt] = 1
 return s
 }
 
-solver := v4.NewSolver(buildings, technologies, nil, targetLevels)
+solver := castle.NewSolver(buildings, technologies, nil, targetLevels)
 
 // Run multiple times
 var firstTime int
@@ -218,7 +218,7 @@ for _, bt := range models.AllBuildingTypes() {
 initialState.BuildingLevels[bt] = 1
 }
 
-solver := v4.NewSolver(buildings, technologies, nil, targetLevels)
+solver := castle.NewSolver(buildings, technologies, nil, targetLevels)
 solution := solver.Solve(initialState)
 
 // Invariant 1: Times are non-negative and ordered
@@ -293,7 +293,7 @@ for _, bt := range models.AllBuildingTypes() {
 initialState.BuildingLevels[bt] = 1
 }
 
-solver := v4.NewSolver(buildings, technologies, nil, targetLevels)
+solver := castle.NewSolver(buildings, technologies, nil, targetLevels)
 solution := solver.Solve(initialState)
 
 // === REPLAY SIMULATION ===
@@ -603,7 +603,7 @@ for _, bt := range models.AllBuildingTypes() {
 initialState.BuildingLevels[bt] = 1
 }
 
-solver := v4.NewSolver(buildings, technologies, missions, targetLevels)
+solver := castle.NewSolver(buildings, technologies, missions, targetLevels)
 solution := solver.Solve(initialState)
 
 if solution == nil {
@@ -659,7 +659,7 @@ for _, bt := range models.AllBuildingTypes() {
 initialState.BuildingLevels[bt] = 1
 }
 
-solver := v4.NewSolver(buildings, technologies, missions, targetLevels)
+solver := castle.NewSolver(buildings, technologies, missions, targetLevels)
 
 // Use SolveWithMissionTracking to get mission events
 solution, missionEvents := solver.SolveWithMissionTracking(initialState)

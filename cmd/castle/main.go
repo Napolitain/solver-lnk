@@ -12,8 +12,7 @@ import (
 
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
-	v3 "github.com/napolitain/solver-lnk/internal/solver/v3"
-	v4 "github.com/napolitain/solver-lnk/internal/solver/v4"
+	castle "github.com/napolitain/solver-lnk/internal/solver/castle"
 	"github.com/napolitain/solver-lnk/internal/solver/units"
 )
 
@@ -22,7 +21,6 @@ var (
 	configFile string
 	quiet      bool
 	nextOnly   bool
-	useV4      bool
 )
 
 func main() {
@@ -38,7 +36,6 @@ for Lords and Knights castle development.`,
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to JSON config file")
 	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Minimal output")
 	rootCmd.Flags().BoolVarP(&nextOnly, "next", "n", false, "Show only the next action")
-	rootCmd.Flags().BoolVar(&useV4, "v4", false, "Use V4 event-driven solver")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -134,20 +131,13 @@ func runSolver(cmd *cobra.Command, args []string) {
 	}
 
 	var solution *models.Solution
-	var bestStrategy string
-	var allResults []v3.StrategyResult
+	var strategyName string
 
-	if useV4 {
-		// Use V4 event-driven solver
-		missions := loader.LoadMissions()
-		v4Solver := v4.NewSolver(buildings, technologies, missions, targetLevels)
-		solution = v4Solver.Solve(initialState)
-		bestStrategy = "V4-EventDriven"
-		allResults = []v3.StrategyResult{{Strategy: bestStrategy, Solution: solution}}
-	} else {
-		// Use V3 ROI-based solver
-		solution, bestStrategy, allResults = v3.SolveAllStrategies(buildings, technologies, initialState, targetLevels)
-	}
+	// Use V4 event-driven solver
+	missions := loader.LoadMissions()
+	v4Solver := castle.NewSolver(buildings, technologies, missions, targetLevels)
+	solution = v4Solver.Solve(initialState)
+	strategyName = "EventDriven"
 
 	// If --next flag is set, just show the first action and exit
 	if nextOnly {
@@ -155,21 +145,14 @@ func runSolver(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Show all strategy results
+	// Show solver info
 	if !quiet {
-		fmt.Println("\n📊 Strategy Comparison:")
-		for _, r := range allResults {
-			hours := float64(r.Solution.TotalTimeSeconds) / 3600
-			days := hours / 24
-			marker := "  "
-			if r.Strategy == bestStrategy {
-				marker = "✓ "
-			}
-			fmt.Printf("   %s%-15s: %.1f days (%.1f hours)\n", marker, r.Strategy, days, hours)
-		}
+		hours := float64(solution.TotalTimeSeconds) / 3600
+		days := hours / 24
+		fmt.Printf("\n📊 Solver: %s (%.1f days / %.1f hours)\n", strategyName, days, hours)
 	}
 
-	successColor.Printf("\n✓ Best strategy: %s\n", bestStrategy)
+	successColor.Printf("\n✓ Strategy: %s\n", strategyName)
 	successColor.Printf("✓ Found solution with %d building upgrades and %d research tasks!\n\n",
 		len(solution.BuildingActions), len(solution.ResearchActions))
 

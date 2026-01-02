@@ -1,4 +1,4 @@
-package v4
+package castle
 
 // EventType represents the type of simulation event
 type EventType int
