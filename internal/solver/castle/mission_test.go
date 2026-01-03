@@ -356,3 +356,138 @@ t.Errorf("Expected tech %q not found in unit techs", expected)
 }
 }
 }
+
+// TestAllMissionsSchedulable verifies that Jousting and Castle Festival are scheduled
+func TestAllMissionsSchedulable(t *testing.T) {
+	buildings, _ := loader.LoadBuildings("../../../data")
+	techs, _ := loader.LoadTechnologies("../../../data")
+	missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+	solver := NewSolver(buildings, techs, missions, map[models.BuildingType]int{
+		models.Lumberjack:     30,
+		models.Quarry:         30,
+		models.OreMine:        30,
+		models.WoodStore:      20,
+		models.StoneStore:     20,
+		models.OreStore:       20,
+		models.Farm:           30,
+		models.Tavern:         10,
+		models.Keep:           10,
+		models.Arsenal:        30,
+		models.Fortifications: 20,
+		models.Market:         8,
+		models.Library:        10,
+	})
+
+	initialState := &models.GameState{
+		BuildingLevels: map[models.BuildingType]int{
+			models.Lumberjack:     1,
+			models.Quarry:         1,
+			models.OreMine:        1,
+			models.WoodStore:      1,
+			models.StoneStore:     1,
+			models.OreStore:       1,
+			models.Farm:           1,
+			models.Tavern:         1,
+			models.Keep:           1,
+			models.Arsenal:        1,
+			models.Fortifications: 1,
+			models.Market:         1,
+			models.Library:        1,
+		},
+		Resources: map[models.ResourceType]float64{
+			models.Wood:  1000,
+			models.Stone: 1000,
+			models.Iron:  1000,
+		},
+	}
+
+	solution := solver.Solve(initialState)
+	if solution == nil {
+		t.Fatal("Expected solution")
+	}
+
+	// Check that Jousting and Castle Festival are scheduled
+	joustingFound := false
+	castleFestivalFound := false
+
+	for _, mission := range solution.MissionActions {
+		if mission.MissionName == "Jousting" {
+			joustingFound = true
+		}
+		if mission.MissionName == "Castle festival" {
+			castleFestivalFound = true
+		}
+	}
+
+	if !joustingFound {
+		t.Error("Jousting mission not scheduled - need 100 Lancers for Tavern 10 missions")
+	}
+	if !castleFestivalFound {
+		t.Error("Castle Festival mission not scheduled - need 100 Lancers for Tavern 10 missions")
+	}
+}
+
+// TestLancerCountForMissions verifies at least 100 Lancers are trained for missions
+func TestLancerCountForMissions(t *testing.T) {
+	buildings, _ := loader.LoadBuildings("../../../data")
+	techs, _ := loader.LoadTechnologies("../../../data")
+	missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+	solver := NewSolver(buildings, techs, missions, map[models.BuildingType]int{
+		models.Lumberjack:     30,
+		models.Quarry:         30,
+		models.OreMine:        30,
+		models.WoodStore:      20,
+		models.StoneStore:     20,
+		models.OreStore:       20,
+		models.Farm:           30,
+		models.Tavern:         10,
+		models.Keep:           10,
+		models.Arsenal:        30,
+		models.Fortifications: 20,
+		models.Market:         8,
+		models.Library:        10,
+	})
+
+	initialState := &models.GameState{
+		BuildingLevels: map[models.BuildingType]int{
+			models.Lumberjack:     1,
+			models.Quarry:         1,
+			models.OreMine:        1,
+			models.WoodStore:      1,
+			models.StoneStore:     1,
+			models.OreStore:       1,
+			models.Farm:           1,
+			models.Tavern:         1,
+			models.Keep:           1,
+			models.Arsenal:        1,
+			models.Fortifications: 1,
+			models.Market:         1,
+			models.Library:        1,
+		},
+		Resources: map[models.ResourceType]float64{
+			models.Wood:  1000,
+			models.Stone: 1000,
+			models.Iron:  1000,
+		},
+	}
+
+	solution := solver.Solve(initialState)
+	if solution == nil {
+		t.Fatal("Expected solution")
+	}
+
+	// Count Lancers trained
+	lancerCount := 0
+	for _, train := range solution.TrainingActions {
+		if train.UnitType == models.Lancer {
+			lancerCount += train.Count
+		}
+	}
+
+	// Need at least 100 for Jousting/Castle Festival
+	if lancerCount < 100 {
+		t.Errorf("Expected at least 100 Lancers trained for missions, got %d", lancerCount)
+	}
+}
