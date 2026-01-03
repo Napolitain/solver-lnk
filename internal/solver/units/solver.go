@@ -1,7 +1,6 @@
 package units
 
 import (
-	"fmt"
 	"sort"
 )
 
@@ -272,25 +271,4 @@ func (s *Solver) removeLeastEfficientCombat(solution *Solution, foodNeeded int) 
 	}
 }
 
-// PrintSolution outputs the solution
-func (s *Solver) PrintSolution(solution *Solution) {
-	fmt.Println("\n=== Army Composition ===")
-	fmt.Printf("Food capacity: %d / %d\n", solution.TotalFood, s.FoodCapacity)
-	fmt.Printf("Trading throughput: %.0f / %.0f resources/hour\n", 
-		solution.TotalThroughput, s.RequiredThroughput)
-	fmt.Printf("Silver income: %.2f/hour\n", solution.SilverPerHour)
-	
-	fmt.Println("\n--- Units ---")
-	for _, u := range AllUnits() {
-		count := solution.UnitCounts[u.Name]
-		if count > 0 {
-			fmt.Printf("  %s: %d (food: %d)\n", u.Name, count, count*u.FoodCost)
-		}
-	}
 
-	fmt.Println("\n--- Defense ---")
-	fmt.Printf("  vs Cavalry:   %d\n", solution.DefenseVsCavalry)
-	fmt.Printf("  vs Infantry:  %d\n", solution.DefenseVsInfantry)
-	fmt.Printf("  vs Artillery: %d\n", solution.DefenseVsArtillery)
-	fmt.Printf("  Minimum:      %d (balanced)\n", solution.MinDefense())
-}
