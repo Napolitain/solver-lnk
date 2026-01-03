@@ -1,0 +1,74 @@
+# golangci-lint configuration for solver-lnk
+# Run with: golangci-lint run
+
+linters:
+  enable:
+    # Performance / Memory
+    - prealloc        # Finds slice declarations that could be preallocated
+    - govet           # With fieldalignment check for struct padding optimization
+    
+    # Bug prevention
+    - staticcheck     # Advanced static analysis
+    - gosec           # Security issues
+    - errcheck        # Unchecked errors
+    - ineffassign     # Detects useless assignments
+    - unparam         # Unused function parameters
+    - unused          # Unused code
+    - nilerr          # Finds returning nil with non-nil error
+    
+    # Code quality
+    - gocyclo         # Cyclomatic complexity
+    - gocognit        # Cognitive complexity
+    - dupl            # Code duplication
+    - goconst         # Repeated strings that could be constants
+    - misspell        # Spelling mistakes
+    - makezero        # Finds slice appends without preallocation
+    
+    # Style
+    - gofmt           # Formatting
+    - goimports       # Import organization
+    - revive          # Replacement for golint
+
+linters-settings:
+  govet:
+    enable:
+      - fieldalignment  # Struct field ordering for memory efficiency
+  gocyclo:
+    min-complexity: 15
+  gocognit:
+    min-complexity: 20
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: true
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  dupl:
+    threshold: 150
+  revive:
+    rules:
+      - name: exported
+        disabled: true  # Don't require comments on exported functions
+
+issues:
+  # Don't limit issues per linter
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  
+  exclude-rules:
+    # Exclude test files from some linters
+    - path: _test\.go
+      linters:
+        - dupl
+        - gocyclo
+        - gocognit
+        - gosec
+    # Exclude fuzz tests from complexity checks
+    - path: fuzz_test\.go
+      linters:
+        - unparam
+
+run:
+  timeout: 5m
+  tests: true
