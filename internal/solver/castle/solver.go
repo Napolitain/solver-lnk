@@ -1674,6 +1674,7 @@ func (s *Solver) trainRemainingMissionUnits(state *State, trainingActions *[]mod
 
 			// Wait for resources
 			costs := def.ResourceCosts
+			costs.Food = def.FoodCost // Include food in costs for display
 			waitTime := s.waitTimeForCosts(state, costs)
 			if waitTime > 0 {
 				s.advanceTime(state, waitTime)
@@ -1851,6 +1852,7 @@ func (s *Solver) trainDefenseUnits(state *State, trainingActions *[]models.Train
 
 		// Wait for resources
 		costs := bestDef.ResourceCosts
+		costs.Food = bestDef.FoodCost // Include food in costs for display
 		waitTime := s.waitTimeForCosts(state, costs)
 		if waitTime > 0 {
 			s.advanceTime(state, waitTime)

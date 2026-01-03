@@ -54,7 +54,9 @@ type TrainUnitAction struct {
 }
 
 func (a *TrainUnitAction) Costs() models.Costs {
-	return a.Definition.ResourceCosts
+	costs := a.Definition.ResourceCosts
+	costs.Food = a.Definition.FoodCost
+	return costs
 }
 
 func (a *TrainUnitAction) Duration() int {
