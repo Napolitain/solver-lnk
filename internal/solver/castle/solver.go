@@ -1244,7 +1244,7 @@ func (s *Solver) productionTechROI(state *State, action *ProductionTechAction) f
 func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 	libraryLevel := state.GetBuildingLevel(models.Library)
 
-	// Check for prerequisite techs first (reactive)
+	// Check for prerequisite techs first (reactive) - for building upgrades
 	for bt, target := range s.TargetLevels {
 		building := s.Buildings[bt]
 		if building == nil {
@@ -1264,6 +1264,18 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 		}
 	}
 
+	// Unit techs - research techs needed for mission units
+	unitTechs := s.getUnitTechsNeededForMissions(state)
+	for _, techName := range unitTechs {
+		if state.ResearchedTechs[techName] {
+			continue
+		}
+		tech := s.Technologies[techName]
+		if tech != nil && libraryLevel >= tech.RequiredLibraryLevel {
+			return &ResearchAction{Technology: tech}
+		}
+	}
+
 	// Production techs
 	for _, techName := range []string{"Beer tester", "Wheelbarrow"} {
 		if state.ResearchedTechs[techName] {
@@ -1278,6 +1290,34 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 	return nil
 }
 
+// getUnitTechsNeededForMissions returns techs needed for units required by missions
+func (s *Solver) getUnitTechsNeededForMissions(state *State) []string {
+	targetTavernLevel := s.TargetLevels[models.Tavern]
+	if targetTavernLevel == 0 {
+		targetTavernLevel = state.GetBuildingLevel(models.Tavern)
+	}
+
+	// Get unit needs at target tavern level
+	unitNeeds := s.calculateMissionUnitNeeds(targetTavernLevel)
+
+	// Collect required techs in priority order (based on when units are needed)
+	techsNeeded := make(map[string]bool)
+	var techOrder []string
+
+	// Check each unit type we need
+	for unitType := range unitNeeds {
+		def := models.GetUnitDefinition(unitType)
+		if def != nil && def.RequiredTech != "" {
+			if !techsNeeded[def.RequiredTech] {
+				techsNeeded[def.RequiredTech] = true
+				techOrder = append(techOrder, def.RequiredTech)
+			}
+		}
+	}
+
+	return techOrder
+}
+
 // pickBestTrainingAction selects the best unit to train for missions
 func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
 	if len(s.Missions) == 0 {
@@ -1287,61 +1327,107 @@ func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
 	// Check if we have food headroom for training
 	// Units cost 1-2 food each; only train if we have spare capacity
 	foodHeadroom := state.FoodCapacity - state.FoodUsed
-	if foodHeadroom < 10 {
+	if foodHeadroom < 5 {
 		return nil // Not enough food buffer for training
 	}
 
-	tavernLevel := state.GetBuildingLevel(models.Tavern)
+	currentTavernLevel := state.GetBuildingLevel(models.Tavern)
+	targetTavernLevel := s.TargetLevels[models.Tavern]
+	if targetTavernLevel == 0 {
+		targetTavernLevel = currentTavernLevel
+	}
+
 	arsenalLevel := state.GetBuildingLevel(models.Arsenal)
 	if arsenalLevel < 1 {
 		return nil // Can't train without arsenal
 	}
 
-	// Sort missions by ROI (best first)
-	sortedMissions := make([]*models.Mission, len(s.Missions))
-	copy(sortedMissions, s.Missions)
-	sort.Slice(sortedMissions, func(i, j int) bool {
-		return sortedMissions[i].NetAverageRewardPerHour() > sortedMissions[j].NetAverageRewardPerHour()
+	// Calculate maximum units needed for ALL missions at target tavern level
+	// This ensures we train units proactively before tavern upgrades
+	unitNeeds := s.calculateMissionUnitNeeds(targetTavernLevel)
+
+	// Find which unit type we need most (compared to what we have)
+	type unitDeficit struct {
+		unitType models.UnitType
+		deficit  int
+		def      *models.UnitDefinition
+	}
+
+	var deficits []unitDeficit
+	for unitType, needed := range unitNeeds {
+		have := state.Army.Get(unitType)
+		onMission := state.UnitsOnMission.Get(unitType)
+		available := have - onMission
+
+		if available < needed {
+			def := models.GetUnitDefinition(unitType)
+			if def == nil {
+				continue
+			}
+			deficits = append(deficits, unitDeficit{
+				unitType: unitType,
+				deficit:  needed - available,
+				def:      def,
+			})
+		}
+	}
+
+	if len(deficits) == 0 {
+		return nil // Have enough units for all missions
+	}
+
+	// Sort by deficit (train most needed first), then by training time (fast units first)
+	sort.Slice(deficits, func(i, j int) bool {
+		if deficits[i].deficit != deficits[j].deficit {
+			return deficits[i].deficit > deficits[j].deficit
+		}
+		return deficits[i].def.TrainingTimeSeconds < deficits[j].def.TrainingTimeSeconds
 	})
 
-	// Find the best mission we can train for
-	for _, mission := range sortedMissions {
-		if tavernLevel < mission.TavernLevel {
-			continue
+	// Try each unit type in priority order
+	for _, d := range deficits {
+		// Check tech requirement
+		if d.def.RequiredTech != "" && !state.ResearchedTechs[d.def.RequiredTech] {
+			continue // Skip - need to research tech first (will be handled by tech queue)
 		}
 
-		// Check each unit requirement
-		for _, req := range mission.UnitsRequired {
-			have := state.Army.Get(req.Type)
-			onMission := state.UnitsOnMission.Get(req.Type)
-			available := have - onMission
+		// Check food cost for this unit
+		if state.FoodUsed+d.def.FoodCost > state.FoodCapacity {
+			continue // Would exceed food capacity
+		}
 
-			if available < req.Count {
-				// Need more of this unit type
-				def := models.GetUnitDefinition(req.Type)
-				if def == nil {
-					continue
-				}
-
-				// Check tech requirement
-				if def.RequiredTech != "" && !state.ResearchedTechs[def.RequiredTech] {
-					continue // Skip - need to research tech first
-				}
-
-				// Check food cost for this unit
-				if state.FoodUsed+def.FoodCost > state.FoodCapacity {
-					continue // Would exceed food capacity
-				}
-
-				return &TrainUnitAction{
-					UnitType:   req.Type,
-					Definition: def,
-				}
-			}
+		return &TrainUnitAction{
+			UnitType:   d.unitType,
+			Definition: d.def,
 		}
 	}
 
 	return nil
+}
+
+// calculateMissionUnitNeeds returns the maximum units needed for all available missions
+// at the given tavern level. This calculates the cumulative max across all missions.
+func (s *Solver) calculateMissionUnitNeeds(tavernLevel int) map[models.UnitType]int {
+	needs := make(map[models.UnitType]int)
+
+	for _, mission := range s.Missions {
+		// Skip missions not available at this tavern level
+		if mission.TavernLevel > tavernLevel {
+			continue
+		}
+		if mission.MaxTavernLevel > 0 && tavernLevel > mission.MaxTavernLevel {
+			continue
+		}
+
+		// Track max needed for each unit type (missions can run in parallel)
+		for _, req := range mission.UnitsRequired {
+			if req.Count > needs[req.Type] {
+				needs[req.Type] = req.Count
+			}
+		}
+	}
+
+	return needs
 }
 
 // pickBestMissionToStart selects the best mission to start
