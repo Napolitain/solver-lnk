@@ -391,55 +391,59 @@ func (s *Solver) handleStateChanged(
 
 // tryStartBuilding attempts to start a building, handling prerequisites
 func (s *Solver) tryStartBuilding(state *State, events *EventQueue) {
-	// Get best building action by ROI (ignoring prerequisites for now)
-	action := s.pickBestBuildingActionIgnoringPrereqs(state)
-	if action == nil {
+	// Get all building actions sorted by ROI
+	candidates := s.getAllBuildingActionsSortedByROI(state)
+	if len(candidates) == 0 {
 		return
 	}
 
-	// Check if production tech (Beer Tester, Wheelbarrow) has better ROI
-	// If so, prioritize Library upgrade to enable that research
+	// Check if production tech (Beer Tester, Wheelbarrow) has better ROI than best building
 	prodTechAction := s.getBestProductionTechAction(state)
-	if prodTechAction != nil {
-		buildingROI := s.buildingROI(state, action)
+	if prodTechAction != nil && len(candidates) > 0 {
+		buildingROI := s.buildingROI(state, candidates[0])
 		techROI := s.productionTechROI(state, prodTechAction)
 		if techROI > buildingROI {
 			// Production tech is better - check if we need Library upgrade
 			libraryLevel := state.GetBuildingLevel(models.Library)
 			if libraryLevel < prodTechAction.RequiredLibraryLevel {
-				// Need to upgrade Library first
-				action = s.createLibraryUpgrade(state, prodTechAction.RequiredLibraryLevel)
-				if action == nil {
-					return
+				// Need to upgrade Library first - insert at front of candidates
+				libAction := s.createLibraryUpgrade(state, prodTechAction.RequiredLibraryLevel)
+				if libAction != nil {
+					candidates = append([]*BuildingAction{libAction}, candidates...)
 				}
 			}
 		}
 	}
 
-	// Check prerequisites and get the actual action to execute
-	action = s.resolvePrerequisites(state, action)
-	if action == nil {
+	// Try each candidate in order until we find one we can afford
+	for _, action := range candidates {
+		// Check prerequisites and get the actual action to execute
+		resolved := s.resolvePrerequisites(state, action)
+		if resolved == nil {
+			continue
+		}
+
+		// Check if we can afford it
+		costs := resolved.Costs()
+		if !s.canAfford(state, costs) {
+			continue
+		}
+
+		// Check food
+		if !state.CanAffordFood(costs.Food) {
+			continue
+		}
+
+		// Execute the action
+		s.executeBuilding(state, resolved, events)
 		return
 	}
-
-	// Check if we can afford it
-	costs := action.Costs()
-	if !s.canAfford(state, costs) {
-		return
-	}
-
-	// Check food
-	if !state.CanAffordFood(costs.Food) {
-		return
-	}
-
-	// Execute the action
-	s.executeBuilding(state, action, events)
 }
 
-// pickBestBuildingActionIgnoringPrereqs selects the best building without checking prereqs
-func (s *Solver) pickBestBuildingActionIgnoringPrereqs(state *State) *BuildingAction {
+// getAllBuildingActionsSortedByROI returns all building actions sorted by ROI (best first)
+func (s *Solver) getAllBuildingActionsSortedByROI(state *State) []*BuildingAction {
 	var candidates []*BuildingAction
+	var zeroROICandidates []*BuildingAction
 
 	for bt, target := range s.TargetLevels {
 		current := state.GetBuildingLevel(bt)
@@ -458,30 +462,50 @@ func (s *Solver) pickBestBuildingActionIgnoringPrereqs(state *State) *BuildingAc
 			continue
 		}
 
-		candidates = append(candidates, &BuildingAction{
+		action := &BuildingAction{
 			BuildingType: bt,
 			FromLevel:    current,
 			ToLevel:      toLevel,
 			Building:     building,
 			LevelData:    levelData,
-		})
-	}
-
-	if len(candidates) == 0 {
-		return nil
-	}
-
-	// Sort by ROI
-	sort.Slice(candidates, func(i, j int) bool {
-		roiI := s.buildingROI(state, candidates[i])
-		roiJ := s.buildingROI(state, candidates[j])
-		if roiI != roiJ {
-			return roiI > roiJ
 		}
-		return candidates[i].BuildingType < candidates[j].BuildingType
+
+		// Separate zero-ROI buildings (Fortifications, Keep, etc.) from productive buildings
+		// These should ONLY be built after all production targets are reached
+		if s.buildingROI(state, action) == 0 {
+			zeroROICandidates = append(zeroROICandidates, action)
+		} else {
+			candidates = append(candidates, action)
+		}
+	}
+
+	// If there are still production buildings to build, return only those
+	// Zero-ROI buildings are deferred until production is complete
+	if len(candidates) > 0 {
+		// Sort by ROI (descending)
+		sort.Slice(candidates, func(i, j int) bool {
+			roiI := s.buildingROI(state, candidates[i])
+			roiJ := s.buildingROI(state, candidates[j])
+			if roiI != roiJ {
+				return roiI > roiJ
+			}
+			return candidates[i].BuildingType < candidates[j].BuildingType
+		})
+		return candidates
+	}
+
+	// All production buildings are at target - now build zero-ROI buildings
+	// Sort by build time (shorter first to finish faster)
+	sort.Slice(zeroROICandidates, func(i, j int) bool {
+		timeI := zeroROICandidates[i].LevelData.BuildTimeSeconds
+		timeJ := zeroROICandidates[j].LevelData.BuildTimeSeconds
+		if timeI != timeJ {
+			return timeI < timeJ
+		}
+		return zeroROICandidates[i].BuildingType < zeroROICandidates[j].BuildingType
 	})
 
-	return candidates[0]
+	return zeroROICandidates
 }
 
 // resolvePrerequisites checks if action needs prerequisites and returns the prereq action if so
@@ -751,16 +775,21 @@ func (s *Solver) scheduleResourceWakeup(state *State, events *EventQueue) {
 
 	// Check building queue
 	if state.Now >= state.BuildingQueueFreeAt && state.PendingBuilding == nil {
-		if action := s.pickBestBuildingActionIgnoringPrereqs(state); action != nil {
-			// Resolve to actual action (may be prerequisite)
-			action = s.resolvePrerequisites(state, action)
-			if action != nil {
-				waitTime := s.waitTimeForCosts(state, action.Costs())
-				if waitTime > 0 {
-					t := state.Now + waitTime
-					if wakeupTime < 0 || t < wakeupTime {
-						wakeupTime = t
+		candidates := s.getAllBuildingActionsSortedByROI(state)
+		if len(candidates) > 0 {
+			// Check first affordable candidate's wait time
+			for _, action := range candidates {
+				// Resolve to actual action (may be prerequisite)
+				resolved := s.resolvePrerequisites(state, action)
+				if resolved != nil {
+					waitTime := s.waitTimeForCosts(state, resolved.Costs())
+					if waitTime > 0 {
+						t := state.Now + waitTime
+						if wakeupTime < 0 || t < wakeupTime {
+							wakeupTime = t
+						}
 					}
+					break // Only need the first resolvable one
 				}
 			}
 		}
@@ -973,19 +1002,20 @@ func buildingToResource(bt models.BuildingType) models.ResourceType {
 }
 
 func (s *Solver) buildingROI(state *State, action *BuildingAction) float64 {
-	buildHours := float64(action.LevelData.BuildTimeSeconds) / 3600.0
-	if buildHours <= 0 {
-		buildHours = 0.01
+	costs := action.Costs()
+	totalResourceCost := float64(costs.Wood + costs.Stone + costs.Iron)
+	if totalResourceCost <= 0 {
+		totalResourceCost = 1 // Avoid division by zero
 	}
 
 	// Special handling for Tavern - calculate mission ROI
 	if action.BuildingType == models.Tavern {
-		return s.tavernROI(state, action.ToLevel, buildHours)
+		return s.tavernROI(state, action.ToLevel, totalResourceCost)
 	}
 
-	// Special handling for Arsenal - calculate training ROI for missions
+	// Special handling for Arsenal - no direct ROI (deferred)
 	if action.BuildingType == models.Arsenal {
-		return s.arsenalROI(state, action.ToLevel, buildHours)
+		return 0
 	}
 
 	// For non-production buildings (Keep, Fortifications, etc.), return 0
@@ -1002,19 +1032,22 @@ func (s *Solver) buildingROI(state *State, action *BuildingAction) float64 {
 	}
 
 	newRate := *action.LevelData.ProductionRate
-	gain := newRate - currentRate
+	gainPerHour := newRate - currentRate
 
-	// Base ROI
-	baseROI := gain / buildHours
+	// ROI = production gain per hour / total resource investment
+	// This measures: how much hourly production do we get per resource spent?
+	// Higher is better - cheap upgrades with good gains are prioritized
+	baseROI := gainPerHour / totalResourceCost
 
-	// Apply scarcity multiplier
-	scarcityMultiplier := s.calculateScarcityMultiplier(state, action.BuildingType)
+	// Apply dynamic scarcity multiplier based on remaining build costs
+	scarcityMultiplier := s.calculateDynamicScarcity(state, action.BuildingType)
 
 	return baseROI * scarcityMultiplier
 }
 
 // tavernROI calculates ROI for Tavern upgrade based on missions unlocked
-func (s *Solver) tavernROI(state *State, toLevel int, buildHours float64) float64 {
+// ROI = net mission reward per hour / total resource investment
+func (s *Solver) tavernROI(state *State, toLevel int, totalResourceCost float64) float64 {
 	if len(s.Missions) == 0 {
 		return 0
 	}
@@ -1045,54 +1078,44 @@ func (s *Solver) tavernROI(state *State, toLevel int, buildHours float64) float6
 		}
 	}
 
-	// Return the mission ROI divided by build time
-	// This gives us a comparable metric to production building ROI
-	return bestNewMissionROI / buildHours
+	// ROI = mission reward per hour / resource investment
+	return bestNewMissionROI / totalResourceCost
 }
 
-// arsenalROI calculates ROI for Arsenal upgrade based on enabling unit training for missions
-func (s *Solver) arsenalROI(state *State, toLevel int, buildHours float64) float64 {
-	if len(s.Missions) == 0 {
-		return 0
-	}
+// calculateDynamicScarcity calculates scarcity based on remaining build costs
+// This replaces the hardcoded 40/40/20 ratios with actual demand from remaining buildings
+func (s *Solver) calculateDynamicScarcity(state *State, bt models.BuildingType) float64 {
+	// Calculate remaining costs for all target buildings
+	var remainingWood, remainingStone, remainingIron float64
 
-	// Arsenal level 1+ enables training
-	// Higher levels = faster training (but we don't model that yet)
-	// For now, give Arsenal a base ROI that makes it get built early
+	for targetBT, targetLevel := range s.TargetLevels {
+		building := s.Buildings[targetBT]
+		if building == nil {
+			continue
+		}
 
-	// Find the best mission we could run if we had units
-	var bestMissionROI float64
-	tavernLevel := state.GetBuildingLevel(models.Tavern)
-
-	for _, mission := range s.Missions {
-		if mission.TavernLevel <= tavernLevel {
-			roi := mission.NetAverageRewardPerHour()
-			if roi > bestMissionROI {
-				bestMissionROI = roi
+		currentLevel := state.GetBuildingLevel(targetBT)
+		for level := currentLevel + 1; level <= targetLevel; level++ {
+			levelData := building.GetLevelData(level)
+			if levelData != nil {
+				remainingWood += float64(levelData.Costs.Wood)
+				remainingStone += float64(levelData.Costs.Stone)
+				remainingIron += float64(levelData.Costs.Iron)
 			}
 		}
 	}
 
-	if bestMissionROI == 0 {
-		// Tavern not high enough - check future missions
-		for _, mission := range s.Missions {
-			roi := mission.NetAverageRewardPerHour()
-			if roi > bestMissionROI {
-				bestMissionROI = roi
-			}
-		}
-		// Discount heavily since we need Tavern too
-		bestMissionROI /= 10.0
+	totalRemaining := remainingWood + remainingStone + remainingIron
+	if totalRemaining <= 0 {
+		return 1.0 // No remaining costs, no scarcity adjustment
 	}
 
-	// Arsenal enables getting units, which enables missions
-	// Give it ROI proportional to mission value
-	return bestMissionROI / buildHours
-}
+	// Calculate demand ratios from remaining costs
+	woodDemand := remainingWood / totalRemaining
+	stoneDemand := remainingStone / totalRemaining
+	ironDemand := remainingIron / totalRemaining
 
-// calculateScarcityMultiplier returns a multiplier based on how scarce the produced resource is
-func (s *Solver) calculateScarcityMultiplier(state *State, bt models.BuildingType) float64 {
-	// Get production rates
+	// Get current production rates
 	woodRate := state.GetProductionRate(models.Wood)
 	stoneRate := state.GetProductionRate(models.Stone)
 	ironRate := state.GetProductionRate(models.Iron)
@@ -1108,34 +1131,26 @@ func (s *Solver) calculateScarcityMultiplier(state *State, bt models.BuildingTyp
 		ironRate = 0.1
 	}
 
-	// Total production
 	totalRate := woodRate + stoneRate + ironRate
 
-	// Resource demand ratios (based on typical building costs)
-	// Early game buildings need roughly: Wood 40%, Stone 40%, Iron 20%
-	woodDemand := 0.40
-	stoneDemand := 0.40
-	ironDemand := 0.20
+	// Current production ratios (supply)
+	woodSupply := woodRate / totalRate
+	stoneSupply := stoneRate / totalRate
+	ironSupply := ironRate / totalRate
 
-	// Current production ratios
-	woodRatio := woodRate / totalRate
-	stoneRatio := stoneRate / totalRate
-	ironRatio := ironRate / totalRate
-
-	// Scarcity = demand / supply ratio
+	// Scarcity = demand / supply
 	var scarcity float64
 	switch bt {
 	case models.Lumberjack:
-		scarcity = woodDemand / woodRatio
+		scarcity = woodDemand / woodSupply
 	case models.Quarry:
-		scarcity = stoneDemand / stoneRatio
+		scarcity = stoneDemand / stoneSupply
 	case models.OreMine:
-		scarcity = ironDemand / ironRatio
+		scarcity = ironDemand / ironSupply
 	default:
 		return 1.0
 	}
 
-	// Normalize: scarcity of 1.0 means balanced
 	// Cap the multiplier to avoid extreme values
 	if scarcity < 0.5 {
 		scarcity = 0.5
@@ -1188,6 +1203,7 @@ func (s *Solver) getBestProductionTechAction(state *State) *ProductionTechAction
 }
 
 // productionTechROI calculates the ROI for a production tech
+// ROI = production gain per hour / total resource investment (tech + library upgrades)
 func (s *Solver) productionTechROI(state *State, action *ProductionTechAction) float64 {
 	// Production bonus: 5% = 0.05 multiplier on all production
 	bonusMultiplier := 0.05
@@ -1197,33 +1213,31 @@ func (s *Solver) productionTechROI(state *State, action *ProductionTechAction) f
 		state.GetProductionRate(models.Stone) +
 		state.GetProductionRate(models.Iron)
 
-	// Gain in production rate
-	gain := totalRate * bonusMultiplier
+	// Gain in production rate (resources per hour)
+	gainPerHour := totalRate * bonusMultiplier
 
-	// Time to get the tech (research time + Library upgrades if needed)
-	researchHours := float64(action.Technology.ResearchTimeSeconds) / 3600.0
+	// Calculate total resource cost (tech cost + Library upgrade costs if needed)
+	techCosts := action.Technology.Costs
+	totalCost := float64(techCosts.Wood + techCosts.Stone + techCosts.Iron)
 
 	libraryLevel := state.GetBuildingLevel(models.Library)
-	libraryUpgradeHours := 0.0
 	if libraryLevel < action.RequiredLibraryLevel {
-		// Calculate time needed for Library upgrades
 		libraryBuilding := s.Buildings[models.Library]
 		if libraryBuilding != nil {
 			for level := libraryLevel + 1; level <= action.RequiredLibraryLevel; level++ {
 				levelData := libraryBuilding.GetLevelData(level)
 				if levelData != nil {
-					libraryUpgradeHours += float64(levelData.BuildTimeSeconds) / 3600.0
+					totalCost += float64(levelData.Costs.Wood + levelData.Costs.Stone + levelData.Costs.Iron)
 				}
 			}
 		}
 	}
 
-	totalHours := researchHours + libraryUpgradeHours
-	if totalHours <= 0 {
-		return gain * 1000
+	if totalCost <= 0 {
+		return gainPerHour * 1000 // Very high ROI if free
 	}
 
-	return gain / totalHours
+	return gainPerHour / totalCost
 }
 
 // pickBestResearchAction selects the best research to start
@@ -1338,9 +1352,28 @@ func (s *Solver) pickBestMissionToStart(state *State) *models.Mission {
 	var best *models.Mission
 	var bestROI float64
 
+	tavernLevel := state.GetBuildingLevel(models.Tavern)
+
 	for _, mission := range s.Missions {
-		// Check tavern level
-		if state.GetBuildingLevel(models.Tavern) < mission.TavernLevel {
+		// Check tavern level (min)
+		if tavernLevel < mission.TavernLevel {
+			continue
+		}
+
+		// Check tavern level (max) - missions become unavailable at higher levels
+		if mission.MaxTavernLevel > 0 && tavernLevel > mission.MaxTavernLevel {
+			continue
+		}
+
+		// Check if this mission is already running (missions are unique - can't run same mission twice)
+		alreadyRunning := false
+		for _, running := range state.RunningMissions {
+			if running.Mission.Name == mission.Name {
+				alreadyRunning = true
+				break
+			}
+		}
+		if alreadyRunning {
 			continue
 		}
 

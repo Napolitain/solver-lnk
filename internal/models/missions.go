@@ -42,6 +42,7 @@ type Mission struct {
 	Description     string
 	DurationMinutes int
 	TavernLevel     int // Required tavern level to unlock this mission
+	MaxTavernLevel  int // Maximum tavern level where this mission is available (0 = no limit)
 
 	// Units required to run this mission (they are busy during mission)
 	UnitsRequired []UnitRequirement

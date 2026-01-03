@@ -11,10 +11,11 @@ import (
 
 // missionJSON represents the JSON structure for a mission
 type missionJSON struct {
-	Name          string `json:"name"`
-	TavernLevel   int    `json:"tavern_level"`
-	DurationMins  int    `json:"duration_minutes"`
-	UnitsRequired []struct {
+	Name           string `json:"name"`
+	TavernLevel    int    `json:"tavern_level"`
+	MaxTavernLevel int    `json:"max_tavern_level"` // 0 means no limit
+	DurationMins   int    `json:"duration_minutes"`
+	UnitsRequired  []struct {
 		Type  string `json:"type"`
 		Count int    `json:"count"`
 	} `json:"units_required"`
@@ -48,6 +49,7 @@ func LoadMissionsFromFile(dataDir string) ([]*models.Mission, error) {
 		m := &models.Mission{
 			Name:            mj.Name,
 			TavernLevel:     mj.TavernLevel,
+			MaxTavernLevel:  mj.MaxTavernLevel,
 			DurationMinutes: mj.DurationMins,
 			ResourceCosts: models.Costs{
 				Wood:  mj.ResourceCosts.Wood,
