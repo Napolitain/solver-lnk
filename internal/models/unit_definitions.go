@@ -24,7 +24,7 @@ var UnitTechRequirements = map[UnitType]string{
 	Swordsman:   "Swordsmith",   // Library 4
 	Archer:      "Longbow",      // Library 1
 	Crossbowman: "Crossbow",     // Library 5
-	Horseman:    "",             // No tech needed
+	Horseman:    "Stirrup",      // Library 2
 	Lancer:      "Horse armour", // Library 7
 }
 
@@ -93,7 +93,7 @@ func AllUnitDefinitions() []*UnitDefinition {
 			FoodCost:            2,
 			ResourceCosts:       Costs{Wood: 25, Stone: 15, Iron: 45},
 			TrainingTimeSeconds: 1050, // 17:30
-			RequiredTech:        "",
+			RequiredTech:        "Stirrup",
 			SpeedMinutesField:   5.0,
 			TransportCapacity:   22,
 			Category:            "Cavalry",

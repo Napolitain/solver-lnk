@@ -1300,9 +1300,14 @@ func (s *Solver) getUnitTechsNeededForMissions(state *State) []string {
 	// Get unit needs at target tavern level
 	unitNeeds := s.calculateMissionUnitNeeds(targetTavernLevel)
 
-	// Collect required techs in priority order (based on when units are needed)
+	// Collect required techs in a deterministic order
+	// Sort by library level required (lower first to unlock earlier)
 	techsNeeded := make(map[string]bool)
-	var techOrder []string
+	type techInfo struct {
+		name         string
+		libraryLevel int
+	}
+	var techList []techInfo
 
 	// Check each unit type we need
 	for unitType := range unitNeeds {
@@ -1310,9 +1315,25 @@ func (s *Solver) getUnitTechsNeededForMissions(state *State) []string {
 		if def != nil && def.RequiredTech != "" {
 			if !techsNeeded[def.RequiredTech] {
 				techsNeeded[def.RequiredTech] = true
-				techOrder = append(techOrder, def.RequiredTech)
+				tech := s.Technologies[def.RequiredTech]
+				libLevel := 0
+				if tech != nil {
+					libLevel = tech.RequiredLibraryLevel
+				}
+				techList = append(techList, techInfo{def.RequiredTech, libLevel})
 			}
 		}
+	}
+
+	// Sort by library level required
+	sort.Slice(techList, func(i, j int) bool {
+		return techList[i].libraryLevel < techList[j].libraryLevel
+	})
+
+	// Extract tech names in sorted order
+	var techOrder []string
+	for _, t := range techList {
+		techOrder = append(techOrder, t.name)
 	}
 
 	return techOrder

@@ -284,3 +284,75 @@ func TestMissionResourceCosts(t *testing.T) {
 		}
 	}
 }
+
+// TestMissionUnitNeedsAtTavern10 verifies that Lancers are needed for Tavern 10 missions
+func TestMissionUnitNeedsAtTavern10(t *testing.T) {
+buildings, _ := loader.LoadBuildings("../../../data")
+technologies, _ := loader.LoadTechnologies("../../../data")
+missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+targetLevels := map[models.BuildingType]int{
+models.Tavern: 10,
+}
+
+solver := NewSolver(buildings, technologies, missions, targetLevels)
+
+// Calculate unit needs at Tavern 10
+needs := solver.calculateMissionUnitNeeds(10)
+
+t.Logf("Unit needs at Tavern 10:")
+for ut, count := range needs {
+t.Logf("  %s: %d", ut, count)
+}
+
+// Verify Lancers are needed (for Jousting and Castle festival)
+if needs[models.Lancer] < 100 {
+t.Errorf("Expected at least 100 Lancers needed, got %d", needs[models.Lancer])
+}
+
+// Verify other unit types
+if needs[models.Spearman] < 200 {
+t.Errorf("Expected at least 200 Spearmen needed, got %d", needs[models.Spearman])
+}
+if needs[models.Archer] < 200 {
+t.Errorf("Expected at least 200 Archers needed, got %d", needs[models.Archer])
+}
+if needs[models.Horseman] < 100 {
+t.Errorf("Expected at least 100 Horsemen needed, got %d", needs[models.Horseman])
+}
+if needs[models.Crossbowman] < 100 {
+t.Errorf("Expected at least 100 Crossbowmen needed, got %d", needs[models.Crossbowman])
+}
+}
+
+// TestUnitTechsNeededForMissions verifies that Horse armour is detected as needed
+func TestUnitTechsNeededForMissions(t *testing.T) {
+buildings, _ := loader.LoadBuildings("../../../data")
+technologies, _ := loader.LoadTechnologies("../../../data")
+missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+targetLevels := map[models.BuildingType]int{
+models.Tavern: 10,
+}
+
+solver := NewSolver(buildings, technologies, missions, targetLevels)
+state := NewState(models.NewGameState())
+state.SetBuildingLevel(models.Tavern, 10)
+
+techs := solver.getUnitTechsNeededForMissions(state)
+
+t.Logf("Unit techs needed: %v", techs)
+
+// Check for expected techs
+techMap := make(map[string]bool)
+for _, tech := range techs {
+techMap[tech] = true
+}
+
+expectedTechs := []string{"Longbow", "Crossbow", "Stirrup", "Horse armour"}
+for _, expected := range expectedTechs {
+if !techMap[expected] {
+t.Errorf("Expected tech %q not found in unit techs", expected)
+}
+}
+}
