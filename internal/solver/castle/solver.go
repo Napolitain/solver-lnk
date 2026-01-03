@@ -67,34 +67,10 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 		s.processEvent(state, event, events, &buildingActions, &researchActions, &trainingActions, &missionActions)
 	}
 
-	// Process any remaining completion events (for buildings that were started but not yet recorded)
-	for !events.Empty() {
-		event := events.Pop()
-
-		// Only process completion events, skip StateChanged
-		if event.Type == EventStateChanged {
-			continue
-		}
-
-		// Advance time
-		if event.Time > state.Now {
-			s.advanceTime(state, event.Time-state.Now)
-		}
-
-		s.processEvent(state, event, events, &buildingActions, &researchActions, &trainingActions, &missionActions)
-	}
-
-	// Research ALL remaining technologies after buildings are done
-	s.researchRemainingTechs(state, &researchActions)
-
-	// Train remaining units needed for missions after buildings are done
-	s.trainRemainingMissionUnits(state, &trainingActions)
-
-	// Schedule any remaining missions now that we have all units
-	s.scheduleRemainingMissions(state, &missionActions)
-
-	// Fill remaining food capacity with defense units
-	s.trainDefenseUnits(state, &trainingActions)
+	// Phase 2: Continue simulation for research/training/missions after buildings complete
+	// This handles all remaining events including mission completions
+	// DO NOT drain events here - let runPostBuildingPhase handle them to avoid gaps
+	s.runPostBuildingPhase(state, events, &buildingActions, &researchActions, &trainingActions, &missionActions)
 
 	// Calculate final time
 	finalTime := state.Now
@@ -172,12 +148,17 @@ func (s *Solver) SolveWithMissionTracking(initialState *models.GameState) (*mode
 	// Process remaining events
 	for !events.Empty() {
 		event := events.Pop()
-		if event.Type == EventStateChanged {
-			continue
-		}
+		
+		// Advance time
 		if event.Time > state.Now {
 			s.advanceTime(state, event.Time-state.Now)
 		}
+		
+		// Skip state changes - don't start new work in cleanup phase
+		if event.Type == EventStateChanged {
+			continue
+		}
+		
 		s.processEvent(state, event, events, &buildingActions, &researchActions, &trainingActions, &missionActions)
 	}
 
@@ -405,6 +386,363 @@ func (s *Solver) handleStateChanged(
 
 	// Schedule wake-up when resources become available
 	s.scheduleResourceWakeup(state, events)
+}
+
+// runPostBuildingPhase runs research, training, and missions after building targets are reached
+// This uses event-driven simulation so missions run in parallel with training
+func (s *Solver) runPostBuildingPhase(
+	state *State,
+	events *EventQueue,
+	buildingActions *[]models.BuildingUpgradeAction,
+	researchActions *[]models.ResearchAction,
+	trainingActions *[]models.TrainUnitAction,
+	missionActions *[]models.MissionAction,
+) {
+	// Bootstrap with initial event
+	events.Push(Event{Time: state.Now, Type: EventStateChanged})
+
+	// Hard cap to prevent infinite loops - this should be plenty for any reasonable scenario
+	maxIterations := 500000
+	iterations := 0
+
+	// Track when all work is done (no more training/research/missions possible)
+	for !events.Empty() && iterations < maxIterations {
+		iterations++
+
+		event := events.Pop()
+
+		// Advance time (accumulate resources)
+		if event.Time > state.Now {
+			s.advanceTime(state, event.Time-state.Now)
+		}
+
+		switch event.Type {
+		case EventStateChanged:
+			// Check if all post-building work is done
+			if s.isPostBuildingComplete(state) {
+				// Drain remaining events without starting new work
+				continue
+			}
+			s.handlePostBuildingStateChanged(state, events, researchActions, trainingActions)
+
+		case EventBuildingComplete:
+			// Handle any remaining building completions (but don't start new buildings)
+			s.handleBuildingComplete(state, event, events, buildingActions)
+
+		case EventResearchComplete:
+			s.handleResearchComplete(state, event, events, researchActions)
+
+		case EventTrainingComplete:
+			s.handleTrainingComplete(state, event, events, trainingActions)
+
+		case EventMissionComplete:
+			ms := event.Payload.(*models.MissionState)
+
+			// Record mission action
+			*missionActions = append(*missionActions, models.MissionAction{
+				MissionName:  ms.Mission.Name,
+				StartTime:    ms.StartTime,
+				EndTime:      ms.EndTime,
+				ResourceCost: ms.Mission.ResourceCosts,
+				Rewards:      ms.Mission.Rewards,
+			})
+
+			// Add resources from mission rewards
+			for _, reward := range ms.Mission.Rewards {
+				avgReward := reward.AverageReward()
+				state.AddResource(reward.Type, avgReward)
+			}
+
+			// Return units from mission
+			state.Army.AddFrom(ms.AssignedUnits)
+			state.UnitsOnMission.Subtract(ms.AssignedUnits)
+
+			// Remove from running missions
+			s.removeMissionFromRunning(state, ms)
+
+			// Trigger re-evaluation only if not complete
+			if !s.isPostBuildingComplete(state) {
+				events.PushIfNotExists(Event{Time: state.Now, Type: EventStateChanged})
+			}
+		}
+	}
+}
+
+// isPostBuildingComplete returns true when all post-building phase work is done
+func (s *Solver) isPostBuildingComplete(state *State) bool {
+	// Check if all research is done (or can't be done due to food)
+	libraryLevel := state.GetBuildingLevel(models.Library)
+	for name, tech := range s.Technologies {
+		if state.ResearchedTechs[name] {
+			continue
+		}
+		if tech.RequiredLibraryLevel > libraryLevel {
+			continue // Can't research without higher Library
+		}
+		// Check if we can afford food for this research
+		if state.FoodUsed+tech.Costs.Food <= state.FoodCapacity {
+			return false // Still have research to do and can afford it
+		}
+		// Tech exists but we can't afford its food cost - skip it
+	}
+
+	// Check if all training is done (food capacity reached or can't train more)
+	if state.FoodUsed < state.FoodCapacity {
+		// Check if any unit can be trained
+		for _, ut := range []models.UnitType{models.Spearman, models.Swordsman, models.Archer, models.Crossbowman, models.Horseman, models.Lancer} {
+			def := models.GetUnitDefinition(ut)
+			if def == nil {
+				continue
+			}
+			if def.RequiredTech != "" && !state.ResearchedTechs[def.RequiredTech] {
+				continue
+			}
+			if state.FoodUsed+def.FoodCost <= state.FoodCapacity {
+				return false // Can still train units
+			}
+		}
+	}
+
+	return true // All done
+}
+
+// handlePostBuildingStateChanged handles state changes after building targets are reached
+// Only processes research, training, and missions - not new buildings
+func (s *Solver) handlePostBuildingStateChanged(
+	state *State,
+	events *EventQueue,
+	researchActions *[]models.ResearchAction,
+	trainingActions *[]models.TrainUnitAction,
+) {
+	// Research queue - research all remaining techs
+	if state.Now >= state.ResearchQueueFreeAt && state.PendingResearch == nil {
+		if action := s.pickNextRemainingResearch(state); action != nil {
+			if s.canAfford(state, action.Costs()) && state.CanAffordFood(action.Costs().Food) {
+				s.executeResearch(state, action, events)
+			}
+		}
+	}
+
+	// Training queue - train units for missions and defense
+	if state.Now >= state.TrainingQueueFreeAt && state.PendingTraining == nil {
+		if action := s.pickNextTrainingAction(state); action != nil {
+			if s.canAfford(state, action.Costs()) && state.CanAffordFood(action.FoodCost()) {
+				s.executeTraining(state, action, events)
+			}
+		}
+	}
+
+	// Missions (can start multiple if units available)
+	for {
+		mission := s.pickBestMissionToStart(state)
+		if mission == nil {
+			break
+		}
+		if !s.canAfford(state, mission.ResourceCosts) {
+			break
+		}
+		s.startMission(state, mission, events)
+	}
+
+	// Schedule wake-up when resources become available
+	s.schedulePostBuildingWakeup(state, events)
+}
+
+// pickNextRemainingResearch picks the next technology to research
+func (s *Solver) pickNextRemainingResearch(state *State) *ResearchAction {
+	libraryLevel := state.GetBuildingLevel(models.Library)
+
+	// Find lowest library requirement tech that's not researched
+	var best *ResearchAction
+	var bestLevel int = 999
+
+	for name, tech := range s.Technologies {
+		if state.ResearchedTechs[name] {
+			continue
+		}
+		if tech.RequiredLibraryLevel > libraryLevel {
+			continue
+		}
+		if tech.RequiredLibraryLevel < bestLevel {
+			bestLevel = tech.RequiredLibraryLevel
+			best = &ResearchAction{
+				Technology: tech,
+			}
+		}
+	}
+
+	return best
+}
+
+// pickNextTrainingAction picks the next unit to train for missions or defense
+func (s *Solver) pickNextTrainingAction(state *State) *TrainUnitAction {
+	// First, check if we need units for missions
+	for _, mission := range s.Missions {
+		tavernLevel := state.GetBuildingLevel(models.Tavern)
+		if tavernLevel < mission.TavernLevel {
+			continue
+		}
+		if mission.MaxTavernLevel > 0 && tavernLevel > mission.MaxTavernLevel {
+			continue
+		}
+
+		for _, req := range mission.UnitsRequired {
+			have := state.Army.Get(req.Type)
+			onMission := state.UnitsOnMission.Get(req.Type)
+			available := have - onMission
+			if available < req.Count {
+				// Need more of this unit type
+				def := models.GetUnitDefinition(req.Type)
+				if def != nil && (def.RequiredTech == "" || state.ResearchedTechs[def.RequiredTech]) {
+					if state.FoodUsed+def.FoodCost <= state.FoodCapacity {
+						return &TrainUnitAction{
+							UnitType:   req.Type,
+							Definition: def,
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Then, train defense units if food available
+	if state.FoodUsed < state.FoodCapacity {
+		return s.pickDefenseUnit(state)
+	}
+
+	return nil
+}
+
+// pickDefenseUnit picks the best unit for balanced defense
+func (s *Solver) pickDefenseUnit(state *State) *TrainUnitAction {
+	combatUnits := []models.UnitType{
+		models.Spearman,
+		models.Swordsman,
+		models.Archer,
+		models.Crossbowman,
+		models.Horseman,
+		models.Lancer,
+	}
+
+	// Track current defense totals
+	defCav, defInf, defArt := 0, 0, 0
+	for _, ut := range combatUnits {
+		count := state.Army.Get(ut)
+		def := models.GetUnitDefinition(ut)
+		if def != nil {
+			defCav += count * def.DefenseVsCavalry
+			defInf += count * def.DefenseVsInfantry
+			defArt += count * def.DefenseVsArtillery
+		}
+	}
+
+	// Find which defense type is weakest
+	minDef := defCav
+	if defInf < minDef {
+		minDef = defInf
+	}
+	if defArt < minDef {
+		minDef = defArt
+	}
+
+	// Find best unit to improve the weakest defense
+	var bestUnit models.UnitType
+	var bestDef *models.UnitDefinition
+	var bestImprovement int
+	found := false
+
+	for _, ut := range combatUnits {
+		def := models.GetUnitDefinition(ut)
+		if def == nil {
+			continue
+		}
+
+		// Check tech requirement
+		if def.RequiredTech != "" && !state.ResearchedTechs[def.RequiredTech] {
+			continue
+		}
+
+		// Check food
+		if state.FoodUsed+def.FoodCost > state.FoodCapacity {
+			continue
+		}
+
+		// Calculate improvement to minimum defense
+		newCav := defCav + def.DefenseVsCavalry
+		newInf := defInf + def.DefenseVsInfantry
+		newArt := defArt + def.DefenseVsArtillery
+		newMin := newCav
+		if newInf < newMin {
+			newMin = newInf
+		}
+		if newArt < newMin {
+			newMin = newArt
+		}
+		improvement := newMin - minDef
+
+		if !found || improvement > bestImprovement {
+			bestImprovement = improvement
+			bestUnit = ut
+			bestDef = def
+			found = true
+		}
+	}
+
+	if !found {
+		return nil
+	}
+
+	return &TrainUnitAction{
+		UnitType:   bestUnit,
+		Definition: bestDef,
+	}
+}
+
+// schedulePostBuildingWakeup schedules wakeup for research/training/missions only
+func (s *Solver) schedulePostBuildingWakeup(state *State, events *EventQueue) {
+	var wakeupTime int = -1
+
+	// Check if waiting for research to afford
+	if state.Now >= state.ResearchQueueFreeAt && state.PendingResearch == nil {
+		if action := s.pickNextRemainingResearch(state); action != nil {
+			waitTime := s.waitTimeForCosts(state, action.Costs())
+			if waitTime > 0 {
+				t := state.Now + waitTime
+				if wakeupTime < 0 || t < wakeupTime {
+					wakeupTime = t
+				}
+			}
+		}
+	}
+
+	// Check if waiting for training to afford
+	if state.Now >= state.TrainingQueueFreeAt && state.PendingTraining == nil {
+		if action := s.pickNextTrainingAction(state); action != nil {
+			waitTime := s.waitTimeForCosts(state, action.Costs())
+			if waitTime > 0 {
+				t := state.Now + waitTime
+				if wakeupTime < 0 || t < wakeupTime {
+					wakeupTime = t
+				}
+			}
+		}
+	}
+
+	// Check if waiting for mission to afford
+	mission := s.pickBestMissionToStart(state)
+	if mission != nil {
+		waitTime := s.waitTimeForCosts(state, mission.ResourceCosts)
+		if waitTime > 0 {
+			t := state.Now + waitTime
+			if wakeupTime < 0 || t < wakeupTime {
+				wakeupTime = t
+			}
+		}
+	}
+
+	if wakeupTime > state.Now {
+		events.PushIfNotExists(Event{Time: wakeupTime, Type: EventStateChanged})
+	}
 }
 
 // tryStartBuilding attempts to start a building, handling prerequisites
