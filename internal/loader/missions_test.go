@@ -8,13 +8,13 @@ import (
 
 func TestLoadMissions(t *testing.T) {
 	missions := LoadMissions()
-	
+
 	if len(missions) == 0 {
 		t.Fatal("No missions loaded")
 	}
-	
+
 	t.Logf("Loaded %d missions", len(missions))
-	
+
 	// Verify all missions have required fields
 	for _, m := range missions {
 		if m.Name == "" {
@@ -35,17 +35,89 @@ func TestLoadMissions(t *testing.T) {
 	}
 }
 
+func TestLoadMissionsFromFile(t *testing.T) {
+	missions, err := LoadMissionsFromFile("../../data")
+	if err != nil {
+		t.Fatalf("Failed to load missions from file: %v", err)
+	}
+
+	if len(missions) == 0 {
+		t.Fatal("No missions loaded from file")
+	}
+
+	t.Logf("Loaded %d missions from file", len(missions))
+
+	// Verify all missions have required fields including MaxTavernLevel
+	for _, m := range missions {
+		if m.Name == "" {
+			t.Error("Mission has empty name")
+		}
+		if m.TavernLevel <= 0 {
+			t.Errorf("Mission %s has invalid tavern level: %d", m.Name, m.TavernLevel)
+		}
+		// MaxTavernLevel should be set (except for highest level missions which could be 0)
+		if m.MaxTavernLevel > 0 && m.MaxTavernLevel < m.TavernLevel {
+			t.Errorf("Mission %s has max tavern level %d < min %d",
+				m.Name, m.MaxTavernLevel, m.TavernLevel)
+		}
+	}
+}
+
+func TestMissionTavernLevelRange(t *testing.T) {
+	missions, err := LoadMissionsFromFile("../../data")
+	if err != nil {
+		t.Fatalf("Failed to load missions: %v", err)
+	}
+
+	// Expected tavern level ranges based on data/tavern
+	expectedRanges := map[string][2]int{
+		"Overtime wood":         {1, 3},
+		"Overtime stone":        {2, 3},
+		"Overtime ore":          {3, 3},
+		"Hunting":               {2, 5},
+		"Chop wood":             {3, 5},
+		"Mandatory overtime":    {4, 10},
+		"Help stone cutters":    {4, 5},
+		"Market day":            {5, 7},
+		"Forging tools":         {6, 10},
+		"Feed miners":           {6, 7},
+		"Hire stone cutters":    {7, 7},
+		"Create a trading post": {8, 10},
+		"Collect taxes":         {8, 10},
+		"Chase bandits away":    {9, 10},
+		"Jousting":              {10, 10},
+		"Castle festival":       {10, 10},
+	}
+
+	for _, m := range missions {
+		expected, ok := expectedRanges[m.Name]
+		if !ok {
+			t.Logf("Unknown mission: %s", m.Name)
+			continue
+		}
+
+		if m.TavernLevel != expected[0] {
+			t.Errorf("Mission %s: expected min tavern %d, got %d",
+				m.Name, expected[0], m.TavernLevel)
+		}
+		if m.MaxTavernLevel != expected[1] {
+			t.Errorf("Mission %s: expected max tavern %d, got %d",
+				m.Name, expected[1], m.MaxTavernLevel)
+		}
+	}
+}
+
 func TestGetMissionsForTavernLevel(t *testing.T) {
 	tests := []struct {
 		level    int
 		minCount int
 	}{
-		{1, 4},  // Overtime missions + Hunting
-		{2, 7},  // +3 more (Chop Wood, Help Stone, Mandatory)
-		{5, 11}, // Several more
-		{10, 16}, // All missions
+		{1, 1},  // Only overtime wood at level 1
+		{2, 3},  // +overtime stone, hunting
+		{5, 5},  // Several more
+		{10, 7}, // Higher level missions only
 	}
-	
+
 	for _, tc := range tests {
 		available := GetMissionsForTavernLevel(tc.level)
 		if len(available) < tc.minCount {
@@ -57,14 +129,14 @@ func TestGetMissionsForTavernLevel(t *testing.T) {
 
 func TestMissionROI(t *testing.T) {
 	missions := LoadMissions()
-	
+
 	t.Log("Mission ROI Analysis:")
 	t.Log("---------------------")
-	
+
 	for _, m := range missions {
 		perHour := m.NetAverageRewardPerHour()
 		perUnitHour := m.NetAverageRewardPerUnitHour()
-		
+
 		t.Logf("%-25s Tavern %2d | %3d min | %3d units | %.0f res/h | %.2f res/unit-h",
 			m.Name, m.TavernLevel, m.DurationMinutes, m.TotalUnitsRequired(),
 			perHour, perUnitHour)
@@ -81,7 +153,7 @@ func TestGetBestMissionForBottleneck(t *testing.T) {
 		{1, models.Iron, "Overtime Ore"},      // Only overtime available
 		{6, models.Iron, "Feed Miners"},       // Feed Miners is iron-focused
 	}
-	
+
 	for _, tc := range tests {
 		best := GetBestMissionForBottleneck(tc.tavernLevel, tc.bottleneck)
 		if best == nil {
@@ -98,7 +170,7 @@ func TestGetBestMissionForBottleneck(t *testing.T) {
 func TestMissionInvestmentAnalysis(t *testing.T) {
 	// Calculate ROI for early game mission investment
 	// Question: Is it worth building Tavern 1 + training 15 archers for Hunting?
-	
+
 	hunting := GetMissionsForTavernLevel(1)[3] // Hunting
 	if hunting.Name != "Hunting" {
 		// Find hunting
@@ -109,33 +181,33 @@ func TestMissionInvestmentAnalysis(t *testing.T) {
 			}
 		}
 	}
-	
+
 	// Investment costs (from game data - simplified)
 	// Tavern 1: ~450 total resources, ~1800 seconds build time
 	tavernCost := 450.0
 	tavernBuildTime := 1800 // 30 min
-	
+
 	// 15 Archers: 78 resources each, 900 seconds training each (sequential)
 	archerCount := 15
 	archerCostEach := 78.0
 	archerTrainEach := 900 // 15 min
-	
+
 	totalCost := tavernCost + float64(archerCount)*archerCostEach
 	totalSetupTime := tavernBuildTime + archerCount*archerTrainEach // Sequential
-	
+
 	// Hunting: 15 min, ~45 resources
 	huntingRate := hunting.NetAverageRewardPerHour()
-	
+
 	// Break-even: when does hunting recover the investment?
 	breakEvenHours := totalCost / huntingRate
 	totalBreakEvenMinutes := float64(totalSetupTime)/60 + breakEvenHours*60
-	
+
 	t.Log("Hunting Investment Analysis:")
 	t.Logf("  Setup cost: %.0f resources", totalCost)
 	t.Logf("  Setup time: %d minutes", totalSetupTime/60)
 	t.Logf("  Hunting rate: %.0f resources/hour", huntingRate)
 	t.Logf("  Break-even: %.1f hours (%.0f minutes total)", breakEvenHours, totalBreakEvenMinutes)
-	
+
 	// For reference: that's step ~N in a 59.6 day build order
 	// 59.6 days = 85824 minutes total
 	// Break-even at ~270 minutes = step 270/85824 ≈ 0.3% into build
