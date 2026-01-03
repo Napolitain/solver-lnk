@@ -133,8 +133,14 @@ func runSolver(cmd *cobra.Command, args []string) {
 	var solution *models.Solution
 	var strategyName string
 
+	// Load missions from JSON file (with max_tavern_level support)
+	missions, err := loader.LoadMissionsFromFile(dataDir)
+	if err != nil {
+		// Fallback to hardcoded missions
+		missions = loader.LoadMissions()
+	}
+
 	// Use V4 event-driven solver
-	missions := loader.LoadMissions()
 	v4Solver := castle.NewSolver(buildings, technologies, missions, targetLevels)
 	solution = v4Solver.Solve(initialState)
 	strategyName = "EventDriven"
@@ -267,6 +273,19 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 			costs:        a.Costs,
 			foodUsed:     a.FoodUsed,
 			foodCapacity: a.FoodCapacity,
+		})
+	}
+
+	// Add mission actions from solver
+	for _, a := range solution.MissionActions {
+		allActions = append(allActions, action{
+			actionType:   actionMission,
+			startTime:    a.StartTime,
+			endTime:      a.EndTime,
+			name:         a.MissionName,
+			costs:        a.ResourceCost,
+			foodUsed:     0,
+			foodCapacity: 0,
 		})
 	}
 
@@ -446,6 +465,9 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 		case actionUnit:
 			queueType = "⚔️ Train"
 			upgradeStr = fmt.Sprintf("×%d", a.count)
+		case actionMission:
+			queueType = "🍺 Mission"
+			upgradeStr = ""
 		}
 
 		duration := a.endTime - a.startTime

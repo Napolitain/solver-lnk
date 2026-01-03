@@ -2,6 +2,7 @@
   "overtime_wood": {
     "name": "Overtime wood",
     "tavern_level": 1,
+    "max_tavern_level": 3,
     "duration_minutes": 5,
     "units_required": [
       {"type": "spearman", "count": 5}
@@ -13,7 +14,8 @@
   },
   "overtime_stone": {
     "name": "Overtime stone",
-    "tavern_level": 1,
+    "tavern_level": 2,
+    "max_tavern_level": 3,
     "duration_minutes": 5,
     "units_required": [
       {"type": "spearman", "count": 5}
@@ -25,7 +27,8 @@
   },
   "overtime_ore": {
     "name": "Overtime ore",
-    "tavern_level": 1,
+    "tavern_level": 3,
+    "max_tavern_level": 3,
     "duration_minutes": 5,
     "units_required": [
       {"type": "spearman", "count": 5}
@@ -37,7 +40,8 @@
   },
   "mandatory_overtime": {
     "name": "Mandatory overtime",
-    "tavern_level": 1,
+    "tavern_level": 4,
+    "max_tavern_level": 10,
     "duration_minutes": 5,
     "units_required": [
       {"type": "spearman", "count": 15}
@@ -52,6 +56,7 @@
   "hunting": {
     "name": "Hunting",
     "tavern_level": 2,
+    "max_tavern_level": 5,
     "duration_minutes": 15,
     "units_required": [
       {"type": "spearman", "count": 15}
@@ -65,7 +70,8 @@
   },
   "chop_wood": {
     "name": "Chop wood",
-    "tavern_level": 2,
+    "tavern_level": 3,
+    "max_tavern_level": 5,
     "duration_minutes": 30,
     "units_required": [
       {"type": "spearman", "count": 20},
@@ -78,7 +84,8 @@
   },
   "help_stone_cutters": {
     "name": "Help stone cutters",
-    "tavern_level": 2,
+    "tavern_level": 4,
+    "max_tavern_level": 5,
     "duration_minutes": 120,
     "units_required": [
       {"type": "spearman", "count": 40}
@@ -90,7 +97,8 @@
   },
   "forging_tools": {
     "name": "Forging tools",
-    "tavern_level": 3,
+    "tavern_level": 6,
+    "max_tavern_level": 10,
     "duration_minutes": 45,
     "units_required": [
       {"type": "spearman", "count": 20},
@@ -106,7 +114,8 @@
   },
   "market_day": {
     "name": "Market day",
-    "tavern_level": 4,
+    "tavern_level": 5,
+    "max_tavern_level": 7,
     "duration_minutes": 240,
     "units_required": [
       {"type": "spearman", "count": 50},
@@ -122,7 +131,8 @@
   },
   "hire_stone_cutters": {
     "name": "Hire stone cutters",
-    "tavern_level": 4,
+    "tavern_level": 7,
+    "max_tavern_level": 7,
     "duration_minutes": 360,
     "units_required": [
       {"type": "spearman", "count": 30}
@@ -134,7 +144,8 @@
   },
   "feed_miners": {
     "name": "Feed miners",
-    "tavern_level": 5,
+    "tavern_level": 6,
+    "max_tavern_level": 7,
     "duration_minutes": 360,
     "units_required": [
       {"type": "spearman", "count": 20},
@@ -149,7 +160,8 @@
   },
   "create_a_trading_post": {
     "name": "Create a trading post",
-    "tavern_level": 6,
+    "tavern_level": 8,
+    "max_tavern_level": 10,
     "duration_minutes": 300,
     "units_required": [
       {"type": "spearman", "count": 70},
@@ -166,7 +178,8 @@
   },
   "chase_bandits_away": {
     "name": "Chase bandits away",
-    "tavern_level": 7,
+    "tavern_level": 9,
+    "max_tavern_level": 10,
     "duration_minutes": 360,
     "units_required": [
       {"type": "spearman", "count": 100},
@@ -184,6 +197,7 @@
   "collect_taxes": {
     "name": "Collect taxes",
     "tavern_level": 8,
+    "max_tavern_level": 10,
     "duration_minutes": 1440,
     "units_required": [
       {"type": "spearman", "count": 200},
@@ -200,7 +214,8 @@
   },
   "jousting": {
     "name": "Jousting",
-    "tavern_level": 9,
+    "tavern_level": 10,
+    "max_tavern_level": 10,
     "duration_minutes": 600,
     "units_required": [
       {"type": "spearman", "count": 100},
@@ -218,6 +233,7 @@
   "castle_festival": {
     "name": "Castle festival",
     "tavern_level": 10,
+    "max_tavern_level": 10,
     "duration_minutes": 720,
     "units_required": [
       {"type": "spearman", "count": 100},
