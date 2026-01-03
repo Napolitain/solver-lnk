@@ -243,45 +243,23 @@ func FuzzFoodNeverExceedsCapacity(f *testing.F) {
 		initialState := models.NewGameState()
 		solution := solver.Solve(initialState)
 
-		// Calculate food used at each point
-		type foodEvent struct {
-			time     int
-			foodUsed int
-			capacity int
-		}
-
-		events := []foodEvent{}
+		// Calculate food used
 		farmLevel := 1
 		foodUsed := 0
 
-		// Track Farm upgrades
-		for _, ba := range solution.BuildingActions {
-			if ba.BuildingType == models.Farm {
-				farmData := buildings[models.Farm].GetLevelData(ba.ToLevel)
-				cap := 0
-				if farmData != nil && farmData.StorageCapacity != nil {
-					cap = *farmData.StorageCapacity
-				}
-				events = append(events, foodEvent{
-					time:     ba.EndTime,
-					capacity: cap,
-				})
-			}
-			foodUsed += ba.Costs.Food
-		}
-
-		// Final capacity
+		// Track Farm upgrades and food used
 		for _, ba := range solution.BuildingActions {
 			if ba.BuildingType == models.Farm && ba.ToLevel > farmLevel {
 				farmLevel = ba.ToLevel
 			}
+			foodUsed += ba.Costs.Food
 		}
+
 		farmData := buildings[models.Farm].GetLevelData(farmLevel)
 		finalCap := 0
 		if farmData != nil && farmData.StorageCapacity != nil {
 			finalCap = *farmData.StorageCapacity
 		}
-		_ = events // suppress unused warning
 
 		if foodUsed > finalCap {
 			t.Errorf("Food used %d > capacity %d", foodUsed, finalCap)
