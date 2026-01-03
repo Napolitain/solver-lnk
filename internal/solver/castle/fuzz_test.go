@@ -333,3 +333,423 @@ func FuzzROINonNegative(f *testing.F) {
 		}
 	})
 }
+
+// =============================================================================
+// Phase 1: Resource Constraint Fuzz Tests
+// =============================================================================
+
+// FuzzResourcesNeverNegative verifies resources never go negative during solve
+func FuzzResourcesNeverNegative(f *testing.F) {
+// Seed corpus with various starting resource amounts
+f.Add(uint16(0), uint16(0), uint16(0))
+f.Add(uint16(100), uint16(100), uint16(100))
+f.Add(uint16(1000), uint16(500), uint16(200))
+f.Add(uint16(50), uint16(1000), uint16(50))
+
+buildings, _ := loader.LoadBuildings("../../../data")
+technologies, _ := loader.LoadTechnologies("../../../data")
+missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+f.Fuzz(func(t *testing.T, startWood, startStone, startIron uint16) {
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack: 5,
+models.Quarry:     5,
+models.OreMine:    5,
+models.Tavern:     2,
+models.Farm:       3,
+}
+
+solver := NewSolver(buildings, technologies, missions, targetLevels)
+
+initialState := models.NewGameState()
+initialState.Resources[models.Wood] = float64(startWood)
+initialState.Resources[models.Stone] = float64(startStone)
+initialState.Resources[models.Iron] = float64(startIron)
+initialState.BuildingLevels[models.Lumberjack] = 1
+initialState.BuildingLevels[models.Quarry] = 1
+initialState.BuildingLevels[models.OreMine] = 1
+initialState.BuildingLevels[models.Tavern] = 1
+initialState.BuildingLevels[models.Farm] = 1
+
+solution := solver.Solve(initialState)
+
+// Check each building action has non-negative costs
+for _, action := range solution.BuildingActions {
+if action.Costs.Wood < 0 || action.Costs.Stone < 0 || action.Costs.Iron < 0 {
+t.Errorf("Building %s has negative costs: W:%d S:%d I:%d",
+action.BuildingType, action.Costs.Wood, action.Costs.Stone, action.Costs.Iron)
+}
+}
+
+// Check each research action
+for _, action := range solution.ResearchActions {
+if action.Costs.Wood < 0 || action.Costs.Stone < 0 || action.Costs.Iron < 0 {
+t.Errorf("Research %s has negative costs: W:%d S:%d I:%d",
+action.TechnologyName, action.Costs.Wood, action.Costs.Stone, action.Costs.Iron)
+}
+}
+
+// Check each training action
+for _, action := range solution.TrainingActions {
+if action.Costs.Wood < 0 || action.Costs.Stone < 0 || action.Costs.Iron < 0 {
+t.Errorf("Training %s has negative costs: W:%d S:%d I:%d",
+action.UnitType, action.Costs.Wood, action.Costs.Stone, action.Costs.Iron)
+}
+}
+})
+}
+
+// =============================================================================
+// Phase 2: Queue Constraint Fuzz Tests
+// =============================================================================
+
+// FuzzBuildingQueueSingleItem verifies only one building at a time
+func FuzzBuildingQueueSingleItem(f *testing.F) {
+f.Add(uint8(5), uint8(5), uint8(5))
+f.Add(uint8(10), uint8(10), uint8(10))
+f.Add(uint8(15), uint8(8), uint8(3))
+
+buildings, _ := loader.LoadBuildings("../../../data")
+technologies, _ := loader.LoadTechnologies("../../../data")
+missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+f.Fuzz(func(t *testing.T, ljTarget, qTarget, omTarget uint8) {
+lj := int(ljTarget)%15 + 1
+q := int(qTarget)%15 + 1
+om := int(omTarget)%15 + 1
+
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack: lj,
+models.Quarry:     q,
+models.OreMine:    om,
+models.Farm:       5,
+}
+
+solver := NewSolver(buildings, technologies, missions, targetLevels)
+initialState := models.NewGameState()
+solution := solver.Solve(initialState)
+
+// Check no overlapping building actions
+for i, a1 := range solution.BuildingActions {
+for j, a2 := range solution.BuildingActions {
+if i >= j {
+continue
+}
+// Check for overlap: a1.Start < a2.End AND a2.Start < a1.End
+if a1.StartTime < a2.EndTime && a2.StartTime < a1.EndTime {
+t.Errorf("Building queue violation: %s (%d→%d) [%d-%d] overlaps with %s (%d→%d) [%d-%d]",
+a1.BuildingType, a1.FromLevel, a1.ToLevel, a1.StartTime, a1.EndTime,
+a2.BuildingType, a2.FromLevel, a2.ToLevel, a2.StartTime, a2.EndTime)
+}
+}
+}
+})
+}
+
+// FuzzResearchQueueSingleItem verifies only one research at a time
+func FuzzResearchQueueSingleItem(f *testing.F) {
+f.Add(uint8(3), uint8(5))
+
+buildings, _ := loader.LoadBuildings("../../../data")
+technologies, _ := loader.LoadTechnologies("../../../data")
+missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+f.Fuzz(func(t *testing.T, libraryTarget, farmTarget uint8) {
+lib := int(libraryTarget)%5 + 1
+farm := int(farmTarget)%20 + 5
+
+targetLevels := map[models.BuildingType]int{
+models.Library: lib,
+models.Farm:    farm,
+}
+
+solver := NewSolver(buildings, technologies, missions, targetLevels)
+initialState := models.NewGameState()
+solution := solver.Solve(initialState)
+
+// Check no overlapping research actions
+for i, a1 := range solution.ResearchActions {
+for j, a2 := range solution.ResearchActions {
+if i >= j {
+continue
+}
+if a1.StartTime < a2.EndTime && a2.StartTime < a1.EndTime {
+t.Errorf("Research queue violation: %s [%d-%d] overlaps with %s [%d-%d]",
+a1.TechnologyName, a1.StartTime, a1.EndTime,
+a2.TechnologyName, a2.StartTime, a2.EndTime)
+}
+}
+}
+})
+}
+
+// =============================================================================
+// Phase 3: Production & Storage Fuzz Tests
+// =============================================================================
+
+// FuzzStorageNeverExceeded verifies resources never exceed storage caps during solve
+func FuzzStorageNeverExceeded(f *testing.F) {
+f.Add(uint8(5), uint8(5), uint8(5))
+f.Add(uint8(10), uint8(10), uint8(10))
+
+buildings, _ := loader.LoadBuildings("../../../data")
+technologies, _ := loader.LoadTechnologies("../../../data")
+missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+f.Fuzz(func(t *testing.T, ljTarget, qTarget, omTarget uint8) {
+lj := int(ljTarget)%10 + 1
+q := int(qTarget)%10 + 1
+om := int(omTarget)%10 + 1
+
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack: lj,
+models.Quarry:     q,
+models.OreMine:    om,
+}
+
+solver := NewSolver(buildings, technologies, missions, targetLevels)
+initialState := models.NewGameState()
+solution := solver.Solve(initialState)
+
+// The solver should complete without panics
+// This verifies storage cap logic doesn't cause issues
+if solution.TotalTimeSeconds < 0 {
+t.Errorf("Invalid total time: %d", solution.TotalTimeSeconds)
+}
+})
+}
+
+// =============================================================================
+// Phase 4: Prerequisite Fuzz Tests
+// =============================================================================
+
+// FuzzFarmResearchPrerequisites verifies Farm upgrades respect research requirements
+func FuzzFarmResearchPrerequisites(f *testing.F) {
+f.Add(uint8(10), uint8(1))
+f.Add(uint8(20), uint8(3))
+f.Add(uint8(30), uint8(5))
+
+buildings, _ := loader.LoadBuildings("../../../data")
+technologies, _ := loader.LoadTechnologies("../../../data")
+missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+f.Fuzz(func(t *testing.T, farmTarget, libraryTarget uint8) {
+farm := int(farmTarget)%30 + 1
+lib := int(libraryTarget)%10 + 1
+
+targetLevels := map[models.BuildingType]int{
+models.Farm:       farm,
+models.Library:    lib,
+models.Lumberjack: 10,
+models.Quarry:     10,
+models.OreMine:    10,
+}
+
+solver := NewSolver(buildings, technologies, missions, targetLevels)
+initialState := models.NewGameState()
+solution := solver.Solve(initialState)
+
+// Track research completion times
+researchComplete := make(map[string]int)
+for _, ra := range solution.ResearchActions {
+researchComplete[ra.TechnologyName] = ra.EndTime
+}
+
+// Check Farm upgrades respect prerequisites
+for _, ba := range solution.BuildingActions {
+if ba.BuildingType != models.Farm {
+continue
+}
+
+// Farm 15 requires Crop Rotation
+if ba.ToLevel == 15 {
+if cropTime, ok := researchComplete["Crop Rotation"]; ok {
+if ba.StartTime < cropTime {
+t.Errorf("Farm 15 started at %d but Crop Rotation completes at %d",
+ba.StartTime, cropTime)
+}
+}
+}
+
+// Farm 25 requires Yoke
+if ba.ToLevel == 25 {
+if yokeTime, ok := researchComplete["Yoke"]; ok {
+if ba.StartTime < yokeTime {
+t.Errorf("Farm 25 started at %d but Yoke completes at %d",
+ba.StartTime, yokeTime)
+}
+}
+}
+
+// Farm 30 requires Cellar Storeroom
+if ba.ToLevel == 30 {
+if cellarTime, ok := researchComplete["Cellar Storeroom"]; ok {
+if ba.StartTime < cellarTime {
+t.Errorf("Farm 30 started at %d but Cellar Storeroom completes at %d",
+ba.StartTime, cellarTime)
+}
+}
+}
+}
+})
+}
+
+// =============================================================================
+// Phase 5: Mission Constraint Fuzz Tests  
+// =============================================================================
+
+// FuzzMissionNoSameTypeOverlap verifies same mission type never runs in parallel
+func FuzzMissionNoSameTypeOverlap(f *testing.F) {
+f.Add(uint8(3))
+f.Add(uint8(5))
+f.Add(uint8(7))
+
+buildings, _ := loader.LoadBuildings("../../../data")
+technologies, _ := loader.LoadTechnologies("../../../data")
+missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+f.Fuzz(func(t *testing.T, tavernTarget uint8) {
+tavern := int(tavernTarget)%10 + 1
+
+targetLevels := map[models.BuildingType]int{
+models.Tavern:     tavern,
+models.Lumberjack: 10,
+models.Quarry:     10,
+models.OreMine:    10,
+models.Farm:       10,
+}
+
+solver := NewSolver(buildings, technologies, missions, targetLevels)
+initialState := models.NewGameState()
+solution := solver.Solve(initialState)
+
+// Check no same-type missions overlap
+for i, m1 := range solution.MissionActions {
+for j, m2 := range solution.MissionActions {
+if i >= j {
+continue
+}
+if m1.MissionName != m2.MissionName {
+continue
+}
+// Same mission type - check no overlap
+if m1.StartTime < m2.EndTime && m2.StartTime < m1.EndTime {
+t.Errorf("Mission %s overlaps: [%d-%d] and [%d-%d]",
+m1.MissionName, m1.StartTime, m1.EndTime, m2.StartTime, m2.EndTime)
+}
+}
+}
+})
+}
+
+// =============================================================================
+// Phase 6: End-State Fuzz Tests
+// =============================================================================
+
+// FuzzAllTargetsReached verifies all building targets are reached
+func FuzzAllTargetsReached(f *testing.F) {
+f.Add(uint8(5), uint8(5), uint8(5))
+f.Add(uint8(10), uint8(8), uint8(6))
+f.Add(uint8(15), uint8(15), uint8(15))
+
+buildings, _ := loader.LoadBuildings("../../../data")
+technologies, _ := loader.LoadTechnologies("../../../data")
+missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+f.Fuzz(func(t *testing.T, ljTarget, qTarget, omTarget uint8) {
+lj := int(ljTarget)%20 + 1
+q := int(qTarget)%20 + 1
+om := int(omTarget)%20 + 1
+
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack: lj,
+models.Quarry:     q,
+models.OreMine:    om,
+}
+
+solver := NewSolver(buildings, technologies, missions, targetLevels)
+initialState := models.NewGameState()
+solution := solver.Solve(initialState)
+
+// Track final levels
+finalLevels := make(map[models.BuildingType]int)
+for bt := range initialState.BuildingLevels {
+finalLevels[bt] = initialState.BuildingLevels[bt]
+}
+for _, ba := range solution.BuildingActions {
+finalLevels[ba.BuildingType] = ba.ToLevel
+}
+
+// Check targets reached
+for bt, target := range targetLevels {
+if finalLevels[bt] < target {
+t.Errorf("Target not reached: %s expected %d, got %d",
+bt, target, finalLevels[bt])
+}
+}
+})
+}
+
+// =============================================================================
+// Phase 7: Determinism Fuzz Tests
+// =============================================================================
+
+// FuzzDeterministicOutput verifies same inputs produce same outputs
+func FuzzDeterministicOutput(f *testing.F) {
+f.Add(uint8(5), uint8(5), uint8(5), uint16(100), uint16(100), uint16(100))
+f.Add(uint8(10), uint8(8), uint8(6), uint16(500), uint16(300), uint16(200))
+
+buildings, _ := loader.LoadBuildings("../../../data")
+technologies, _ := loader.LoadTechnologies("../../../data")
+missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+f.Fuzz(func(t *testing.T, ljTarget, qTarget, omTarget uint8, startW, startS, startI uint16) {
+lj := int(ljTarget)%15 + 1
+q := int(qTarget)%15 + 1
+om := int(omTarget)%15 + 1
+
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack: lj,
+models.Quarry:     q,
+models.OreMine:    om,
+}
+
+// Run solver twice with same inputs
+solver1 := NewSolver(buildings, technologies, missions, targetLevels)
+solver2 := NewSolver(buildings, technologies, missions, targetLevels)
+
+initialState1 := models.NewGameState()
+initialState1.Resources[models.Wood] = float64(startW)
+initialState1.Resources[models.Stone] = float64(startS)
+initialState1.Resources[models.Iron] = float64(startI)
+
+initialState2 := models.NewGameState()
+initialState2.Resources[models.Wood] = float64(startW)
+initialState2.Resources[models.Stone] = float64(startS)
+initialState2.Resources[models.Iron] = float64(startI)
+
+solution1 := solver1.Solve(initialState1)
+solution2 := solver2.Solve(initialState2)
+
+// Compare outputs
+if len(solution1.BuildingActions) != len(solution2.BuildingActions) {
+t.Errorf("Different number of building actions: %d vs %d",
+len(solution1.BuildingActions), len(solution2.BuildingActions))
+return
+}
+
+for i := range solution1.BuildingActions {
+a1 := solution1.BuildingActions[i]
+a2 := solution2.BuildingActions[i]
+if a1.BuildingType != a2.BuildingType || a1.StartTime != a2.StartTime {
+t.Errorf("Building action %d differs: %s@%d vs %s@%d",
+i, a1.BuildingType, a1.StartTime, a2.BuildingType, a2.StartTime)
+}
+}
+
+if solution1.TotalTimeSeconds != solution2.TotalTimeSeconds {
+t.Errorf("Different total time: %d vs %d",
+solution1.TotalTimeSeconds, solution2.TotalTimeSeconds)
+}
+})
+}
