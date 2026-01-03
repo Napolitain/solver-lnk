@@ -130,9 +130,9 @@ t.Logf("Technology %s ✓", techName)
 }
 t.Logf("Total technologies researched: %d/%d", len(solution.FinalState.ResearchedTechnologies), len(technologies))
 
-// Should complete in roughly 40-75 days
-if days < 40 || days > 75 {
-t.Errorf("Completion time %.2f days is outside expected range [40, 75]", days)
+// Should complete in roughly 40-100 days (includes defense unit training)
+if days < 40 || days > 100 {
+t.Errorf("Completion time %.2f days is outside expected range [40, 100]", days)
 }
 }
 
@@ -743,4 +743,77 @@ gapTime, gapTime/totalDuration*100, allowedGap)
 t.Logf("Mission idle time within acceptable range: %.1f seconds (%.2f%% of total)",
 gapTime, gapTime/totalDuration*100)
 }
+}
+
+// TestFoodCapacityFullyUsed verifies that at the end of the build order,
+// all food capacity is used (5000/5000 for Farm level 30)
+func TestFoodCapacityFullyUsed(t *testing.T) {
+buildings, err := loader.LoadBuildings(dataDir)
+if err != nil {
+t.Fatalf("Failed to load buildings: %v", err)
+}
+
+technologies, err := loader.LoadTechnologies(dataDir)
+if err != nil {
+t.Fatalf("Failed to load technologies: %v", err)
+}
+
+missions := loader.LoadMissions()
+
+// Full castle build to level 30
+targetLevels := map[models.BuildingType]int{
+models.Lumberjack:     30,
+models.Quarry:         30,
+models.OreMine:        30,
+models.Farm:           30,
+models.WoodStore:      20,
+models.StoneStore:     20,
+models.OreStore:       20,
+models.Tavern:         10,
+models.Fortifications: 20,
+models.Arsenal:        30,
+models.Keep:           10,
+models.Market:         8,
+models.Library:        10,
+}
+
+initialState := models.NewGameState()
+initialState.Resources[models.Wood] = 120
+initialState.Resources[models.Stone] = 120
+initialState.Resources[models.Iron] = 120
+initialState.Resources[models.Food] = 40
+
+for _, bt := range models.AllBuildingTypes() {
+initialState.BuildingLevels[bt] = 1
+}
+
+solver := castle.NewSolver(buildings, technologies, missions, targetLevels)
+solution := solver.Solve(initialState)
+
+if solution == nil {
+t.Fatal("Solution should not be nil")
+}
+
+if len(solution.TrainingActions) == 0 {
+t.Error("Should have training actions")
+return
+}
+
+// Get the last training action's food used
+lastTraining := solution.TrainingActions[len(solution.TrainingActions)-1]
+
+// Farm level 30 gives 5000 food capacity
+expectedFoodCapacity := 5000
+
+if lastTraining.FoodCapacity != expectedFoodCapacity {
+t.Errorf("Expected food capacity %d, got %d", expectedFoodCapacity, lastTraining.FoodCapacity)
+}
+
+if lastTraining.FoodUsed != expectedFoodCapacity {
+t.Errorf("Food not fully used: %d / %d (expected %d / %d)",
+lastTraining.FoodUsed, lastTraining.FoodCapacity,
+expectedFoodCapacity, expectedFoodCapacity)
+}
+
+t.Logf("Food fully used: %d / %d", lastTraining.FoodUsed, lastTraining.FoodCapacity)
 }

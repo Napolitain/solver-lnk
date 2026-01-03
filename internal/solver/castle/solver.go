@@ -93,6 +93,9 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 	// Schedule any remaining missions now that we have all units
 	s.scheduleRemainingMissions(state, &missionActions)
 
+	// Fill remaining food capacity with defense units
+	s.trainDefenseUnits(state, &trainingActions)
+
 	// Calculate final time
 	finalTime := state.Now
 	if state.BuildingQueueFreeAt > finalTime {
@@ -185,6 +188,9 @@ func (s *Solver) SolveWithMissionTracking(initialState *models.GameState) (*mode
 
 	// Schedule any remaining missions now that we have all units
 	s.scheduleRemainingMissions(state, &missionActions)
+
+	// Fill remaining food capacity with defense units
+	s.trainDefenseUnits(state, &trainingActions)
 
 	finalTime := state.Now
 	if state.BuildingQueueFreeAt > finalTime {
@@ -1692,6 +1698,7 @@ func (s *Solver) trainRemainingMissionUnits(state *State, trainingActions *[]mod
 				Count:        1,
 				StartTime:    startTime,
 				EndTime:      endTime,
+				Costs:        costs,
 				FoodUsed:     state.FoodUsed,
 				FoodCapacity: state.FoodCapacity,
 			})
@@ -1752,5 +1759,130 @@ func (s *Solver) scheduleRemainingMissions(state *State, missionActions *[]model
 
 		// Advance time to mission end
 		s.advanceTime(state, durationSeconds)
+	}
+}
+
+// trainDefenseUnits fills remaining food capacity with defense units for balanced defense
+func (s *Solver) trainDefenseUnits(state *State, trainingActions *[]models.TrainUnitAction) {
+	// Get all combat unit types (excluding transport-only units like Oxcart)
+	combatUnits := []models.UnitType{
+		models.Spearman,
+		models.Swordsman,
+		models.Archer,
+		models.Crossbowman,
+		models.Horseman,
+		models.Lancer,
+	}
+
+	// Track current defense totals
+	defCav, defInf, defArt := 0, 0, 0
+	for _, ut := range combatUnits {
+		count := state.Army.Get(ut)
+		def := models.GetUnitDefinition(ut)
+		if def != nil {
+			defCav += count * def.DefenseVsCavalry
+			defInf += count * def.DefenseVsInfantry
+			defArt += count * def.DefenseVsArtillery
+		}
+	}
+
+	// Train units one at a time until food is exhausted
+	for state.FoodUsed < state.FoodCapacity {
+		// Find which defense type is weakest
+		minDef := defCav
+		if defInf < minDef {
+			minDef = defInf
+		}
+		if defArt < minDef {
+			minDef = defArt
+		}
+
+		// Find best unit to improve the weakest defense
+		var bestUnit models.UnitType
+		var bestDef *models.UnitDefinition
+		var bestImprovement int
+		found := false
+
+		for _, ut := range combatUnits {
+			def := models.GetUnitDefinition(ut)
+			if def == nil {
+				continue
+			}
+
+			// Check tech requirement
+			if def.RequiredTech != "" && !state.ResearchedTechs[def.RequiredTech] {
+				continue
+			}
+
+			// Check food
+			if state.FoodUsed+def.FoodCost > state.FoodCapacity {
+				continue
+			}
+
+			// Calculate improvement to minimum defense
+			newCav := defCav + def.DefenseVsCavalry
+			newInf := defInf + def.DefenseVsInfantry
+			newArt := defArt + def.DefenseVsArtillery
+			newMin := newCav
+			if newInf < newMin {
+				newMin = newInf
+			}
+			if newArt < newMin {
+				newMin = newArt
+			}
+			improvement := newMin - minDef
+
+			if !found || improvement > bestImprovement {
+				bestImprovement = improvement
+				bestUnit = ut
+				bestDef = def
+				found = true
+			}
+		}
+
+		if !found {
+			break // No more units can be trained
+		}
+
+		// Wait for training queue
+		if state.TrainingQueueFreeAt > state.Now {
+			s.advanceTime(state, state.TrainingQueueFreeAt-state.Now)
+		}
+
+		// Wait for resources
+		costs := bestDef.ResourceCosts
+		waitTime := s.waitTimeForCosts(state, costs)
+		if waitTime > 0 {
+			s.advanceTime(state, waitTime)
+		} else if waitTime < 0 {
+			break // Can never afford
+		}
+
+		// Train the unit
+		startTime := state.Now
+		state.SetResource(models.Wood, state.GetResource(models.Wood)-float64(costs.Wood))
+		state.SetResource(models.Stone, state.GetResource(models.Stone)-float64(costs.Stone))
+		state.SetResource(models.Iron, state.GetResource(models.Iron)-float64(costs.Iron))
+		state.FoodUsed += bestDef.FoodCost
+
+		state.TrainingQueueFreeAt = state.Now + bestDef.TrainingTimeSeconds
+		endTime := state.TrainingQueueFreeAt
+
+		state.Army.Add(bestUnit, 1)
+
+		// Update defense totals
+		defCav += bestDef.DefenseVsCavalry
+		defInf += bestDef.DefenseVsInfantry
+		defArt += bestDef.DefenseVsArtillery
+
+		*trainingActions = append(*trainingActions, models.TrainUnitAction{
+			UnitType:     bestUnit,
+			Count:        1,
+			StartTime:    startTime,
+			EndTime:      endTime,
+			Costs:        costs,
+			FoodUsed:     state.FoodUsed,
+			FoodCapacity: state.FoodCapacity,
+		})
 	}
 }

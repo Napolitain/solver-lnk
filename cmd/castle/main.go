@@ -13,7 +13,6 @@ import (
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
 	castle "github.com/napolitain/solver-lnk/internal/solver/castle"
-	"github.com/napolitain/solver-lnk/internal/solver/units"
 )
 
 var (
@@ -178,6 +177,16 @@ func runSolver(cmd *cobra.Command, args []string) {
 			finalFoodCapacity = lastResearch.FoodCapacity
 		}
 	}
+	// Also check training actions for final food status
+	if len(solution.TrainingActions) > 0 {
+		lastTraining := solution.TrainingActions[len(solution.TrainingActions)-1]
+		if lastTraining.FoodUsed > finalFoodUsed {
+			finalFoodUsed = lastTraining.FoodUsed
+		}
+		if lastTraining.FoodCapacity > finalFoodCapacity {
+			finalFoodCapacity = lastTraining.FoodCapacity
+		}
+	}
 
 	// Print build order table (includes units) and get total completion time
 	totalCompletionTime := printBuildOrder(solution, finalFoodUsed, finalFoodCapacity)
@@ -287,158 +296,6 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 			foodUsed:     0,
 			foodCapacity: 0,
 		})
-	}
-
-	// Add unit training actions after all other actions complete (post-building units)
-	foodAvailable := finalFoodCapacity - finalFoodUsed
-	if foodAvailable > 0 && solution.FinalState != nil {
-		solver := units.NewSolverWithConfig(int32(foodAvailable), units.ResourceProductionPerHour, units.MarketDistanceFields)
-		unitSolution := solver.Solve()
-
-		// Find the end time of last action
-		var lastEndTime int
-		for _, a := range allActions {
-			if a.endTime > lastEndTime {
-				lastEndTime = a.endTime
-			}
-		}
-
-		// Get final state for resource simulation
-		finalState := solution.FinalState
-		productionRates := make(map[models.ResourceType]float64)
-		storageCaps := make(map[models.ResourceType]int)
-
-		// Calculate production rates from final building levels
-		for bt, level := range finalState.BuildingLevels {
-			var rt models.ResourceType
-			switch bt {
-			case models.Lumberjack:
-				rt = models.Wood
-			case models.Quarry:
-				rt = models.Stone
-			case models.OreMine:
-				rt = models.Iron
-			default:
-				continue
-			}
-			// Get production rate from building data (level 30 = ~387/h each)
-			// Using hardcoded values for level 30: 387 per resource type
-			productionRates[rt] = float64(level) * 12.9 // Approximation
-		}
-
-		// Get storage capacities from final state
-		for rt, cap := range finalState.StorageCaps {
-			storageCaps[rt] = cap
-		}
-
-		// If we don't have storage caps, use level 20 defaults
-		if len(storageCaps) == 0 {
-			storageCaps[models.Wood] = 9999
-			storageCaps[models.Stone] = 9999
-			storageCaps[models.Iron] = 9999
-		}
-
-		// Production bonus (beer tester + wheelbarrow = 10%)
-		productionBonus := 1.0
-		if finalState.ResearchedTechnologies["Beer tester"] {
-			productionBonus += 0.05
-		}
-		if finalState.ResearchedTechnologies["Wheelbarrow"] {
-			productionBonus += 0.05
-		}
-
-		// Simulate unit training with resource constraints
-		currentTimeSeconds := lastEndTime
-		currentFoodUsed := finalFoodUsed
-		currentResources := map[models.ResourceType]float64{
-			models.Wood:  float64(storageCaps[models.Wood]),  // Start with full storage
-			models.Stone: float64(storageCaps[models.Stone]),
-			models.Iron:  float64(storageCaps[models.Iron]),
-		}
-
-		// Train each unit type in batches
-		for _, u := range units.AllUnits() {
-			totalCount := unitSolution.UnitCounts[u.Name]
-			if totalCount <= 0 {
-				continue
-			}
-
-			remainingCount := totalCount
-			batchStartTime := currentTimeSeconds
-			batchCount := 0
-			batchTrainingTime := 0
-
-			for remainingCount > 0 {
-				// Calculate how many units we can afford with current resources
-				maxByWood := int(currentResources[models.Wood]) / max(1, u.ResourceCosts.Wood)
-				maxByIron := int(currentResources[models.Iron]) / max(1, u.ResourceCosts.Iron)
-				maxByFood := (finalFoodCapacity - currentFoodUsed) / u.FoodCost
-
-				canTrain := min(remainingCount, maxByFood)
-				if u.ResourceCosts.Wood > 0 {
-					canTrain = min(canTrain, maxByWood)
-				}
-				if u.ResourceCosts.Iron > 0 {
-					canTrain = min(canTrain, maxByIron)
-				}
-
-				if canTrain > 0 {
-					// Train this batch
-					batchCount += canTrain
-					batchTrainingTime += canTrain * u.TrainingTimeSeconds
-					currentFoodUsed += canTrain * u.FoodCost
-					currentResources[models.Wood] -= float64(canTrain * u.ResourceCosts.Wood)
-					currentResources[models.Iron] -= float64(canTrain * u.ResourceCosts.Iron)
-					remainingCount -= canTrain
-				}
-
-				if remainingCount > 0 {
-					// Need to wait for resources - advance time and accumulate
-					// Calculate time needed to afford next unit
-					woodNeeded := float64(u.ResourceCosts.Wood) - currentResources[models.Wood]
-					ironNeeded := float64(u.ResourceCosts.Iron) - currentResources[models.Iron]
-
-					waitHours := 0.0
-					if woodNeeded > 0 && productionRates[models.Wood] > 0 {
-						waitHours = max(waitHours, woodNeeded/(productionRates[models.Wood]*productionBonus))
-					}
-					if ironNeeded > 0 && productionRates[models.Iron] > 0 {
-						waitHours = max(waitHours, ironNeeded/(productionRates[models.Iron]*productionBonus))
-					}
-
-					// Advance time and accumulate resources (capped by storage)
-					waitSeconds := int(waitHours*3600) + 1
-					for rt, rate := range productionRates {
-						produced := rate * productionBonus * (float64(waitSeconds) / 3600.0)
-						currentResources[rt] = min(currentResources[rt]+produced, float64(storageCaps[rt]))
-					}
-					currentTimeSeconds += waitSeconds
-				}
-			}
-
-			// Add the complete batch as one action
-			if batchCount > 0 {
-				unitCosts := models.Costs{
-					Wood:  u.ResourceCosts.Wood * batchCount,
-					Stone: u.ResourceCosts.Stone * batchCount,
-					Iron:  u.ResourceCosts.Iron * batchCount,
-					Food:  batchCount * u.FoodCost,
-				}
-
-				allActions = append(allActions, action{
-					actionType:   actionUnit,
-					startTime:    batchStartTime,
-					endTime:      currentTimeSeconds + batchTrainingTime,
-					name:         u.Name,
-					count:        batchCount,
-					costs:        unitCosts,
-					foodUsed:     currentFoodUsed,
-					foodCapacity: finalFoodCapacity,
-				})
-
-				currentTimeSeconds += batchTrainingTime
-			}
-		}
 	}
 
 	sort.Slice(allActions, func(i, j int) bool {
@@ -555,39 +412,60 @@ func printSummary(solution *models.Solution, targets map[models.BuildingType]int
 		}
 	}
 
-	// Print units stats (units are already in the table above)
+	// Print units stats from actual training actions
 	if allOk && finalFoodCapacity > 0 {
-		foodAvailable := finalFoodCapacity - finalFoodUsed
-		printUnitsStats(foodAvailable)
+		printUnitsStats(solution.TrainingActions, finalFoodCapacity)
 	}
 }
 
-func printUnitsStats(foodAvailable int) {
+func printUnitsStats(trainingActions []models.TrainUnitAction, foodCapacity int) {
 	infoColor := color.New(color.FgCyan)
 	
-	// Create units solver with available food
-	solver := units.NewSolverWithConfig(int32(foodAvailable), units.ResourceProductionPerHour, units.MarketDistanceFields)
-	solution := solver.Solve()
-
-	// Calculate total training time
+	// Count units trained
+	unitCounts := make(map[models.UnitType]int)
 	totalTrainingSeconds := 0
-	for _, u := range units.AllUnits() {
-		count := solution.UnitCounts[u.Name]
-		if count > 0 {
-			totalTrainingSeconds += count * u.TrainingTimeSeconds
+	totalFoodUsed := 0
+	
+	for _, action := range trainingActions {
+		unitCounts[action.UnitType] += action.Count
+		def := models.GetUnitDefinition(action.UnitType)
+		if def != nil {
+			totalTrainingSeconds += action.Count * def.TrainingTimeSeconds
 		}
+		// Track cumulative food from last action
+		if action.FoodUsed > totalFoodUsed {
+			totalFoodUsed = action.FoodUsed
+		}
+	}
+	
+	// Calculate defense stats
+	defCav, defInf, defArt := 0, 0, 0
+	for ut, count := range unitCounts {
+		def := models.GetUnitDefinition(ut)
+		if def != nil {
+			defCav += count * def.DefenseVsCavalry
+			defInf += count * def.DefenseVsInfantry
+			defArt += count * def.DefenseVsArtillery
+		}
+	}
+	
+	minDef := defCav
+	if defInf < minDef {
+		minDef = defInf
+	}
+	if defArt < minDef {
+		minDef = defArt
 	}
 
 	trainingDays := float64(totalTrainingSeconds) / 3600 / 24
 
 	infoColor.Println("\n⚔️  Army Stats:")
 	fmt.Printf("   • Total training time: %s (%.1f days)\n", formatTime(totalTrainingSeconds), trainingDays)
-	fmt.Printf("   • Total food used: %d / %d\n", solution.TotalFood, foodAvailable)
-	fmt.Printf("   • Trading throughput: %.0f resources/hour\n", solution.TotalThroughput)
-	fmt.Printf("   • Defense vs Cavalry: %d\n", solution.DefenseVsCavalry)
-	fmt.Printf("   • Defense vs Infantry: %d\n", solution.DefenseVsInfantry)
-	fmt.Printf("   • Defense vs Artillery: %d\n", solution.DefenseVsArtillery)
-	fmt.Printf("   • Min defense (balanced): %d\n", solution.MinDefense())
+	fmt.Printf("   • Total food used: %d / %d\n", totalFoodUsed, foodCapacity)
+	fmt.Printf("   • Defense vs Cavalry: %d\n", defCav)
+	fmt.Printf("   • Defense vs Infantry: %d\n", defInf)
+	fmt.Printf("   • Defense vs Artillery: %d\n", defArt)
+	fmt.Printf("   • Min defense (balanced): %d\n", minDef)
 }
 
 func formatTime(seconds int) string {
