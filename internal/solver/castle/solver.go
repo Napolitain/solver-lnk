@@ -11,7 +11,7 @@ type Solver struct {
 	Buildings    map[models.BuildingType]*models.Building
 	Technologies map[string]*models.Technology
 	Missions     []*models.Mission
-	TargetLevels map[models.BuildingType]int
+	TargetLevels models.BuildingLevelMap
 }
 
 // MissionEvent tracks when a mission started and ended (for testing)
@@ -28,11 +28,16 @@ func NewSolver(
 	missions []*models.Mission,
 	targetLevels map[models.BuildingType]int,
 ) *Solver {
+	// Convert map to struct for determinism
+	var targets models.BuildingLevelMap
+	for bt, level := range targetLevels {
+		targets.Set(bt, level)
+	}
 	return &Solver{
 		Buildings:    buildings,
 		Technologies: technologies,
 		Missions:     missions,
-		TargetLevels: targetLevels,
+		TargetLevels: targets,
 	}
 }
 
@@ -472,7 +477,12 @@ func (s *Solver) runPostBuildingPhase(
 func (s *Solver) isPostBuildingComplete(state *State) bool {
 	// Check if all research is done (or can't be done due to food)
 	libraryLevel := state.GetBuildingLevel(models.Library)
-	for name, tech := range s.Technologies {
+	for _, techName := range models.AllTechNames() {
+		name := string(techName)
+		tech := s.Technologies[name]
+		if tech == nil {
+			continue
+		}
 		if state.ResearchedTechs[name] {
 			continue
 		}
@@ -553,25 +563,25 @@ func (s *Solver) pickNextRemainingResearch(state *State) *ResearchAction {
 	libraryLevel := state.GetBuildingLevel(models.Library)
 
 	// Find lowest library requirement tech that's not researched
-	var best *ResearchAction
-	var bestLevel int = 999
-
-	for name, tech := range s.Technologies {
+	// Use AllTechNames for deterministic order
+	for _, techName := range models.AllTechNames() {
+		name := string(techName)
+		tech := s.Technologies[name]
+		if tech == nil {
+			continue
+		}
 		if state.ResearchedTechs[name] {
 			continue
 		}
 		if tech.RequiredLibraryLevel > libraryLevel {
 			continue
 		}
-		if tech.RequiredLibraryLevel < bestLevel {
-			bestLevel = tech.RequiredLibraryLevel
-			best = &ResearchAction{
-				Technology: tech,
-			}
+		return &ResearchAction{
+			Technology: tech,
 		}
 	}
 
-	return best
+	return nil
 }
 
 // pickNextTrainingAction picks the next unit to train for missions or defense
@@ -801,21 +811,24 @@ func (s *Solver) getAllBuildingActionsSortedByROI(state *State) []*BuildingActio
 	var candidates []*BuildingAction
 	var zeroROICandidates []*BuildingAction
 
-	for bt, target := range s.TargetLevels {
+	s.TargetLevels.Each(func(bt models.BuildingType, target int) {
+		if target == 0 {
+			return
+		}
 		current := state.GetBuildingLevel(bt)
 		if current >= target {
-			continue
+			return
 		}
 
 		building := s.Buildings[bt]
 		if building == nil {
-			continue
+			return
 		}
 
 		toLevel := current + 1
 		levelData := building.GetLevelData(toLevel)
 		if levelData == nil {
-			continue
+			return
 		}
 
 		action := &BuildingAction{
@@ -833,7 +846,7 @@ func (s *Solver) getAllBuildingActionsSortedByROI(state *State) []*BuildingActio
 		} else {
 			candidates = append(candidates, action)
 		}
-	}
+	})
 
 	// If there are still production buildings to build, return only those
 	// Zero-ROI buildings are deferred until production is complete
@@ -1267,12 +1280,13 @@ func (s *Solver) advanceTime(state *State, seconds int) {
 }
 
 func (s *Solver) allTargetsReached(state *State) bool {
-	for bt, target := range s.TargetLevels {
-		if state.GetBuildingLevel(bt) < target {
-			return false
+	allReached := true
+	s.TargetLevels.Each(func(bt models.BuildingType, target int) {
+		if target > 0 && state.GetBuildingLevel(bt) < target {
+			allReached = false
 		}
-	}
-	return true
+	})
+	return allReached
 }
 
 func (s *Solver) initializeState(state *State) {
@@ -1444,10 +1458,13 @@ func (s *Solver) calculateDynamicScarcity(state *State, bt models.BuildingType) 
 	// Calculate remaining costs for all target buildings
 	var remainingWood, remainingStone, remainingIron float64
 
-	for targetBT, targetLevel := range s.TargetLevels {
+	s.TargetLevels.Each(func(targetBT models.BuildingType, targetLevel int) {
+		if targetLevel == 0 {
+			return
+		}
 		building := s.Buildings[targetBT]
 		if building == nil {
-			continue
+			return
 		}
 
 		currentLevel := state.GetBuildingLevel(targetBT)
@@ -1459,7 +1476,7 @@ func (s *Solver) calculateDynamicScarcity(state *State, bt models.BuildingType) 
 				remainingIron += float64(levelData.Costs.Iron)
 			}
 		}
-	}
+	})
 
 	totalRemaining := remainingWood + remainingStone + remainingIron
 	if totalRemaining <= 0 {
@@ -1601,10 +1618,14 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 	libraryLevel := state.GetBuildingLevel(models.Library)
 
 	// Check for prerequisite techs first (reactive) - for building upgrades
-	for bt, target := range s.TargetLevels {
+	var prereqAction *ResearchAction
+	s.TargetLevels.Each(func(bt models.BuildingType, target int) {
+		if target == 0 || prereqAction != nil {
+			return
+		}
 		building := s.Buildings[bt]
 		if building == nil {
-			continue
+			return
 		}
 
 		current := state.GetBuildingLevel(bt)
@@ -1613,11 +1634,15 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 				if !state.ResearchedTechs[techName] {
 					tech := s.Technologies[techName]
 					if tech != nil && libraryLevel >= tech.RequiredLibraryLevel {
-						return &ResearchAction{Technology: tech}
+						prereqAction = &ResearchAction{Technology: tech}
+						return
 					}
 				}
 			}
 		}
+	})
+	if prereqAction != nil {
+		return prereqAction
 	}
 
 	// Unit techs - research techs needed for mission units
@@ -1648,7 +1673,7 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 
 // getUnitTechsNeededForMissions returns techs needed for units required by missions
 func (s *Solver) getUnitTechsNeededForMissions(state *State) []string {
-	targetTavernLevel := s.TargetLevels[models.Tavern]
+	targetTavernLevel := s.TargetLevels.Get(models.Tavern)
 	if targetTavernLevel == 0 {
 		targetTavernLevel = state.GetBuildingLevel(models.Tavern)
 	}
@@ -1709,7 +1734,7 @@ func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
 	}
 
 	currentTavernLevel := state.GetBuildingLevel(models.Tavern)
-	targetTavernLevel := s.TargetLevels[models.Tavern]
+	targetTavernLevel := s.TargetLevels.Get(models.Tavern)
 	if targetTavernLevel == 0 {
 		targetTavernLevel = currentTavernLevel
 	}
@@ -1875,7 +1900,13 @@ func (s *Solver) researchRemainingTechs(state *State, researchActions *[]models.
 	}
 	var techsToResearch []techWithLevel
 
-	for name, tech := range s.Technologies {
+	// Use AllTechNames for deterministic collection order
+	for _, techName := range models.AllTechNames() {
+		name := string(techName)
+		tech := s.Technologies[name]
+		if tech == nil {
+			continue
+		}
 		if state.ResearchedTechs[name] {
 			continue
 		}
@@ -1961,7 +1992,7 @@ func (s *Solver) trainRemainingMissionUnits(state *State, trainingActions *[]mod
 		return
 	}
 
-	targetTavernLevel := s.TargetLevels[models.Tavern]
+	targetTavernLevel := s.TargetLevels.Get(models.Tavern)
 	if targetTavernLevel == 0 {
 		targetTavernLevel = state.GetBuildingLevel(models.Tavern)
 	}
