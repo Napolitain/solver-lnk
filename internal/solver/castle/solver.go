@@ -87,6 +87,12 @@ func (s *Solver) Solve(initialState *models.GameState) *models.Solution {
 	// Research ALL remaining technologies after buildings are done
 	s.researchRemainingTechs(state, &researchActions)
 
+	// Train remaining units needed for missions after buildings are done
+	s.trainRemainingMissionUnits(state, &trainingActions)
+
+	// Schedule any remaining missions now that we have all units
+	s.scheduleRemainingMissions(state, &missionActions)
+
 	// Calculate final time
 	finalTime := state.Now
 	if state.BuildingQueueFreeAt > finalTime {
@@ -173,6 +179,12 @@ func (s *Solver) SolveWithMissionTracking(initialState *models.GameState) (*mode
 	}
 
 	s.researchRemainingTechs(state, &researchActions)
+
+	// Train remaining units needed for missions after buildings are done
+	s.trainRemainingMissionUnits(state, &trainingActions)
+
+	// Schedule any remaining missions now that we have all units
+	s.scheduleRemainingMissions(state, &missionActions)
 
 	finalTime := state.Now
 	if state.BuildingQueueFreeAt > finalTime {
@@ -1596,5 +1608,149 @@ func (s *Solver) researchRemainingTechs(state *State, researchActions *[]models.
 			FoodUsed:       state.FoodUsed,
 			FoodCapacity:   state.FoodCapacity,
 		})
+	}
+}
+
+// trainRemainingMissionUnits trains any remaining units needed for missions after buildings are done
+func (s *Solver) trainRemainingMissionUnits(state *State, trainingActions *[]models.TrainUnitAction) {
+	if len(s.Missions) == 0 {
+		return
+	}
+
+	targetTavernLevel := s.TargetLevels[models.Tavern]
+	if targetTavernLevel == 0 {
+		targetTavernLevel = state.GetBuildingLevel(models.Tavern)
+	}
+
+	// Calculate maximum units needed for ALL missions at target tavern level
+	unitNeeds := s.calculateMissionUnitNeeds(targetTavernLevel)
+
+	// Sort unit types for deterministic order
+	var unitTypes []models.UnitType
+	for ut := range unitNeeds {
+		unitTypes = append(unitTypes, ut)
+	}
+	sort.Slice(unitTypes, func(i, j int) bool {
+		return string(unitTypes[i]) < string(unitTypes[j])
+	})
+
+	// Train units until all mission requirements are met
+	for {
+		trained := false
+
+		for _, unitType := range unitTypes {
+			needed := unitNeeds[unitType]
+			have := state.Army.Get(unitType)
+
+			if have >= needed {
+				continue
+			}
+
+			def := models.GetUnitDefinition(unitType)
+			if def == nil {
+				continue
+			}
+
+			// Check tech requirement
+			if def.RequiredTech != "" && !state.ResearchedTechs[def.RequiredTech] {
+				continue
+			}
+
+			// Check food
+			if state.FoodUsed+def.FoodCost > state.FoodCapacity {
+				continue
+			}
+
+			// Wait for training queue
+			if state.TrainingQueueFreeAt > state.Now {
+				s.advanceTime(state, state.TrainingQueueFreeAt-state.Now)
+			}
+
+			// Wait for resources
+			costs := def.ResourceCosts
+			waitTime := s.waitTimeForCosts(state, costs)
+			if waitTime > 0 {
+				s.advanceTime(state, waitTime)
+			} else if waitTime < 0 {
+				continue // Can never afford
+			}
+
+			// Train the unit
+			startTime := state.Now
+			state.SetResource(models.Wood, state.GetResource(models.Wood)-float64(costs.Wood))
+			state.SetResource(models.Stone, state.GetResource(models.Stone)-float64(costs.Stone))
+			state.SetResource(models.Iron, state.GetResource(models.Iron)-float64(costs.Iron))
+			state.FoodUsed += def.FoodCost
+
+			state.TrainingQueueFreeAt = state.Now + def.TrainingTimeSeconds
+			endTime := state.TrainingQueueFreeAt
+
+			state.Army.Add(unitType, 1)
+
+			*trainingActions = append(*trainingActions, models.TrainUnitAction{
+				UnitType:     unitType,
+				Count:        1,
+				StartTime:    startTime,
+				EndTime:      endTime,
+				FoodUsed:     state.FoodUsed,
+				FoodCapacity: state.FoodCapacity,
+			})
+
+			trained = true
+			break // Re-evaluate priorities after each training
+		}
+
+		if !trained {
+			break // No more units to train
+		}
+	}
+}
+
+// scheduleRemainingMissions schedules any missions that can now be run after all units are trained
+func (s *Solver) scheduleRemainingMissions(state *State, missionActions *[]models.MissionAction) {
+	if len(s.Missions) == 0 {
+		return
+	}
+
+	tavernLevel := state.GetBuildingLevel(models.Tavern)
+
+	// Try to schedule each mission once (just to demonstrate we CAN run them)
+	for _, mission := range s.Missions {
+		// Check tavern level (min)
+		if tavernLevel < mission.TavernLevel {
+			continue
+		}
+
+		// Check tavern level (max)
+		if mission.MaxTavernLevel > 0 && tavernLevel > mission.MaxTavernLevel {
+			continue
+		}
+
+		// Check unit availability
+		canRun := true
+		for _, req := range mission.UnitsRequired {
+			have := state.Army.Get(req.Type)
+			if have < req.Count {
+				canRun = false
+				break
+			}
+		}
+		if !canRun {
+			continue
+		}
+
+		// Schedule the mission
+		startTime := state.Now
+		durationSeconds := mission.DurationMinutes * 60
+		endTime := startTime + durationSeconds
+
+		*missionActions = append(*missionActions, models.MissionAction{
+			MissionName: mission.Name,
+			StartTime:   startTime,
+			EndTime:     endTime,
+		})
+
+		// Advance time to mission end
+		s.advanceTime(state, durationSeconds)
 	}
 }
