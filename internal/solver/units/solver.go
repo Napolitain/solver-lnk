@@ -6,22 +6,22 @@ import (
 
 // Constants for maxed castle
 const (
-	MaxFoodCapacity           = 4265  // Remaining after buildings (5000 - 735)
-	ResourceProductionPerHour = 1161  // 387 + 387 + 387 (LJ30 + Q30 + OM30)
-	MarketDistanceFields      = 25    // Keep level 10
-	RoundTripFields           = 50    // 2 × 25
-	SilverPerResource         = 0.02  // 1:50 exchange rate
+	MaxFoodCapacity           = 4265 // Remaining after buildings (5000 - 735)
+	ResourceProductionPerHour = 1161 // 387 + 387 + 387 (LJ30 + Q30 + OM30)
+	MarketDistanceFields      = 25   // Keep level 10
+	RoundTripFields           = 50   // 2 × 25
+	SilverPerResource         = 0.02 // 1:50 exchange rate
 )
 
 // Solution represents an army composition
 type Solution struct {
-	UnitCounts        map[string]int
-	TotalFood         int
-	TotalThroughput   float64 // resources/hour
-	DefenseVsCavalry  int
-	DefenseVsInfantry int
+	UnitCounts         map[string]int
+	TotalFood          int
+	TotalThroughput    float64 // resources/hour
+	DefenseVsCavalry   int
+	DefenseVsInfantry  int
 	DefenseVsArtillery int
-	SilverPerHour     float64
+	SilverPerHour      float64
 }
 
 // MinDefense returns the minimum defense across all types
@@ -72,7 +72,7 @@ func NewSolverWithConfig(food, resourceProd, marketDist int32) *Solver {
 }
 
 // Solve finds the optimal army composition
-// Strategy: 
+// Strategy:
 // 1. Calculate minimum trading capacity needed
 // 2. Use remaining food for combat units optimized for balanced defense
 func (s *Solver) Solve() *Solution {
@@ -82,7 +82,7 @@ func (s *Solver) Solve() *Solution {
 
 	// First, check if combat units alone can handle trading
 	combatThroughput := s.calculateCombatOnlyThroughput()
-	
+
 	var tradingFoodNeeded int
 	if combatThroughput < s.RequiredThroughput {
 		// Need dedicated trading units
@@ -161,7 +161,7 @@ func (s *Solver) allocateCombatUnits(solution *Solution, foodBudget int) {
 	for usedFood < foodBudget {
 		// Find which defense type is weakest
 		minDef := min(defCav, defInf, defArt)
-		
+
 		// Find best unit to improve the weakest defense
 		var bestUnit *Unit
 		var bestImprovement int
@@ -248,7 +248,7 @@ func (s *Solver) addTradingUnits(solution *Solution) {
 // removeLeastEfficientCombat removes combat units to free up food
 func (s *Solver) removeLeastEfficientCombat(solution *Solution, foodNeeded int) {
 	combat := CombatUnits()
-	
+
 	// Sort by efficiency (worst first)
 	sort.Slice(combat, func(i, j int) bool {
 		return combat[i].DefenseEfficiencyPerFood() < combat[j].DefenseEfficiencyPerFood()
@@ -270,5 +270,3 @@ func (s *Solver) removeLeastEfficientCombat(solution *Solution, foodNeeded int) 
 		}
 	}
 }
-
-

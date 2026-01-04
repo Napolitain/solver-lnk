@@ -58,7 +58,7 @@ func LoadBuildings(dataDir string) (map[models.BuildingType]*models.Building, er
 
 		for levelStr, levelData := range raw.Levels {
 			level, _ := strconv.Atoi(levelStr)
-			
+
 			// Build Costs struct from map
 			var costs models.Costs
 			for res, amount := range levelData.Costs {

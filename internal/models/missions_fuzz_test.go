@@ -150,7 +150,7 @@ func FuzzMissionScheduler(f *testing.F) {
 
 			// Check completion at checkTime
 			completed := scheduler.CompleteMissions(checkTime)
-			
+
 			if checkTime >= expectedEnd {
 				// Should have completed
 				if len(completed) != 1 {
@@ -249,7 +249,7 @@ func FuzzMultipleMissions(f *testing.F) {
 				maxEndTime = state.EndTime
 			}
 		}
-		
+
 		scheduler.CompleteMissions(maxEndTime + 1)
 
 		// Property: After all complete, all units should be available
@@ -263,9 +263,9 @@ func FuzzMultipleMissions(f *testing.F) {
 // FuzzROIComparison tests that ROI calculations remain consistent
 func FuzzROIComparison(f *testing.F) {
 	// Different mission profiles
-	f.Add(15, 15, 45, 0)    // Short, low units, small reward, no cost
-	f.Add(300, 240, 2000, 700)  // Long, many units, large reward, significant cost
-	f.Add(60, 50, 200, 100) // Medium everything
+	f.Add(15, 15, 45, 0)       // Short, low units, small reward, no cost
+	f.Add(300, 240, 2000, 700) // Long, many units, large reward, significant cost
+	f.Add(60, 50, 200, 100)    // Medium everything
 
 	f.Fuzz(func(t *testing.T, durationMin, unitsRequired, avgReward, cost int) {
 		if durationMin <= 0 || durationMin > 1440 { // max 24 hours

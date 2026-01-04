@@ -6,10 +6,10 @@ import (
 
 func FuzzSolverConstraints(f *testing.F) {
 	// Add seed corpus with realistic values
-	f.Add(int32(4265), int32(1161), int32(50))   // Default maxed castle
-	f.Add(int32(1000), int32(500), int32(25))    // Small castle
-	f.Add(int32(100), int32(100), int32(10))     // Very small
-	f.Add(int32(5000), int32(2000), int32(100))  // Large castle
+	f.Add(int32(4265), int32(1161), int32(50))  // Default maxed castle
+	f.Add(int32(1000), int32(500), int32(25))   // Small castle
+	f.Add(int32(100), int32(100), int32(10))    // Very small
+	f.Add(int32(5000), int32(2000), int32(100)) // Large castle
 
 	f.Fuzz(func(t *testing.T, food, production, distance int32) {
 		// Skip invalid inputs
@@ -97,9 +97,9 @@ func FuzzSolverConstraints(f *testing.F) {
 
 func FuzzUnitThroughput(f *testing.F) {
 	// Seed with realistic values
-	f.Add(float64(11.67), int32(12), int32(50))  // Spearman-like
-	f.Add(float64(5.0), int32(22), int32(50))    // Horseman-like
-	f.Add(float64(20.0), int32(140), int32(50))  // Handcart-like
+	f.Add(float64(11.67), int32(12), int32(50)) // Spearman-like
+	f.Add(float64(5.0), int32(22), int32(50))   // Horseman-like
+	f.Add(float64(20.0), int32(140), int32(50)) // Handcart-like
 
 	f.Fuzz(func(t *testing.T, speed float64, capacity, distance int32) {
 		// Skip invalid inputs
@@ -202,9 +202,9 @@ func TestThroughputMeetsProduction(t *testing.T) {
 // FuzzUnitResourceCosts verifies that resource costs are reasonable for all fuzz inputs
 func FuzzUnitResourceCosts(f *testing.F) {
 	// Seed with storage capacities at different levels
-	f.Add(int32(500), int32(9999))    // Level 20 storage (actual game value)
-	f.Add(int32(1000), int32(10000))  // Mid-level storage
-	f.Add(int32(4265), int32(50000))  // High storage
+	f.Add(int32(500), int32(9999))   // Level 20 storage (actual game value)
+	f.Add(int32(1000), int32(10000)) // Mid-level storage
+	f.Add(int32(4265), int32(50000)) // High storage
 
 	f.Fuzz(func(t *testing.T, food, storageCap int32) {
 		if food <= 0 || storageCap <= 0 {

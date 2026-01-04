@@ -6,9 +6,9 @@ import (
 
 // InvestmentPath represents an investment strategy
 type InvestmentPath struct {
-	Name               string
-	TotalInvestmentTime int    // seconds to reach full productivity
-	TotalResourceCost   Costs
+	Name                  string
+	TotalInvestmentTime   int // seconds to reach full productivity
+	TotalResourceCost     Costs
 	ProductionRatePerHour float64 // resources/hour once fully invested
 }
 
@@ -41,9 +41,9 @@ func TestInvestmentComparison_TavernVsLumberjack(t *testing.T) {
 
 	// Example costs (simplified, would come from data files)
 	lumberjackPath := InvestmentPath{
-		Name:               "Lumberjack 10→15",
-		TotalInvestmentTime: 5 * 3600, // ~5 hours of build time
-		TotalResourceCost:   Costs{Wood: 5000, Stone: 3000, Iron: 2000},
+		Name:                  "Lumberjack 10→15",
+		TotalInvestmentTime:   5 * 3600, // ~5 hours of build time
+		TotalResourceCost:     Costs{Wood: 5000, Stone: 3000, Iron: 2000},
 		ProductionRatePerHour: 50, // +50 wood/hour from level 10→15
 	}
 
@@ -52,10 +52,10 @@ func TestInvestmentComparison_TavernVsLumberjack(t *testing.T) {
 	// If running continuously: 45 * 4 = 180 resources/hour
 	// But need tavern (build time) + archer training time
 	tavernPath := InvestmentPath{
-		Name:               "Tavern 5 + 15 Archers (Hunting)",
-		TotalInvestmentTime: 3 * 3600, // ~3 hours (tavern build + archer training)
-		TotalResourceCost:   Costs{Wood: 2000, Stone: 1500, Iron: 1500}, // tavern + 15 archers
-		ProductionRatePerHour: 180, // Hunting continuously
+		Name:                  "Tavern 5 + 15 Archers (Hunting)",
+		TotalInvestmentTime:   3 * 3600,                                   // ~3 hours (tavern build + archer training)
+		TotalResourceCost:     Costs{Wood: 2000, Stone: 1500, Iron: 1500}, // tavern + 15 archers
+		ProductionRatePerHour: 180,                                        // Hunting continuously
 	}
 
 	// Test: Which path produces more resources over various time horizons?
@@ -81,7 +81,7 @@ func TestInvestmentComparison_TavernVsLumberjack(t *testing.T) {
 	// Property: Tavern should be better at shorter horizons (faster investment)
 	// Property: Lumberjack is permanent while tavern requires active play
 	// (but for now we assume active play)
-	
+
 	// At 6 hours: tavern has 3 hours of production, lumberjack has 1 hour
 	at6h := 6 * 3600
 	if tavernPath.EffectiveProductionAtTime(at6h) <= lumberjackPath.EffectiveProductionAtTime(at6h) {
@@ -93,17 +93,17 @@ func TestInvestmentComparison_TavernVsLumberjack(t *testing.T) {
 func TestInvestmentComparison_BreakEvenAnalysis(t *testing.T) {
 	// Slower investment, higher long-term rate
 	slowPath := InvestmentPath{
-		Name:               "Slow (high long-term)",
-		TotalInvestmentTime: 8 * 3600,
-		TotalResourceCost:   Costs{Wood: 10000},
+		Name:                  "Slow (high long-term)",
+		TotalInvestmentTime:   8 * 3600,
+		TotalResourceCost:     Costs{Wood: 10000},
 		ProductionRatePerHour: 200,
 	}
 
 	// Faster investment, lower rate
 	fastPath := InvestmentPath{
-		Name:               "Fast (lower long-term)",
-		TotalInvestmentTime: 2 * 3600,
-		TotalResourceCost:   Costs{Wood: 2000},
+		Name:                  "Fast (lower long-term)",
+		TotalInvestmentTime:   2 * 3600,
+		TotalResourceCost:     Costs{Wood: 2000},
 		ProductionRatePerHour: 100,
 	}
 
@@ -112,12 +112,12 @@ func TestInvestmentComparison_BreakEvenAnalysis(t *testing.T) {
 	// After break-even: slow is better
 	low := 0
 	high := 100 * 3600 // 100 hours max
-	
+
 	for high-low > 60 { // precision: 1 minute
 		mid := (low + high) / 2
 		slowProd := slowPath.EffectiveProductionAtTime(mid)
 		fastProd := fastPath.EffectiveProductionAtTime(mid)
-		
+
 		if slowProd > fastProd {
 			high = mid
 		} else {
@@ -137,7 +137,7 @@ func TestInvestmentComparison_BreakEvenAnalysis(t *testing.T) {
 	// Catch-up rate: 100 resources/hour
 	// Time to catch up: 600/100 = 6 hours after slow finishes = 14 hours total
 	expectedBreakEven := 14.0
-	if absFloat(breakEvenHours - expectedBreakEven) > 1.0 {
+	if absFloat(breakEvenHours-expectedBreakEven) > 1.0 {
 		t.Errorf("Break-even at %.1fh, expected ~%.1fh", breakEvenHours, expectedBreakEven)
 	}
 }
@@ -152,7 +152,7 @@ func TestMissionROI_VsProductionBuilding(t *testing.T) {
 
 	// Option A: Spend on Lumberjack upgrade
 	// Assume upgrade costs 1000, takes 2 hours, adds 20 wood/hour
-	lumberjackBuildTime := 2.0 // hours
+	lumberjackBuildTime := 2.0   // hours
 	lumberjackProduction := 20.0 // wood/hour
 	lumberjackYield := (horizonHours - lumberjackBuildTime) * lumberjackProduction
 
@@ -160,7 +160,7 @@ func TestMissionROI_VsProductionBuilding(t *testing.T) {
 	// Assume: 500 for tavern upgrade (1h), 500 for 20 archers
 	// Can run Hunting: 15 archers, 15 min, ~45 resources
 	// Effective production: 45 * 4 = 180/hour for hunting group
-	tavernBuildTime := 1.0 // hours
+	tavernBuildTime := 1.0         // hours
 	missionProductionRate := 180.0 // resources/hour (active)
 	tavernYield := (horizonHours - tavernBuildTime) * missionProductionRate
 
@@ -170,7 +170,7 @@ func TestMissionROI_VsProductionBuilding(t *testing.T) {
 
 	// The huge difference is because missions are much higher throughput
 	// BUT: missions require active play, units are busy, etc.
-	
+
 	// Real comparison should factor in:
 	// 1. Units have alternative uses (trading, defense)
 	// 2. Active play requirement
@@ -190,7 +190,7 @@ func TestMission_OpportunityCost_Trading(t *testing.T) {
 	// Actually with 25 field distance (market), round trip = 50 fields
 	// 8.33 min/field * 50 = 416 min ≈ 7 hours per round trip
 	// 15 archers * 16 capacity / 7 hours = 34 resources/hour throughput
-	
+
 	archerThroughputPerHour := 15 * 16.0 / 7.0 // ~34 resources/hour
 	silverPerResource := 0.02
 	silverIncomePerHour := archerThroughputPerHour * silverPerResource // ~0.68 silver/hour
@@ -216,37 +216,37 @@ func TestMission_InvestmentBreakdown(t *testing.T) {
 	// To enable Hunting missions, player needs:
 	// 1. Tavern level 1 (minimum)
 	// 2. 15 Archers
-	
+
 	// Tavern 1 costs (example - would come from data)
 	tavernCost := Costs{Wood: 200, Stone: 150, Iron: 100}
 	tavernBuildTime := 30 * 60 // 30 minutes
-	
+
 	// 15 Archers: each costs Wood: 27, Stone: 12, Iron: 39, training: 15 min
 	archerCost := Costs{Wood: 27, Stone: 12, Iron: 39}
 	archerTrainTime := 15 * 60 // 15 minutes each
 	numArchers := 15
-	
+
 	totalArcherCost := Costs{
 		Wood:  archerCost.Wood * numArchers,
 		Stone: archerCost.Stone * numArchers,
 		Iron:  archerCost.Iron * numArchers,
 	}
-	
+
 	// Training can be parallel in arsenal, so time = 15 min * 15 = 225 min (sequential)
 	// Or if arsenal has queue, could be longer
 	totalTrainTime := archerTrainTime * numArchers
-	
+
 	// Total investment
 	totalCost := Costs{
 		Wood:  tavernCost.Wood + totalArcherCost.Wood,
 		Stone: tavernCost.Stone + totalArcherCost.Stone,
 		Iron:  tavernCost.Iron + totalArcherCost.Iron,
 	}
-	
+
 	// Time: tavern build + archer training (sequential or parallel?)
 	// Assume sequential for now
 	totalTime := tavernBuildTime + totalTrainTime
-	
+
 	t.Log("Investment to enable Hunting missions:")
 	t.Logf("  Tavern 1: Wood=%d, Stone=%d, Iron=%d (%.0f min build)",
 		tavernCost.Wood, tavernCost.Stone, tavernCost.Iron, float64(tavernBuildTime)/60)
@@ -254,13 +254,13 @@ func TestMission_InvestmentBreakdown(t *testing.T) {
 		totalArcherCost.Wood, totalArcherCost.Stone, totalArcherCost.Iron, float64(totalTrainTime)/60)
 	t.Logf("  TOTAL: Wood=%d, Stone=%d, Iron=%d (%.1f hours)",
 		totalCost.Wood, totalCost.Stone, totalCost.Iron, float64(totalTime)/3600)
-	
+
 	// Payoff calculation
 	// Hunting: ~180 resources/hour
 	huntingRate := 180.0
 	totalInvestmentResources := float64(totalCost.Wood + totalCost.Stone + totalCost.Iron)
 	payoffHours := totalInvestmentResources / huntingRate
-	
+
 	t.Logf("  Payoff time: %.1f hours of continuous hunting", payoffHours)
 }
 

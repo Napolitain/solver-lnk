@@ -320,10 +320,10 @@ func GetMissionsForTavernLevel(tavernLevel int) []*models.Mission {
 // GetBestMissionForBottleneck returns the mission with highest ROI for a specific resource
 func GetBestMissionForBottleneck(tavernLevel int, bottleneck models.ResourceType) *models.Mission {
 	available := GetMissionsForTavernLevel(tavernLevel)
-	
+
 	var best *models.Mission
 	var bestROI float64
-	
+
 	for _, m := range available {
 		roi := m.NetRewardByType(bottleneck) / float64(m.DurationMinutes)
 		if roi > bestROI {
@@ -331,6 +331,6 @@ func GetBestMissionForBottleneck(tavernLevel int, bottleneck models.ResourceType
 			best = m
 		}
 	}
-	
+
 	return best
 }

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"sort"
+	"time"
 
 	"google.golang.org/grpc"
 
@@ -33,11 +34,14 @@ type server struct {
 
 // Solve implements the Solve RPC
 func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResponse, error) {
+	startTime := time.Now()
 	log.Printf("Received Solve request")
 
 	// Convert proto to internal types
+	convertStart := time.Now()
 	initialState := converter.ProtoRequestToGameState(req)
 	targetLevels := converter.ProtoTargetsToModelTargets(req.TargetLevels)
+	convertDuration := time.Since(convertStart)
 
 	// Use default targets if none provided
 	if len(targetLevels) == 0 {
@@ -59,10 +63,13 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 	}
 
 	// Run solver
+	solveStart := time.Now()
 	solver := castle.NewSolver(s.buildings, s.technologies, s.missions, targetLevels)
 	solution := solver.Solve(initialState)
+	solveDuration := time.Since(solveStart)
 
 	// Convert solution to proto
+	responseStart := time.Now()
 	response := &pb.SolveResponse{
 		TotalTimeSeconds: int32(solution.TotalTimeSeconds),
 		Strategy:         "EventDriven",
@@ -101,8 +108,14 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 		response.UnitsRecommendation = s.generateUnitsRecommendation(initialState)
 	}
 
+	responseDuration := time.Since(responseStart)
+	totalDuration := time.Since(startTime)
+
 	log.Printf("Returning solution with %d actions in timeline, strategy: %s",
 		len(response.Timeline), response.Strategy)
+	log.Printf("Performance: convert=%v, solve=%v, response=%v, total=%v",
+		convertDuration, solveDuration, responseDuration, totalDuration)
+
 	return response, nil
 }
 

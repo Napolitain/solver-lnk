@@ -50,9 +50,9 @@ func (et EventType) Priority() int {
 
 // Event represents a simulation event
 type Event struct {
-	Time    int       // Seconds from simulation start
+	Time    int // Seconds from simulation start
 	Type    EventType
-	Payload any       // BuildingAction, ResearchAction, TrainUnitAction, MissionState
+	Payload any // BuildingAction, ResearchAction, TrainUnitAction, MissionState
 }
 
 // EventQueue is a priority queue for events

@@ -420,12 +420,12 @@ func printSummary(solution *models.Solution, targets map[models.BuildingType]int
 
 func printUnitsStats(trainingActions []models.TrainUnitAction, foodCapacity int) {
 	infoColor := color.New(color.FgCyan)
-	
+
 	// Count units trained
 	unitCounts := make(map[models.UnitType]int)
 	totalTrainingSeconds := 0
 	totalFoodUsed := 0
-	
+
 	for _, action := range trainingActions {
 		unitCounts[action.UnitType] += action.Count
 		def := models.GetUnitDefinition(action.UnitType)
@@ -437,7 +437,7 @@ func printUnitsStats(trainingActions []models.TrainUnitAction, foodCapacity int)
 			totalFoodUsed = action.FoodUsed
 		}
 	}
-	
+
 	// Calculate defense stats
 	defCav, defInf, defArt := 0, 0, 0
 	for ut, count := range unitCounts {
@@ -448,7 +448,7 @@ func printUnitsStats(trainingActions []models.TrainUnitAction, foodCapacity int)
 			defArt += count * def.DefenseVsArtillery
 		}
 	}
-	
+
 	minDef := defCav
 	if defInf < minDef {
 		minDef = defInf
