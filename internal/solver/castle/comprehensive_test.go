@@ -8,6 +8,136 @@ import (
 )
 
 // =============================================================================
+// Regression Tests
+// =============================================================================
+
+// TestDoNotRecommendAlreadyResearchedTech verifies solver doesn't recommend
+// technologies that are already researched.
+// Regression test for bug: solver recommending Longbow when it's already researched.
+func TestDoNotRecommendAlreadyResearchedTech(t *testing.T) {
+	buildings, _ := loader.LoadBuildings("../../../data")
+	technologies, _ := loader.LoadTechnologies("../../../data")
+	missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+	// Exact state from user report
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack: 30,
+		models.Quarry:     30,
+		models.OreMine:    30,
+		models.Farm:       30,
+	}
+
+	solver := NewSolver(buildings, technologies, missions, targetLevels)
+
+	state := models.NewGameState()
+	state.BuildingLevels[models.Lumberjack] = 22
+	state.BuildingLevels[models.Quarry] = 22
+	state.BuildingLevels[models.OreMine] = 22
+	state.BuildingLevels[models.Farm] = 11
+	state.BuildingLevels[models.Library] = 4
+	state.BuildingLevels[models.WoodStore] = 10
+	state.BuildingLevels[models.StoneStore] = 10
+	state.BuildingLevels[models.OreStore] = 10
+	state.BuildingLevels[models.Tavern] = 7
+	state.BuildingLevels[models.Keep] = 2
+	state.BuildingLevels[models.Arsenal] = 1
+	state.BuildingLevels[models.Fortifications] = 1
+	state.BuildingLevels[models.Market] = 1
+
+	state.Resources[models.Wood] = 1197
+	state.Resources[models.Stone] = 1137
+	state.Resources[models.Iron] = 1469
+
+	// Mark technologies as already researched (as reported by bot)
+	state.ResearchedTechnologies[string(models.TechLongbow)] = true
+	state.ResearchedTechnologies[string(models.TechCropRotation)] = true
+	state.ResearchedTechnologies[string(models.TechStirrup)] = true
+	state.ResearchedTechnologies[string(models.TechBeerTester)] = true
+
+	solution := solver.Solve(state)
+
+	// Verify no already-researched techs are recommended
+	for _, ra := range solution.ResearchActions {
+		techName := ra.TechnologyName
+		switch techName {
+		case "Longbow":
+			t.Errorf("Solver recommends Longbow but it's already researched")
+		case "Crop rotation":
+			t.Errorf("Solver recommends Crop rotation but it's already researched")
+		case "Stirrup":
+			t.Errorf("Solver recommends Stirrup but it's already researched")
+		case "Beer tester":
+			t.Errorf("Solver recommends Beer tester but it's already researched")
+		}
+	}
+}
+
+// TestCropRotationNotRecommendedTooEarly verifies Crop Rotation is only researched
+// when Farm is about to reach level 15, not when Farm is at level 11.
+// Regression test for bug: solver recommending Crop Rotation with Farm at level 11.
+func TestCropRotationNotRecommendedTooEarly(t *testing.T) {
+	buildings, _ := loader.LoadBuildings("../../../data")
+	technologies, _ := loader.LoadTechnologies("../../../data")
+	missions, _ := loader.LoadMissionsFromFile("../../../data")
+
+	// Replicate the user's state: Farm 11, LJ/Q/OM at 22, Library 4
+	targetLevels := map[models.BuildingType]int{
+		models.Lumberjack: 30,
+		models.Quarry:     30,
+		models.OreMine:    30,
+		models.Farm:       30,
+	}
+
+	solver := NewSolver(buildings, technologies, missions, targetLevels)
+
+	state := models.NewGameState()
+	state.BuildingLevels[models.Lumberjack] = 22
+	state.BuildingLevels[models.Quarry] = 22
+	state.BuildingLevels[models.OreMine] = 22
+	state.BuildingLevels[models.Farm] = 11
+	state.BuildingLevels[models.Library] = 4
+	state.BuildingLevels[models.WoodStore] = 10
+	state.BuildingLevels[models.StoneStore] = 10
+	state.BuildingLevels[models.OreStore] = 10
+	state.BuildingLevels[models.Tavern] = 7
+	state.BuildingLevels[models.Keep] = 2
+	state.BuildingLevels[models.Arsenal] = 1
+	state.BuildingLevels[models.Fortifications] = 1
+	state.BuildingLevels[models.Market] = 1
+
+	state.Resources[models.Wood] = 986
+	state.Resources[models.Stone] = 926
+	state.Resources[models.Iron] = 1258
+
+	solution := solver.Solve(state)
+
+	// Find when Farm 14->15 starts
+	var farm15StartTime int
+	for _, ba := range solution.BuildingActions {
+		if ba.BuildingType == models.Farm && ba.ToLevel == 15 {
+			farm15StartTime = ba.StartTime
+			break
+		}
+	}
+
+	// Crop rotation should NOT start before Farm is about to reach level 15
+	// It should complete just before Farm 15 starts (or be researched close to when needed)
+	for _, ra := range solution.ResearchActions {
+		if ra.TechnologyName == "Crop rotation" {
+			// Crop rotation takes 8 hours (28800 seconds) to research
+			// It should not start way before Farm 15 is needed
+			// Allow some buffer - research should start no more than 1 day (86400s) before Farm 15 starts
+			maxEarlyStart := farm15StartTime - 86400 // 1 day buffer
+			if ra.StartTime < maxEarlyStart && farm15StartTime > 0 {
+				t.Errorf("Crop rotation started too early: research starts at %d, but Farm 15 starts at %d (difference: %d seconds = %.1f hours)",
+					ra.StartTime, farm15StartTime, farm15StartTime-ra.StartTime, float64(farm15StartTime-ra.StartTime)/3600)
+			}
+			break
+		}
+	}
+}
+
+// =============================================================================
 // Phase 4: Library Level Requirements for Research
 // =============================================================================
 

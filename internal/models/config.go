@@ -34,14 +34,32 @@ var protoResourceToInternal = map[pb.ResourceType]ResourceType{
 }
 
 var protoTechToString = map[pb.Technology]string{
-	pb.Technology_LONGBOW:          "Longbow",
-	pb.Technology_CROP_ROTATION:    "Crop rotation",
-	pb.Technology_YOKE:             "Yoke",
-	pb.Technology_CELLAR_STOREROOM: "Cellar storeroom",
-	pb.Technology_STIRRUP:          "Stirrup",
-	pb.Technology_CROSSBOW:         "Crossbow",
-	pb.Technology_SWORDSMITH:       "Swordsmith",
-	pb.Technology_HORSE_ARMOUR:     "Horse armour",
+	pb.Technology_LONGBOW:               "Longbow",
+	pb.Technology_CROP_ROTATION:         "Crop rotation",
+	pb.Technology_YOKE:                  "Yoke",
+	pb.Technology_CELLAR_STOREROOM:      "Cellar storeroom",
+	pb.Technology_STIRRUP:               "Stirrup",
+	pb.Technology_CROSSBOW:              "Crossbow",
+	pb.Technology_SWORDSMITH:            "Swordsmith",
+	pb.Technology_HORSE_ARMOUR:          "Horse armour",
+	pb.Technology_BEER_TESTER:           "Beer tester",
+	pb.Technology_WHEELBARROW:           "Wheelbarrow",
+	pb.Technology_WEAPONSMITH:           "Weaponsmith",
+	pb.Technology_ARMOURSMITH:           "Armoursmith",
+	pb.Technology_IRON_HARDENING:        "Iron hardening",
+	pb.Technology_POISON_ARROWS:         "Poison arrows",
+	pb.Technology_HORSE_BREEDING:        "Horse breeding",
+	pb.Technology_FLAMING_ARROWS:        "Flaming arrows",
+	pb.Technology_BLACKSMITH:            "Blacksmith",
+	pb.Technology_MAP_OF_AREA:           "Map of area",
+	pb.Technology_CISTERN:               "Cistern",
+	pb.Technology_FORTRESS_CONSTRUCTION: "Fortress construction",
+}
+
+// ProtoTechToString converts proto Technology enum to string name
+func ProtoTechToString(tech pb.Technology) (string, bool) {
+	name, ok := protoTechToString[tech]
+	return name, ok
 }
 
 // LoadCastleConfig loads castle configuration from binary protobuf file
@@ -131,7 +149,7 @@ func CastleConfigToGameState(c *pb.CastleConfig) *GameState {
 
 	// Set researched technologies
 	for _, tech := range c.ResearchedTechnologies {
-		if name, ok := protoTechToString[tech]; ok {
+		if name, ok := ProtoTechToString(tech); ok {
 			state.ResearchedTechnologies[name] = true
 		}
 	}

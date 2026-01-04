@@ -50,7 +50,12 @@ func ProtoRequestToGameState(req *pb.SolveRequest) *models.GameState {
 			state.Resources[ProtoToModelResourceType(r.Type)] = r.Amount
 		}
 
-		// TODO: researched technologies
+		// Researched technologies
+		for _, tech := range req.CastleConfig.ResearchedTechnologies {
+			if name, ok := models.ProtoTechToString(tech); ok {
+				state.ResearchedTechnologies[name] = true
+			}
+		}
 	}
 
 	return state
