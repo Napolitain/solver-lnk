@@ -13,7 +13,7 @@ type ActionROI struct {
 	TimeCost       int     // seconds until action completes
 	ResourceGain   float64 // immediate resources gained (missions only)
 	ProductionGain float64 // resources/hour gained (buildings only)
-	
+
 	// Calculated fields
 	NetResourcesAtHorizon float64 // net resources gained by time horizon
 	EffectiveROI          float64 // net gain / total investment
@@ -45,7 +45,7 @@ func (a *ActionROI) CalculateROI(horizonSeconds int) {
 func CompareActions(a, b *ActionROI, horizonSeconds int) *ActionROI {
 	a.CalculateROI(horizonSeconds)
 	b.CalculateROI(horizonSeconds)
-	
+
 	if a.EffectiveROI >= b.EffectiveROI {
 		return a
 	}
@@ -142,7 +142,7 @@ func TestUnifiedROI_RepeatableMissions(t *testing.T) {
 	// Compare to Lumberjack 30 (max level): 387 wood/hour
 	// Hunting with 15 archers = 180 resources/hour (mixed)
 	// But hunting uses units that could be trading...
-	
+
 	// Property: Mission effective rate should equal net_reward * missions_per_hour
 	expectedRate := hunting.NetAverageReward() * missionsPerHour
 	if math.Abs(effectiveRate-expectedRate) > 0.1 {
@@ -221,8 +221,8 @@ func TestUnifiedROI_MissionWithSetupCost(t *testing.T) {
 	// Setup costs
 	tavernCosts := Costs{Wood: 200, Stone: 150, Iron: 100}
 	tavernBuildTime := 30 * 60 // 30 min
-	
-	archerCost := 78 // 27+12+39 per archer
+
+	archerCost := 78           // 27+12+39 per archer
 	archerTrainTime := 15 * 60 // 15 min per archer
 	archersNeeded := 15
 
@@ -257,7 +257,7 @@ func TestUnifiedROI_MissionWithSetupCost(t *testing.T) {
 	// 180h > 40h - 40*setupTime + setupCost
 	// 140h > setupCost - 40*setupTime
 	// h > (setupCost - 40*setupHours) / 140
-	
+
 	setupHours := float64(totalSetupTime) / 3600
 	crossoverHours := (totalSetupCost - alternativeProductionGain*setupHours) / (180 - alternativeProductionGain)
 

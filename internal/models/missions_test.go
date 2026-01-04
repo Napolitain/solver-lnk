@@ -202,7 +202,7 @@ func TestMissionScheduler_UnitsReturned(t *testing.T) {
 	hunting := missions[0] // 15 min duration
 
 	scheduler.StartMission(hunting, 0)
-	
+
 	// Before completion
 	if scheduler.AvailableUnits[Archer] != 35 {
 		t.Errorf("Expected 35 available archers during mission, got %d",
@@ -211,7 +211,7 @@ func TestMissionScheduler_UnitsReturned(t *testing.T) {
 
 	// After completion (at 15 minutes = 900 seconds)
 	completed := scheduler.CompleteMissions(900)
-	
+
 	if len(completed) != 1 {
 		t.Errorf("Expected 1 completed mission, got %d", len(completed))
 	}
@@ -264,7 +264,7 @@ func TestMissionScheduler_NextCompletionTime(t *testing.T) {
 // Property: No running missions should return -1 for next completion
 func TestMissionScheduler_NoRunningMissions(t *testing.T) {
 	scheduler := NewMissionScheduler([]*Mission{}, map[UnitType]int{})
-	
+
 	if scheduler.NextCompletionTime() != -1 {
 		t.Errorf("Expected -1 for no running missions, got %d",
 			scheduler.NextCompletionTime())
@@ -295,7 +295,7 @@ func TestMissionScheduler_SimultaneousMissions(t *testing.T) {
 	}
 
 	if len(scheduler.RunningMissions) != started {
-		t.Errorf("Expected %d running missions, got %d", 
+		t.Errorf("Expected %d running missions, got %d",
 			started, len(scheduler.RunningMissions))
 	}
 }
@@ -305,18 +305,18 @@ func TestMissionScheduler_SimultaneousMissions(t *testing.T) {
 // Property: Mission ROI should be comparable to production building ROI
 func TestMission_ROIComparison(t *testing.T) {
 	hunting := sampleMissions()[0]
-	
+
 	// Hunting: ~45 resources avg in 15 min = 180 resources/hour
 	// Uses 15 archers
 	// Per-unit-hour: 180/15 = 12 resources per unit per hour
-	
+
 	roiPerUnitHour := hunting.NetAverageRewardPerUnitHour()
-	
+
 	// This should be a meaningful positive number
 	if roiPerUnitHour <= 0 {
 		t.Errorf("Hunting ROI per unit hour should be positive, got %.2f", roiPerUnitHour)
 	}
-	
+
 	// Log for reference (not a test failure)
 	t.Logf("Hunting ROI: %.2f resources per unit-hour", roiPerUnitHour)
 }
@@ -326,7 +326,7 @@ func TestMission_SpecificResourceROI(t *testing.T) {
 	tradingPost := sampleMissions()[2] // Has 700 wood cost, 750-1500 wood reward
 
 	woodROI := tradingPost.NetRewardByType(Wood)
-	
+
 	// Average wood reward: 1125, cost: 700, net: 425
 	if woodROI <= 0 {
 		t.Logf("Trading post wood ROI: %.2f (reward: %.2f, cost: %d)",

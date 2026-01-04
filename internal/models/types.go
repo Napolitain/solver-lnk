@@ -215,15 +215,15 @@ const (
 func AllTechNames() []TechName {
 	return []TechName{
 		TechLongbow, TechCropRotation, TechYoke, TechCellarStoreroom, // lib 1
-		TechStirrup,                                                   // lib 2
-		TechWeaponsmith, TechArmoursmith, TechBeerTester,              // lib 3
-		TechSwordsmith, TechIronHardening,                             // lib 4
-		TechCrossbow,                                                  // lib 5
-		TechPoisonArrows, TechHorseBreeding,                           // lib 6
-		TechWeaponsManufacturing, TechHorseArmour,                     // lib 7
-		TechWheelbarrow, TechFlamingArrows,                            // lib 8
-		TechBlacksmith,                                                // lib 9
-		TechMapOfArea, TechCistern,                                    // lib 10
+		TechStirrup,                                      // lib 2
+		TechWeaponsmith, TechArmoursmith, TechBeerTester, // lib 3
+		TechSwordsmith, TechIronHardening, // lib 4
+		TechCrossbow,                        // lib 5
+		TechPoisonArrows, TechHorseBreeding, // lib 6
+		TechWeaponsManufacturing, TechHorseArmour, // lib 7
+		TechWheelbarrow, TechFlamingArrows, // lib 8
+		TechBlacksmith,             // lib 9
+		TechMapOfArea, TechCistern, // lib 10
 	}
 }
 
@@ -503,8 +503,8 @@ type MissionAction struct {
 type Solution struct {
 	BuildingActions  []BuildingUpgradeAction
 	ResearchActions  []ResearchAction
-	TrainingActions  []TrainUnitAction  // Unit training during build phase
-	MissionActions   []MissionAction    // Missions run during build phase
+	TrainingActions  []TrainUnitAction // Unit training during build phase
+	MissionActions   []MissionAction   // Missions run during build phase
 	TotalTimeSeconds int
 	FinalState       *GameState
 }

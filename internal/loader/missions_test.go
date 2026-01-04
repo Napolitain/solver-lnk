@@ -150,8 +150,8 @@ func TestGetBestMissionForBottleneck(t *testing.T) {
 		bottleneck  models.ResourceType
 		expectName  string
 	}{
-		{1, models.Iron, "Overtime Ore"},      // Only overtime available
-		{6, models.Iron, "Feed Miners"},       // Feed Miners is iron-focused
+		{1, models.Iron, "Overtime Ore"}, // Only overtime available
+		{6, models.Iron, "Feed Miners"},  // Feed Miners is iron-focused
 	}
 
 	for _, tc := range tests {
