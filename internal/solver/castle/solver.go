@@ -1592,7 +1592,8 @@ func (s *Solver) productionTechROI(state *State, action *ProductionTechAction) f
 func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 	libraryLevel := state.GetBuildingLevel(models.Library)
 
-	// Check for prerequisite techs first (reactive) - for building upgrades
+	// Check for prerequisite techs first (reactive) - only for the NEXT level upgrade
+	// Don't schedule research for future levels until we're about to need them
 	var prereqAction *ResearchAction
 	s.TargetLevels.Each(func(bt models.BuildingType, target int) {
 		if target == 0 || prereqAction != nil {
@@ -1604,14 +1605,17 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 		}
 
 		current := state.GetBuildingLevel(bt)
-		for level := current + 1; level <= target; level++ {
-			if techName, ok := building.TechnologyPrerequisites[level]; ok {
-				if !state.ResearchedTechs[techName] {
-					tech := s.Technologies[techName]
-					if tech != nil && libraryLevel >= tech.RequiredLibraryLevel {
-						prereqAction = &ResearchAction{Technology: tech}
-						return
-					}
+		nextLevel := current + 1
+		if nextLevel > target {
+			return
+		}
+		// Only check the immediate next level for tech prerequisites
+		if techName, ok := building.TechnologyPrerequisites[nextLevel]; ok {
+			if !state.ResearchedTechs[techName] {
+				tech := s.Technologies[techName]
+				if tech != nil && libraryLevel >= tech.RequiredLibraryLevel {
+					prereqAction = &ResearchAction{Technology: tech}
+					return
 				}
 			}
 		}
