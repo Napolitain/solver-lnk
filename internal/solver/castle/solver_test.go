@@ -156,7 +156,7 @@ func TestStateResourceOperations(t *testing.T) {
 func TestStateClone(t *testing.T) {
 	state := &State{
 		Now:             100,
-		BuildingLevels:  map[models.BuildingType]int{models.Lumberjack: 5},
+		BuildingLevels:  models.BuildingLevelMap{Lumberjack: 5},
 		Resources:       [3]float64{100, 200, 300},
 		ResearchedTechs: map[string]bool{"Longbow": true},
 		Army:            models.Army{Spearman: 50},
@@ -166,7 +166,7 @@ func TestStateClone(t *testing.T) {
 
 	// Modify original
 	state.Now = 200
-	state.BuildingLevels[models.Lumberjack] = 10
+	state.BuildingLevels.Set(models.Lumberjack, 10)
 	state.Resources[0] = 999
 	state.ResearchedTechs["Beer tester"] = true
 	state.Army.Spearman = 100
@@ -175,8 +175,8 @@ func TestStateClone(t *testing.T) {
 	if clone.Now != 100 {
 		t.Errorf("Clone Now should be 100, got %d", clone.Now)
 	}
-	if clone.BuildingLevels[models.Lumberjack] != 5 {
-		t.Errorf("Clone Lumberjack should be 5, got %d", clone.BuildingLevels[models.Lumberjack])
+	if clone.BuildingLevels.Get(models.Lumberjack) != 5 {
+		t.Errorf("Clone Lumberjack should be 5, got %d", clone.BuildingLevels.Get(models.Lumberjack))
 	}
 	if clone.Resources[0] != 100 {
 		t.Errorf("Clone Wood should be 100, got %f", clone.Resources[0])

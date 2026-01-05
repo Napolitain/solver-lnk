@@ -17,8 +17,8 @@ type State struct {
 	PendingResearch *ResearchAction
 	PendingTraining *TrainUnitAction
 
-	// Buildings
-	BuildingLevels map[models.BuildingType]int
+	// Buildings (deterministic struct instead of map)
+	BuildingLevels models.BuildingLevelMap
 
 	// Resources (indexed: 0=Wood, 1=Stone, 2=Iron)
 	Resources       [3]float64
@@ -30,7 +30,7 @@ type State struct {
 	FoodUsed     int
 	FoodCapacity int
 
-	// Research
+	// Research (kept as map to support additional techs not in AllTechNames)
 	ResearchedTechs map[string]bool
 
 	// Army (strict typing)
@@ -45,15 +45,14 @@ type State struct {
 func NewState(gs *models.GameState) *State {
 	s := &State{
 		Now:             0,
-		BuildingLevels:  make(map[models.BuildingType]int),
 		ProductionBonus: 1.0,
 		ResearchedTechs: make(map[string]bool),
 		RunningMissions: make([]*models.MissionState, 0),
 	}
 
-	// Copy building levels
+	// Copy building levels to deterministic struct
 	for bt, level := range gs.BuildingLevels {
-		s.BuildingLevels[bt] = level
+		s.BuildingLevels.Set(bt, level)
 	}
 
 	// Copy resources
@@ -77,15 +76,16 @@ func NewState(gs *models.GameState) *State {
 
 // GetBuildingLevel returns the current level of a building
 func (s *State) GetBuildingLevel(bt models.BuildingType) int {
-	if level, ok := s.BuildingLevels[bt]; ok {
-		return level
+	level := s.BuildingLevels.Get(bt)
+	if level == 0 {
+		return 1 // Default to level 1
 	}
-	return 1 // Default to level 1
+	return level
 }
 
 // SetBuildingLevel sets the level of a building
 func (s *State) SetBuildingLevel(bt models.BuildingType, level int) {
-	s.BuildingLevels[bt] = level
+	s.BuildingLevels.Set(bt, level)
 }
 
 // GetResource returns the current amount of a resource
@@ -221,7 +221,7 @@ func (s *State) Clone() *State {
 		BuildingQueueFreeAt: s.BuildingQueueFreeAt,
 		ResearchQueueFreeAt: s.ResearchQueueFreeAt,
 		TrainingQueueFreeAt: s.TrainingQueueFreeAt,
-		BuildingLevels:      make(map[models.BuildingType]int),
+		BuildingLevels:      s.BuildingLevels, // Struct copy (value type)
 		Resources:           s.Resources,
 		ProductionRates:     s.ProductionRates,
 		StorageCaps:         s.StorageCaps,
@@ -234,9 +234,6 @@ func (s *State) Clone() *State {
 		RunningMissions:     make([]*models.MissionState, len(s.RunningMissions)),
 	}
 
-	for bt, level := range s.BuildingLevels {
-		clone.BuildingLevels[bt] = level
-	}
 	for tech, researched := range s.ResearchedTechs {
 		clone.ResearchedTechs[tech] = researched
 	}
@@ -249,9 +246,12 @@ func (s *State) Clone() *State {
 func (s *State) ToGameState() *models.GameState {
 	gs := models.NewGameState()
 
-	for bt, level := range s.BuildingLevels {
-		gs.BuildingLevels[bt] = level
-	}
+	// Convert BuildingLevelMap back to map
+	s.BuildingLevels.Each(func(bt models.BuildingType, level int) {
+		if level > 0 {
+			gs.BuildingLevels[bt] = level
+		}
+	})
 
 	gs.Resources[models.Wood] = s.Resources[0]
 	gs.Resources[models.Stone] = s.Resources[1]
