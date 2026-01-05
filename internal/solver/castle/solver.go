@@ -537,8 +537,7 @@ func (s *Solver) handlePostBuildingStateChanged(
 func (s *Solver) pickNextRemainingResearch(state *State) *ResearchAction {
 	libraryLevel := state.GetBuildingLevel(models.Library)
 
-	// Find lowest library requirement tech that's not researched
-	// Use AllTechNames for deterministic order
+	// First check known techs in deterministic order
 	for _, techName := range models.AllTechNames() {
 		name := string(techName)
 		tech := s.Technologies[name]
@@ -554,6 +553,48 @@ func (s *Solver) pickNextRemainingResearch(state *State) *ResearchAction {
 		return &ResearchAction{
 			Technology: tech,
 		}
+	}
+
+	// Then check any additional techs not in AllTechNames (e.g., Fortress construction)
+	// Sort by library level for determinism
+	type techInfo struct {
+		name  string
+		tech  *models.Technology
+		level int
+	}
+	var additionalTechs []techInfo
+	for name, tech := range s.Technologies {
+		// Skip if already researched
+		if state.ResearchedTechs[name] {
+			continue
+		}
+		// Skip if library level too low
+		if tech.RequiredLibraryLevel > libraryLevel {
+			continue
+		}
+		// Check if this tech is in AllTechNames
+		found := false
+		for _, knownTech := range models.AllTechNames() {
+			if string(knownTech) == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			additionalTechs = append(additionalTechs, techInfo{name, tech, tech.RequiredLibraryLevel})
+		}
+	}
+
+	// Sort by library level (lowest first) for determinism
+	sort.Slice(additionalTechs, func(i, j int) bool {
+		if additionalTechs[i].level != additionalTechs[j].level {
+			return additionalTechs[i].level < additionalTechs[j].level
+		}
+		return additionalTechs[i].name < additionalTechs[j].name
+	})
+
+	if len(additionalTechs) > 0 {
+		return &ResearchAction{Technology: additionalTechs[0].tech}
 	}
 
 	return nil
