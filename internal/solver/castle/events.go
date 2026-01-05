@@ -1,5 +1,10 @@
 package castle
 
+import (
+	"container/heap"
+	"sync/atomic"
+)
+
 // EventType represents the type of simulation event
 type EventType int
 
@@ -50,67 +55,93 @@ func (et EventType) Priority() int {
 
 // Event represents a simulation event
 type Event struct {
-	Time    int // Seconds from simulation start
-	Type    EventType
-	Payload any // BuildingAction, ResearchAction, TrainUnitAction, MissionState
+	Time     int // Seconds from simulation start
+	Type     EventType
+	Payload  any   // BuildingAction, ResearchAction, TrainUnitAction, MissionState
+	Sequence int64 // Global insertion order for stable sorting
 }
 
-// EventQueue is a priority queue for events
-// Events are sorted by (Time, Priority)
+// Global sequence counter for deterministic event ordering
+var eventSequence int64
+
+// eventHeap implements heap.Interface for min-heap of Events
+type eventHeap []Event
+
+func (h eventHeap) Len() int { return len(h) }
+
+func (h eventHeap) Less(i, j int) bool {
+	// Sort by Time first
+	if h[i].Time != h[j].Time {
+		return h[i].Time < h[j].Time
+	}
+	// Then by Priority
+	if h[i].Type.Priority() != h[j].Type.Priority() {
+		return h[i].Type.Priority() < h[j].Type.Priority()
+	}
+	// Finally by Sequence for stability (insertion order)
+	return h[i].Sequence < h[j].Sequence
+}
+
+func (h eventHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
+
+func (h *eventHeap) Push(x any) {
+	*h = append(*h, x.(Event))
+}
+
+func (h *eventHeap) Pop() any {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
+// EventQueue is a priority queue for events using a min-heap
+// Events are sorted by (Time, Priority, Sequence) for deterministic ordering
 type EventQueue struct {
-	events []Event
+	h eventHeap
 }
 
 // NewEventQueue creates a new empty event queue
 func NewEventQueue() *EventQueue {
-	return &EventQueue{
-		events: make([]Event, 0),
+	q := &EventQueue{
+		h: make(eventHeap, 0),
 	}
+	heap.Init(&q.h)
+	return q
 }
 
-// Push adds an event to the queue in sorted order
+// Push adds an event to the queue with automatic sequence assignment
 func (q *EventQueue) Push(e Event) {
-	// Find insertion point (binary search would be faster for large queues)
-	insertIdx := len(q.events)
-	for i, existing := range q.events {
-		if e.Time < existing.Time || (e.Time == existing.Time && e.Type.Priority() < existing.Type.Priority()) {
-			insertIdx = i
-			break
-		}
-	}
-
-	// Insert at position
-	q.events = append(q.events, Event{})
-	copy(q.events[insertIdx+1:], q.events[insertIdx:])
-	q.events[insertIdx] = e
+	// Assign sequence number for stable ordering
+	e.Sequence = atomic.AddInt64(&eventSequence, 1)
+	heap.Push(&q.h, e)
 }
 
-// Pop removes and returns the first event
+// Pop removes and returns the minimum event
 func (q *EventQueue) Pop() Event {
-	if len(q.events) == 0 {
+	if len(q.h) == 0 {
 		return Event{Time: -1}
 	}
-	e := q.events[0]
-	q.events = q.events[1:]
-	return e
+	return heap.Pop(&q.h).(Event)
 }
 
-// Peek returns the first event without removing it
+// Peek returns the minimum event without removing it
 func (q *EventQueue) Peek() Event {
-	if len(q.events) == 0 {
+	if len(q.h) == 0 {
 		return Event{Time: -1}
 	}
-	return q.events[0]
+	return q.h[0]
 }
 
 // Empty returns true if the queue has no events
 func (q *EventQueue) Empty() bool {
-	return len(q.events) == 0
+	return len(q.h) == 0
 }
 
 // Len returns the number of events in the queue
 func (q *EventQueue) Len() int {
-	return len(q.events)
+	return len(q.h)
 }
 
 // PushIfNotExists adds a StateChanged event only if one doesn't already exist at that time
@@ -122,8 +153,8 @@ func (q *EventQueue) PushIfNotExists(e Event) {
 	}
 
 	// Check if StateChanged already exists at this time
-	for _, existing := range q.events {
-		if existing.Time == e.Time && existing.Type == EventStateChanged {
+	for i := 0; i < len(q.h); i++ {
+		if q.h[i].Time == e.Time && q.h[i].Type == EventStateChanged {
 			return // Already exists
 		}
 	}
@@ -133,12 +164,12 @@ func (q *EventQueue) PushIfNotExists(e Event) {
 
 // Clear removes all events from the queue
 func (q *EventQueue) Clear() {
-	q.events = q.events[:0]
+	q.h = q.h[:0]
 }
 
-// Events returns a copy of all events (for debugging)
+// Events returns a copy of all events in heap order (for debugging)
 func (q *EventQueue) Events() []Event {
-	result := make([]Event, len(q.events))
-	copy(result, q.events)
+	result := make([]Event, len(q.h))
+	copy(result, q.h)
 	return result
 }
