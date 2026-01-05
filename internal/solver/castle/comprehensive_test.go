@@ -126,8 +126,8 @@ func TestCropRotationNotRecommendedTooEarly(t *testing.T) {
 		if ra.TechnologyName == "Crop rotation" {
 			// Crop rotation takes 8 hours (28800 seconds) to research
 			// It should not start way before Farm 15 is needed
-			// Allow some buffer - research should start no more than 1 day (86400s) before Farm 15 starts
-			maxEarlyStart := farm15StartTime - 86400 // 1 day buffer
+			// Allow some buffer - research should start no more than 1 day before Farm 15 starts
+			maxEarlyStart := farm15StartTime - PrerequisiteTechBuffer
 			if ra.StartTime < maxEarlyStart && farm15StartTime > 0 {
 				t.Errorf("Crop rotation started too early: research starts at %d, but Farm 15 starts at %d (difference: %d seconds = %.1f hours)",
 					ra.StartTime, farm15StartTime, farm15StartTime-ra.StartTime, float64(farm15StartTime-ra.StartTime)/3600)

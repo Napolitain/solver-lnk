@@ -277,7 +277,7 @@ func (s *Solver) handleResearchComplete(
 
 	// Apply production bonus for production techs
 	if ra.Technology.Name == "Beer tester" || ra.Technology.Name == "Wheelbarrow" {
-		state.ProductionBonus += 0.05
+		state.ProductionBonus += ProductionTechBonus
 	}
 
 	// Record action
@@ -1594,8 +1594,7 @@ func (s *Solver) getBestProductionTechAction(state *State) *ProductionTechAction
 // productionTechROI calculates the ROI for a production tech
 // ROI = production gain per hour / total resource investment (tech + library upgrades)
 func (s *Solver) productionTechROI(state *State, action *ProductionTechAction) float64 {
-	// Production bonus: 5% = 0.05 multiplier on all production
-	bonusMultiplier := 0.05
+	bonusMultiplier := ProductionTechBonus
 
 	// Current total production rate
 	totalRate := state.GetProductionRate(models.Wood) +
@@ -1749,7 +1748,7 @@ func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
 	// Check if we have food headroom for training
 	// Units cost 1-2 food each; only train if we have spare capacity
 	foodHeadroom := state.FoodCapacity - state.FoodUsed
-	if foodHeadroom < 5 {
+	if foodHeadroom < MinFoodHeadroomForTraining {
 		return nil // Not enough food buffer for training
 	}
 
