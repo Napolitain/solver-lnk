@@ -251,3 +251,81 @@ func TestZeroROIBuildings(t *testing.T) {
 		}
 	}
 }
+
+// TestROIMetricCalculate tests the ROIMetric calculation logic
+func TestROIMetricCalculate(t *testing.T) {
+	tests := []struct {
+		name   string
+		metric ROIMetric
+		want   float64
+	}{
+		{
+			name:   "basic ROI",
+			metric: ROIMetric{GainPerHour: 100, TotalCost: 1000},
+			want:   0.1,
+		},
+		{
+			name:   "zero cost (free action)",
+			metric: ROIMetric{GainPerHour: 100, TotalCost: 0},
+			want:   100000, // 100 * 1000
+		},
+		{
+			name:   "with scarcity bonus",
+			metric: ROIMetric{GainPerHour: 100, TotalCost: 1000, ScarcityBonus: 0.5},
+			want:   0.15, // 0.1 * 1.5
+		},
+		{
+			name:   "negative cost (treated as zero)",
+			metric: ROIMetric{GainPerHour: 50, TotalCost: -100},
+			want:   50000, // 50 * 1000
+		},
+		{
+			name:   "high gain low cost",
+			metric: ROIMetric{GainPerHour: 500, TotalCost: 100},
+			want:   5.0,
+		},
+		{
+			name:   "scarcity penalty (negative bonus)",
+			metric: ROIMetric{GainPerHour: 100, TotalCost: 1000, ScarcityBonus: -0.2},
+			want:   0.08, // 0.1 * 0.8
+		},
+		{
+			name:   "zero gain",
+			metric: ROIMetric{GainPerHour: 0, TotalCost: 1000},
+			want:   0.0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.metric.Calculate()
+			diff := got - tt.want
+			if diff < 0 {
+				diff = -diff
+			}
+			if diff > 0.0001 {
+				t.Errorf("ROIMetric.Calculate() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestROIMetricScarcityMultiplier verifies scarcity bonus correctly multiplies base ROI
+func TestROIMetricScarcityMultiplier(t *testing.T) {
+	baseMetric := ROIMetric{GainPerHour: 100, TotalCost: 1000, ScarcityBonus: 0}
+	bonusMetric := ROIMetric{GainPerHour: 100, TotalCost: 1000, ScarcityBonus: 1.0}
+
+	baseROI := baseMetric.Calculate()
+	bonusROI := bonusMetric.Calculate()
+
+	// With 1.0 bonus (2x multiplier), bonusROI should be double baseROI
+	expected := baseROI * 2.0
+	diff := bonusROI - expected
+	if diff < 0 {
+		diff = -diff
+	}
+	if diff > 0.0001 {
+		t.Errorf("Scarcity bonus not applied correctly: base=%v, bonus=%v, expected=%v",
+			baseROI, bonusROI, expected)
+	}
+}
