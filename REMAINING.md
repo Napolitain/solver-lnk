@@ -1,62 +1,110 @@
-# Solver V2 Migration: Remaining Tasks
+# Remaining Tasks
 
-The core architecture has been successfully moved to an event-driven simulation engine (`internal/engine`). The legacy `GreedySolver` has been removed, and the new `Solver` is now the standard.
+## Unit Training Batching Implementation
 
-## Solver Architecture & Action Ordering
+**Status:** Infrastructure complete (batching support added), batch size logic not yet implemented.
 
-### 1. N-Queue Parallel System
-The solver manages multiple independent execution tracks:
-- **Building Queue:** Serial (one upgrade at a time).
-- **Research Queue:** Serial (one technology at a time, runs parallel to buildings).
-- **Unit Queue:** Serial (one batch of units at a time, runs parallel to buildings/research).
-- **Mission "Queue":** Pseudo-parallel. Any number of missions can run simultaneously as long as unit requirements are met.
+### Current State
+✅ TrainUnitAction now has Count field (defaults to 1)  
+✅ Costs() and Duration() multiply by Count  
+✅ handleTrainingComplete adds Count units to army  
+✅ Backward compatible (Count=0 treated as 1)  
+✅ Golden test passes (build order unchanged)  
 
-### 2. Simulation Loop (Event-Driven)
-The solver operates in a continuous loop until all target queues are empty:
-1. **Constraint Resolution:** For the head of each queue, check for missing prerequisites (Tech, Library level, Food Capacity, Storage). If a dependency is missing, prepends the necessary fix (e.g., a Storage upgrade) to the **Building Queue**.
-2. **Candidate Identification:** Identifies the next possible action from the head of every queue.
-3. **Best Action Selection:** 
-   - For each candidate, calculates `actualStart = Max(QueueFreeTime, ResourceReadyTime)`.
-   - `ResourceReadyTime` is calculated by the engine, accounting for continuous production AND discrete future mission rewards.
-   - Selects the action with the **earliest absolute start time**.
-4. **Execution & Event Scheduling:** 
-   - Advances simulation time to `actualStart`.
-   - Deducts resources immediately.
-   - Schedules a **ScheduledEvent** for the action's completion to apply delayed effects (e.g., updating production rates, increasing levels, or returning units/rewards).
-   - If multiple actions share an identical start time, the internal priority is `Research > Building > Units > Missions`.
+### Problem
+Currently trains units one at a time, generating **3449 individual training events** in a full castle build. This floods the event queue and makes the simulation slower than necessary.
 
-### 3. Action Order vs. Unified Timeline
-- **Action Order:** The solver selects actions one by one based on their starting potential. Because queues are parallel, the "Build Order" is actually a chronological interleaving of actions from different queues.
-- **Result:** The final output is a unified timeline where actions can overlap in duration but are initiated based on the optimal path to maximizing resource ROI and minimizing total build time.
+### Goal
+Reduce training events to ~50-100 batches by intelligently grouping units:
+- Mission units: Batch up to deficit or resource limits
+- Defense units: Only train during dead time (no ROI actions available)
+- Maximum batch size: 30 units
+- Zero delay tolerance for buildings/research (ROI priority)
 
-## 1. Mission Selection Optimization 
-**Status:** Functional but inefficient.
-The current heuristic maximizes **Net Average ROI per hour**. In the full build test, this leads to a ~377-day completion time because:
-- It may consume resources needed for the next building upgrade (starvation).
-- It doesn't explicitly prioritize the bottleneck resource needed to unblock the building queue.
+### Implementation Tasks
 
-**Task:** Refine `getCandidates` mission logic to:
-- Filter out missions that consume a resource currently in deficit for the `bQueue` head.
-- Prioritize missions that provide the specific resource(s) required by the `bQueue` head.
+#### 1. Simple Batch Size Calculation
+**File:** `internal/solver/castle/solver.go`
 
-## 2. Research Queue Dependency Resolution
-**Status:** `FIXME` in code.
-Currently, if a technology in the `rQueue` requires a higher `Library` level than current, the solver doesn't automatically insert the `Library` upgrade into `bQueue`.
+Add function to calculate safe batch size:
+```go
+func (s *Solver) calculateBatchSize(state *State, unitType models.UnitType, deficit int) int {
+    const maxBatch = 30
+    
+    // Start with deficit or max
+    size := deficit
+    if size > maxBatch {
+        size = maxBatch
+    }
+    
+    // Constrain by food
+    def := models.GetUnitDefinition(unitType)
+    maxByFood := (state.FoodCapacity - state.FoodUsed) / def.FoodCost
+    if maxByFood < size {
+        size = maxByFood
+    }
+    
+    // Constrain by resources
+    costs := def.ResourceCosts
+    maxByWood := int(state.GetResource(models.Wood)) / costs.Wood
+    maxByStone := int(state.GetResource(models.Stone)) / costs.Stone
+    maxByIron := int(state.GetResource(models.Iron)) / costs.Iron
+    
+    size = min(size, maxByWood, maxByStone, maxByIron)
+    
+    // Check storage pressure (if >80%, prefer larger batches)
+    pressure := s.calculateStoragePressure(state)
+    if pressure < 0.8 && size > 3 {
+        size = 3 // Small batches when not near cap
+    }
+    
+    if size < 1 {
+        size = 1
+    }
+    
+    return size
+}
+```
 
-**Task:** Implement `resolveConstraints` logic for the `rQueue` to detect Library level requirements and prepend the necessary upgrades to the `bQueue`.
+#### 2. Update pickBestTrainingAction
+Update `pickBestTrainingAction` to call `calculateBatchSize` and set Count:
+```go
+return &TrainUnitAction{
+    UnitType:   d.unitType,
+    Definition: d.def,
+    Count:      s.calculateBatchSize(state, d.unitType, d.deficit),
+}
+```
 
-## 3. Parallel Queue Priority Tuning
-**Status:** Functional.
-Actions are selected based on the earliest `actualStart` (Queue Availability + Resource Availability). If times are equal, it defaults to `Research > Building > Units`.
+#### 3. Update pickNextTrainingAction
+The post-building phase also trains units - update it similarly.
 
-**Task:** Verify if `Missions` should be treated as "background" tasks that never delay a building start, even if they have a slightly earlier start time than a wait-for-resource building action.
+#### 4. Testing & Validation
+- Run golden test - hash WILL change (batching changes order)
+- Update golden hash in test
+- Verify event count reduction: check len(trainingActions) in result
+- Benchmark with `poop` - should be similar or faster
+- Run full test suite: `go test ./...`
 
-## 4. Test Suite Restoration
-**Status:** Fuzz tests are `.disabled`; legacy tests are deleted.
-- **Task:** Rewrite `internal/solver/castle/determinism_test.go` to work with the new `Solver` and multiple parallel queues.
-- **Task:** Port and enable fuzz tests (`FuzzSolverDeterminism`, etc.) to ensure the new engine handles edge cases without panicking.
+### Design Constraints
+- **Never delay ROI actions**: Check if any building/research is affordable before training defense
+- **Storage pressure threshold**: 80% utilization triggers larger batches
+- **Mission units priority**: Train for missions first (up to tavern 10)
+- **Defense units**: Only after missions complete AND tavern >= 10
+- **Minimum batch**: Always train at least 1 unit if deficit exists
 
-## 5. Timeline Visualization Refinement
-**Status:** Integrated into CLI and Server.
-- **Task:** Update the gRPC server and CLI to correctly display mission rewards in the timeline.
-- **Task:** Ensure "Food" usage tracking is accurate across all interleaved actions in the final `Solution` output.
+### Testing Checklist
+- [ ] Implement calculateBatchSize helper
+- [ ] Update pickBestTrainingAction with batching
+- [ ] Update pickNextTrainingAction with batching  
+- [ ] Run golden test and update hash
+- [ ] Verify event count: `len(result.TrainingActions)` should be ~50-100 instead of 3449
+- [ ] Benchmark: `poop -d 10s './castle -d data --silent'`
+- [ ] Full test suite: `go test ./...`
+- [ ] Commit with message: "feat: Implement unit batching to reduce event queue"
+
+### Notes
+- Avoid complex simulations in calculateBatchSize (caused infinite loops in previous attempt)
+- Keep batch logic simple: resource constraints + storage pressure only
+- Count=0 defaults to 1 in all methods (safety check already in place)
+- Focus on mission units first - defense batching can be refined later
