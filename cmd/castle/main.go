@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+	"github.com/toon-format/toon-go"
 
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
@@ -309,49 +309,70 @@ func printBuildOrder(solution *models.Solution, finalFoodUsed, finalFoodCapacity
 		return allActions[i].startTime < allActions[j].startTime
 	})
 
-	// Create table with new API
-	table := tablewriter.NewTable(os.Stdout,
-		tablewriter.WithHeader([]string{"#", "Queue", "Action", "Upgrade", "Start", "End", "Duration", "Costs", "Food"}),
-	)
+	// Prepare data for TOON format
+	type ToonAction struct {
+		Num      int    `toon:"num"`
+		Queue    string `toon:"queue"`
+		Action   string `toon:"action"`
+		Upgrade  string `toon:"upgrade"`
+		Start    string `toon:"start"`
+		End      string `toon:"end"`
+		Duration string `toon:"duration"`
+		Costs    string `toon:"costs"`
+		Food     string `toon:"food"`
+	}
 
-	// Add rows
+	var toonActions []ToonAction
 	for i, a := range allActions {
 		var queueType, upgradeStr string
 		foodStr := fmt.Sprintf("%d/%d", a.foodUsed, a.foodCapacity)
 
 		switch a.actionType {
 		case actionBuilding:
-			queueType = "🏗️ Building"
-			upgradeStr = fmt.Sprintf("%d → %d", a.fromLevel, a.toLevel)
+			queueType = "🏗️"
+			upgradeStr = fmt.Sprintf("%d→%d", a.fromLevel, a.toLevel)
 		case actionResearch:
-			queueType = "🔬 Research"
+			queueType = "🔬"
 			upgradeStr = ""
 		case actionUnit:
-			queueType = "⚔️ Train"
+			queueType = "⚔️"
 			upgradeStr = fmt.Sprintf("×%d", a.count)
 		case actionMission:
-			queueType = "🍺 Mission"
+			queueType = "🍺"
 			upgradeStr = ""
 		}
 
 		duration := a.endTime - a.startTime
 		name := formatBuildingName(a.name)
 
-		row := []string{
-			fmt.Sprintf("%d", i+1),
-			queueType,
-			name,
-			upgradeStr,
-			formatTime(a.startTime),
-			formatTime(a.endTime),
-			formatTime(duration),
-			formatCosts(a.costs),
-			foodStr,
-		}
-		_ = table.Append(row)
+		toonActions = append(toonActions, ToonAction{
+			Num:      i + 1,
+			Queue:    queueType,
+			Action:   name,
+			Upgrade:  upgradeStr,
+			Start:    formatTime(a.startTime),
+			End:      formatTime(a.endTime),
+			Duration: formatTime(duration),
+			Costs:    formatCosts(a.costs),
+			Food:     foodStr,
+		})
 	}
 
-	_ = table.Render()
+	// Create wrapper struct with array
+	type BuildOrder struct {
+		Actions []ToonAction `toon:"actions"`
+	}
+
+	buildOrder := BuildOrder{Actions: toonActions}
+
+	// Marshal to TOON format
+	encoded, err := toon.Marshal(buildOrder, toon.WithLengthMarkers(true))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error encoding TOON: %v\n", err)
+		return 0
+	}
+
+	fmt.Println(string(encoded))
 
 	// Calculate and return the total completion time (including units)
 	var totalEndTime int
