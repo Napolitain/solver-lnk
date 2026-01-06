@@ -17,7 +17,7 @@ func TestMissionUniqueness(t *testing.T) {
 		models.Tavern: 5,
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
+	solver := NewTestSolver(buildings, technologies, missions, targetLevels)
 	state := NewState(models.NewGameState())
 	state.SetBuildingLevel(models.Tavern, 2)
 
@@ -64,7 +64,7 @@ func TestMissionTavernLevelMin(t *testing.T) {
 		models.Tavern: 10,
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
+	solver := NewTestSolver(buildings, technologies, missions, targetLevels)
 	state := NewState(models.NewGameState())
 
 	// Set tavern to level 1
@@ -128,7 +128,7 @@ func TestMissionTavernLevelMax(t *testing.T) {
 		models.Tavern: 10,
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
+	solver := NewTestSolver(buildings, technologies, missions, targetLevels)
 	state := NewState(models.NewGameState())
 
 	// Set tavern to level 10 (above max for "Overtime wood")
@@ -221,7 +221,7 @@ func TestNoParallelDuplicateMissions(t *testing.T) {
 		models.Farm:       10,
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
+	solver := NewTestSolver(buildings, technologies, missions, targetLevels)
 	initialState := models.NewGameState()
 	initialState.BuildingLevels[models.Lumberjack] = 1
 	initialState.BuildingLevels[models.Quarry] = 1
@@ -295,7 +295,7 @@ func TestMissionUnitNeedsAtTavern10(t *testing.T) {
 		models.Tavern: 10,
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
+	solver := NewTestSolver(buildings, technologies, missions, targetLevels)
 
 	// Calculate unit needs at Tavern 10
 	needs := solver.calculateMissionUnitNeeds(10)
@@ -335,7 +335,7 @@ func TestUnitTechsNeededForMissions(t *testing.T) {
 		models.Tavern: 10,
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
+	solver := NewTestSolver(buildings, technologies, missions, targetLevels)
 	state := NewState(models.NewGameState())
 	state.SetBuildingLevel(models.Tavern, 10)
 
@@ -363,7 +363,7 @@ func TestAllMissionsSchedulable(t *testing.T) {
 	techs, _ := loader.LoadTechnologies("../../../data")
 	missions, _ := loader.LoadMissionsFromFile("../../../data")
 
-	solver := castle.NewTestSolver(buildings, techs, missions, map[models.BuildingType]int{
+	solver := NewTestSolver(buildings, techs, missions, map[models.BuildingType]int{
 		models.Lumberjack:     30,
 		models.Quarry:         30,
 		models.OreMine:        30,
@@ -434,7 +434,7 @@ func TestLancerCountForMissions(t *testing.T) {
 	techs, _ := loader.LoadTechnologies("../../../data")
 	missions, _ := loader.LoadMissionsFromFile("../../../data")
 
-	solver := castle.NewTestSolver(buildings, techs, missions, map[models.BuildingType]int{
+	solver := NewTestSolver(buildings, techs, missions, map[models.BuildingType]int{
 		models.Lumberjack:     30,
 		models.Quarry:         30,
 		models.OreMine:        30,

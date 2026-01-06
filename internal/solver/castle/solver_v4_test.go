@@ -1,4 +1,4 @@
-package castle_test
+package castle
 
 import (
 	"sort"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/napolitain/solver-lnk/internal/loader"
 	"github.com/napolitain/solver-lnk/internal/models"
-	castle "github.com/napolitain/solver-lnk/internal/solver/castle"
 )
 
 const dataDir = "../../../data"
@@ -38,7 +37,7 @@ func TestSolverBasic(t *testing.T) {
 		initialState.BuildingLevels[bt] = 1
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, nil, targetLevels)
+	solver := NewTestSolver(buildings, technologies, nil, targetLevels)
 	solution := solver.Solve(initialState)
 
 	if solution == nil {
@@ -98,7 +97,7 @@ func TestFullBuildComparison(t *testing.T) {
 		initialState.BuildingLevels[bt] = 1
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, nil, targetLevels)
+	solver := NewTestSolver(buildings, technologies, nil, targetLevels)
 	solution := solver.Solve(initialState)
 
 	if solution == nil {
@@ -165,7 +164,7 @@ func TestDeterminism(t *testing.T) {
 		return s
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, nil, targetLevels)
+	solver := NewTestSolver(buildings, technologies, nil, targetLevels)
 
 	// Run multiple times
 	var firstTime int
@@ -218,7 +217,7 @@ func TestInvariants(t *testing.T) {
 		initialState.BuildingLevels[bt] = 1
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, nil, targetLevels)
+	solver := NewTestSolver(buildings, technologies, nil, targetLevels)
 	solution := solver.Solve(initialState)
 
 	// Invariant 1: Times are non-negative and ordered
@@ -293,7 +292,7 @@ func TestGameRulesValidation(t *testing.T) {
 		initialState.BuildingLevels[bt] = 1
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, nil, targetLevels)
+	solver := NewTestSolver(buildings, technologies, nil, targetLevels)
 	solution := solver.Solve(initialState)
 
 	// === REPLAY SIMULATION ===
@@ -603,7 +602,7 @@ func TestMissionsIntegration(t *testing.T) {
 		initialState.BuildingLevels[bt] = 1
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
+	solver := NewTestSolver(buildings, technologies, missions, targetLevels)
 	solution := solver.Solve(initialState)
 
 	if solution == nil {
@@ -659,7 +658,7 @@ func TestMissionNoIdleTime(t *testing.T) {
 		initialState.BuildingLevels[bt] = 1
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
+	solver := NewTestSolver(buildings, technologies, missions, targetLevels)
 
 	// Use SolveWithMissionTracking to get mission events
 	solution, missionEvents := solver.SolveWithMissionTracking(initialState)
@@ -787,7 +786,7 @@ func TestFoodCapacityFullyUsed(t *testing.T) {
 		initialState.BuildingLevels[bt] = 1
 	}
 
-	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
+	solver := NewTestSolver(buildings, technologies, missions, targetLevels)
 	solution := solver.Solve(initialState)
 
 	if solution == nil {
