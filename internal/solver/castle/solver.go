@@ -12,8 +12,8 @@ type Solver struct {
 	Technologies [20]*models.Technology
 	Missions     []*models.Mission
 	TargetLevels models.BuildingLevelMap
-	TargetTechs  map[string]bool          // Which techs to research (empty = all)
-	TargetUnits  map[models.UnitType]int  // Exact unit counts (empty = missions only)
+	TargetTechs  map[string]bool         // Which techs to research (empty = all)
+	TargetUnits  map[models.UnitType]int // Exact unit counts (empty = missions only)
 }
 
 // MissionEvent tracks when a mission started and ended (for testing)
@@ -49,7 +49,7 @@ func NewSolver(
 			techArray[idx] = tech
 		}
 	}
-	
+
 	// Convert tech list to set (empty = all techs)
 	techTargets := make(map[string]bool)
 	if len(targetTechs) > 0 {
@@ -62,7 +62,7 @@ func NewSolver(
 			techTargets[name] = true
 		}
 	}
-	
+
 	// Copy unit targets (empty = missions only)
 	unitTargets := make(map[models.UnitType]int)
 	for ut, count := range targetUnits {
@@ -344,7 +344,7 @@ func (s *Solver) handleTrainingComplete(state *State, event Event, events *Event
 	if count == 0 {
 		count = 1 // Default to 1
 	}
-	
+
 	*trainingActions = append(*trainingActions, models.TrainUnitAction{
 		UnitType:     ta.UnitType,
 		Count:        count,
@@ -424,8 +424,8 @@ func (s *Solver) runPostBuildingPhase(
 	// Bootstrap with initial event
 	events.Push(Event{Time: state.Now, Type: EventStateChanged})
 
-	// Hard cap to prevent infinite loops - this should be plenty for any reasonable scenario
-	maxIterations := 500000
+	// Hard cap to prevent infinite loops - increased to handle mission-heavy scenarios
+	maxIterations := 2000000
 	iterations := 0
 
 	// Track when all work is done (no more training/research/missions possible)
@@ -493,29 +493,58 @@ func (s *Solver) runPostBuildingPhase(
 
 // isPostBuildingComplete returns true when all post-building phase work is done
 func (s *Solver) isPostBuildingComplete(state *State) bool {
-	// Check if all research is done (or can't be done due to food)
+	// Check if all target research is done (or blocked by food)
 	libraryLevel := state.GetBuildingLevel(models.Library)
 	for _, techName := range models.AllTechNames() {
 		name := string(techName)
-		tech := s.Technologies[models.TechName(name).Index()]
-		if tech == nil {
-			continue
+		if !s.TargetTechs[name] {
+			continue // Not a target tech
 		}
 		if state.ResearchedTechs[name] {
-			continue
+			continue // Already researched
 		}
+
+		// Find the tech
+		tech := s.Technologies[techName.Index()]
+		if tech == nil {
+			continue // Tech not loaded
+		}
+
+		// Can we research it with current Library level?
 		if tech.RequiredLibraryLevel > libraryLevel {
 			continue // Can't research without higher Library
 		}
+
 		// Check if we can afford food for this research
 		if state.FoodUsed+tech.Costs.Food <= state.FoodCapacity {
 			return false // Still have research to do and can afford it
 		}
-		// Tech exists but we can't afford its food cost - skip it
+		// Tech exists but blocked by food - continue checking other techs
+	}
+
+	// Check if we need more units to meet targets
+	if len(s.TargetUnits) > 0 {
+		for unitType, targetCount := range s.TargetUnits {
+			currentCount := state.Army.Get(unitType)
+			if currentCount < targetCount {
+				def := models.GetUnitDefinition(unitType)
+				if def != nil {
+					// Check if we can research tech if needed
+					if def.RequiredTech != "" && !state.ResearchedTechs[def.RequiredTech] {
+						continue // Can't train without tech
+					}
+					// Check if we can afford food
+					if state.FoodUsed+def.FoodCost <= state.FoodCapacity {
+						return false // Still have units to train
+					}
+				}
+			}
+		}
 	}
 
 	// Check if all training is done (food capacity reached or can't train more)
-	if state.FoodUsed < state.FoodCapacity {
+	// Only relevant if no specific unit targets (backward compat mode)
+	if len(s.TargetUnits) == 0 && state.FoodUsed < state.FoodCapacity {
 		// Check if any unit can be trained
 		for _, ut := range []models.UnitType{models.Spearman, models.Swordsman, models.Archer, models.Crossbowman, models.Horseman, models.Lancer} {
 			def := models.GetUnitDefinition(ut)
@@ -531,6 +560,7 @@ func (s *Solver) isPostBuildingComplete(state *State) bool {
 		}
 	}
 
+	// All techs researched or blocked, all units trained or blocked
 	return true // All done
 }
 
@@ -542,7 +572,20 @@ func (s *Solver) handlePostBuildingStateChanged(
 	researchActions *[]models.ResearchAction,
 	trainingActions *[]models.TrainUnitAction,
 ) {
-	// Research queue - research all remaining techs
+	// Check if all target techs are researched FIRST
+	allTargetTechsResearched := true
+	for _, techName := range models.AllTechNames() {
+		name := string(techName)
+		if !s.TargetTechs[name] {
+			continue
+		}
+		if !state.ResearchedTechs[name] {
+			allTargetTechsResearched = false
+			break
+		}
+	}
+
+	// Research queue - research all remaining techs with HIGHEST PRIORITY
 	if state.Now >= state.ResearchQueueFreeAt && state.PendingResearch == nil {
 		if action := s.pickNextRemainingResearch(state); action != nil {
 			if s.canAfford(state, action.Costs()) && state.CanAffordFood(action.Costs().Food) {
@@ -552,24 +595,31 @@ func (s *Solver) handlePostBuildingStateChanged(
 	}
 
 	// Training queue - train units for missions and defense
+	// Only train target units AFTER all target techs are researched
 	if state.Now >= state.TrainingQueueFreeAt && state.PendingTraining == nil {
-		if action := s.pickNextTrainingAction(state); action != nil {
-			if s.canAfford(state, action.Costs()) && state.CanAffordFood(action.FoodCost()) {
-				s.executeTraining(state, action, events)
+		if allTargetTechsResearched {
+			// All techs done - can train target units
+			if action := s.pickNextTrainingAction(state); action != nil {
+				if s.canAfford(state, action.Costs()) && state.CanAffordFood(action.FoodCost()) {
+					s.executeTraining(state, action, events)
+				}
 			}
 		}
+		// Mission units are trained in main phase, not here
 	}
 
-	// Missions (can start multiple if units available)
-	for {
-		mission := s.pickBestMissionToStart(state)
-		if mission == nil {
-			break
+	// Missions - can start multiple if units available (run after techs complete)
+	if allTargetTechsResearched {
+		for {
+			mission := s.pickBestMissionToStart(state)
+			if mission == nil {
+				break
+			}
+			if !s.canAfford(state, mission.ResourceCosts) {
+				break
+			}
+			s.startMission(state, mission, events)
 		}
-		if !s.canAfford(state, mission.ResourceCosts) {
-			break
-		}
-		s.startMission(state, mission, events)
 	}
 
 	// Schedule wake-up when resources become available
@@ -1241,14 +1291,15 @@ func (s *Solver) allTargetsReached(state *State) bool {
 	if !allBuildings {
 		return false
 	}
-	
-	// Check technologies
-	for techName := range s.TargetTechs {
-		if !state.ResearchedTechs[techName] {
+
+	// Check technologies (deterministic order)
+	for _, techName := range models.AllTechNames() {
+		name := string(techName)
+		if s.TargetTechs[name] && !state.ResearchedTechs[name] {
 			return false
 		}
 	}
-	
+
 	// Check units (if targets specified)
 	if len(s.TargetUnits) > 0 {
 		for unitType, targetCount := range s.TargetUnits {
@@ -1258,7 +1309,7 @@ func (s *Solver) allTargetsReached(state *State) bool {
 			}
 		}
 	}
-	
+
 	return true
 }
 
@@ -1487,6 +1538,23 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 			continue
 		}
 		tech := s.Technologies[models.TechName(techName).Index()]
+		if tech != nil && libraryLevel >= tech.RequiredLibraryLevel {
+			return &ResearchAction{Technology: tech}
+		}
+	}
+
+	// Fallback: Research ANY remaining target tech (bonus techs, etc.)
+	// This prevents huge delays in post-building phase waiting for resources
+	// Use deterministic order via AllTechNames()
+	for _, techName := range models.AllTechNames() {
+		name := string(techName)
+		if !s.TargetTechs[name] {
+			continue // Not a target tech
+		}
+		if state.ResearchedTechs[name] {
+			continue // Already researched
+		}
+		tech := s.Technologies[techName.Index()]
 		if tech != nil && libraryLevel >= tech.RequiredLibraryLevel {
 			return &ResearchAction{Technology: tech}
 		}

@@ -95,7 +95,8 @@ func runSolver(cmd *cobra.Command, args []string) {
 		}
 		initialState = models.CastleConfigToGameState(config)
 		targetLevels = models.GetTargetLevels()
-		targetTechs = models.GetTargetTechnologies(technologies)
+		libraryTarget := targetLevels[models.Library]
+		targetTechs = models.GetTargetTechnologies(technologies, libraryTarget)
 		targetUnits = models.GetTargetUnits()
 		if !quiet && !silent {
 			infoColor.Printf("📄 Loaded config from %s\n\n", configFile)
@@ -114,7 +115,8 @@ func runSolver(cmd *cobra.Command, args []string) {
 
 		// Default targets
 		targetLevels = models.GetTargetLevels()
-		targetTechs = models.GetTargetTechnologies(technologies)
+		libraryTarget := targetLevels[models.Library]
+		targetTechs = models.GetTargetTechnologies(technologies, libraryTarget)
 		targetUnits = models.GetTargetUnits()
 	}
 
@@ -206,7 +208,7 @@ func printInitialState(state *models.GameState, targets map[models.BuildingType]
 	fmt.Println()
 
 	infoColor.Println("🎯 Targets:")
-	
+
 	// Buildings
 	fmt.Println("   Buildings:")
 	var sortedTargets []models.BuildingType
@@ -219,7 +221,7 @@ func printInitialState(state *models.GameState, targets map[models.BuildingType]
 	for _, bt := range sortedTargets {
 		fmt.Printf("     • %s: Level %d\n", formatBuildingName(string(bt)), targets[bt])
 	}
-	
+
 	// Technologies
 	if len(targetTechs) > 0 {
 		fmt.Println("   Technologies:")
@@ -232,7 +234,7 @@ func printInitialState(state *models.GameState, targets map[models.BuildingType]
 			}
 		}
 	}
-	
+
 	// Units
 	if len(targetUnits) > 0 {
 		fmt.Println("   Units:")
@@ -242,7 +244,7 @@ func printInitialState(state *models.GameState, targets map[models.BuildingType]
 	} else {
 		fmt.Println("   Units: Train for missions")
 	}
-	
+
 	fmt.Println()
 }
 
@@ -430,10 +432,14 @@ func printSummary(solution *models.Solution, targets map[models.BuildingType]int
 			finalFoodUsed, finalFoodCapacity, remaining)
 	}
 
-	// Verify targets
+	// Verify targets (deterministic order)
 	fmt.Println("\n📋 Target verification:")
 	allOk := true
-	for bt, target := range targets {
+	for _, bt := range models.AllBuildingTypes() {
+		target, hasTarget := targets[bt]
+		if !hasTarget || target == 0 {
+			continue
+		}
 		final := solution.FinalState.BuildingLevels[bt]
 		if final >= target {
 			successColor.Printf("   ✅ %s: target=%d, final=%d\n", formatBuildingName(string(bt)), target, final)
@@ -452,7 +458,13 @@ func printSummary(solution *models.Solution, targets map[models.BuildingType]int
 	// Print researched technologies
 	if len(solution.FinalState.ResearchedTechnologies) > 0 {
 		fmt.Println("\n🔬 Researched technologies:")
+		// Sort alphabetically for deterministic output
+		var techs []string
 		for tech := range solution.FinalState.ResearchedTechnologies {
+			techs = append(techs, tech)
+		}
+		sort.Strings(techs)
+		for _, tech := range techs {
 			fmt.Printf("   • %s\n", tech)
 		}
 	}

@@ -1,23 +1,26 @@
 package castle
 
 import (
-"github.com/napolitain/solver-lnk/internal/models"
+	"github.com/napolitain/solver-lnk/internal/models"
 )
 
 // newTestSolver creates a solver with default empty targets for testing
 func NewTestSolver(
-buildings map[models.BuildingType]*models.Building,
-technologies map[string]*models.Technology,
-missions []*models.Mission,
-targetLevels map[models.BuildingType]int,
+	buildings map[models.BuildingType]*models.Building,
+	technologies map[string]*models.Technology,
+	missions []*models.Mission,
+	targetLevels map[models.BuildingType]int,
 ) *Solver {
-// Default: all techs, no specific units (missions only)
-targetTechs := make([]string, 0, len(technologies))
-for name := range technologies {
-targetTechs = append(targetTechs, name)
-}
+	// Default Library target is 10
+	libraryTarget := 10
+	if target, ok := targetLevels[models.Library]; ok {
+		libraryTarget = target
+	}
 
-targetUnits := make(map[models.UnitType]int) // Empty = missions only
+	// Get reachable technologies based on Library target
+	targetTechs := models.GetTargetTechnologies(technologies, libraryTarget)
 
-return NewSolver(buildings, technologies, missions, targetLevels, targetTechs, targetUnits)
+	targetUnits := make(map[models.UnitType]int) // Empty = missions only
+
+	return NewSolver(buildings, technologies, missions, targetLevels, targetTechs, targetUnits)
 }

@@ -64,7 +64,8 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 
 	// Run solver
 	solveStart := time.Now()
-	targetTechs := models.GetTargetTechnologies(s.technologies)
+	libraryTarget := targetLevels[models.Library]
+	targetTechs := models.GetTargetTechnologies(s.technologies, libraryTarget)
 	targetUnits := models.GetTargetUnits()
 	solver := castle.NewSolver(s.buildings, s.technologies, s.missions, targetLevels, targetTechs, targetUnits)
 	solution := solver.Solve(initialState)

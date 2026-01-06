@@ -54,18 +54,18 @@ func TestGoldenBuildOrder(t *testing.T) {
 
 	// Create a deterministic representation of the build order
 	type Action struct {
-		Step        int
-		Type        string
-		Name        string
-		FromLevel   int
-		ToLevel     int
-		StartTime   int
-		EndTime     int
-		WoodCost    int
-		StoneCost   int
-		IronCost    int
-		FoodCost    int
-		FoodUsed    int
+		Step         int
+		Type         string
+		Name         string
+		FromLevel    int
+		ToLevel      int
+		StartTime    int
+		EndTime      int
+		WoodCost     int
+		StoneCost    int
+		IronCost     int
+		FoodCost     int
+		FoodUsed     int
 		FoodCapacity int
 	}
 
@@ -75,18 +75,18 @@ func TestGoldenBuildOrder(t *testing.T) {
 	// Add building actions
 	for _, ba := range solution.BuildingActions {
 		actions = append(actions, Action{
-			Step:        step,
-			Type:        "Building",
-			Name:        string(ba.BuildingType),
-			FromLevel:   ba.FromLevel,
-			ToLevel:     ba.ToLevel,
-			StartTime:   ba.StartTime,
-			EndTime:     ba.EndTime,
-			WoodCost:    ba.Costs.Wood,
-			StoneCost:   ba.Costs.Stone,
-			IronCost:    ba.Costs.Iron,
-			FoodCost:    ba.Costs.Food,
-			FoodUsed:    ba.FoodUsed,
+			Step:         step,
+			Type:         "Building",
+			Name:         string(ba.BuildingType),
+			FromLevel:    ba.FromLevel,
+			ToLevel:      ba.ToLevel,
+			StartTime:    ba.StartTime,
+			EndTime:      ba.EndTime,
+			WoodCost:     ba.Costs.Wood,
+			StoneCost:    ba.Costs.Stone,
+			IronCost:     ba.Costs.Iron,
+			FoodCost:     ba.Costs.Food,
+			FoodUsed:     ba.FoodUsed,
 			FoodCapacity: ba.FoodCapacity,
 		})
 		step++
@@ -95,16 +95,16 @@ func TestGoldenBuildOrder(t *testing.T) {
 	// Add research actions
 	for _, ra := range solution.ResearchActions {
 		actions = append(actions, Action{
-			Step:        step,
-			Type:        "Research",
-			Name:        ra.TechnologyName,
-			StartTime:   ra.StartTime,
-			EndTime:     ra.EndTime,
-			WoodCost:    ra.Costs.Wood,
-			StoneCost:   ra.Costs.Stone,
-			IronCost:    ra.Costs.Iron,
-			FoodCost:    ra.Costs.Food,
-			FoodUsed:    ra.FoodUsed,
+			Step:         step,
+			Type:         "Research",
+			Name:         ra.TechnologyName,
+			StartTime:    ra.StartTime,
+			EndTime:      ra.EndTime,
+			WoodCost:     ra.Costs.Wood,
+			StoneCost:    ra.Costs.Stone,
+			IronCost:     ra.Costs.Iron,
+			FoodCost:     ra.Costs.Food,
+			FoodUsed:     ra.FoodUsed,
 			FoodCapacity: ra.FoodCapacity,
 		})
 		step++
@@ -124,15 +124,15 @@ func TestGoldenBuildOrder(t *testing.T) {
 	actualHash := hex.EncodeToString(hash[:])
 
 	// Golden hash - UPDATE THIS if you intentionally change the algorithm
-	// Generated from commit 82ff648 (with scarcity cache optimization)
-	goldenHash := "2da1aa610e2740541e1d286a7d831e06e5896d3a4d346edcb40432cde0e24878"
+	// Updated 2026-01-06: All 20 techs in 54.3 days - fixed food costs + deterministic iteration + removed food reservation
+	goldenHash := "b2b184155c47f30f760d9dab86e1497a604d3cbb5f84736b04e901b2f9088566"
 
 	if actualHash != goldenHash {
 		t.Errorf("Build order changed!\nExpected hash: %s\nActual hash:   %s\n\nIf this change is intentional, update goldenHash in the test.", goldenHash, actualHash)
 		t.Logf("Total building actions: %d", len(solution.BuildingActions))
 		t.Logf("Total research actions: %d", len(solution.ResearchActions))
 		t.Logf("Total time: %d seconds", solution.TotalTimeSeconds)
-		
+
 		// Show first 10 actions for debugging
 		t.Log("First 10 actions:")
 		for i := 0; i < 10 && i < len(actions); i++ {

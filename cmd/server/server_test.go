@@ -71,7 +71,9 @@ func TestSolveMatchesDirectSolver(t *testing.T) {
 		models.Fortifications: 20,
 	}
 
-	solver := castle.NewSolver(srv.buildings, srv.technologies, srv.missions, targetLevels)
+	targetTechs := models.GetTargetTechnologies(srv.technologies, targetLevels[models.Library])
+	targetUnits := models.GetTargetUnits()
+	solver := castle.NewSolver(srv.buildings, srv.technologies, srv.missions, targetLevels, targetTechs, targetUnits)
 	solution := solver.Solve(initialState)
 
 	// Verify total time matches
@@ -170,7 +172,9 @@ func TestSolveWithCustomTargets(t *testing.T) {
 	initialState := converter.ProtoRequestToGameState(req)
 	targetLevels := converter.ProtoTargetsToModelTargets(req.TargetLevels)
 
-	solver := castle.NewSolver(srv.buildings, srv.technologies, srv.missions, targetLevels)
+	targetTechs := models.GetTargetTechnologies(srv.technologies, targetLevels[models.Library])
+	targetUnits := models.GetTargetUnits()
+	solver := castle.NewSolver(srv.buildings, srv.technologies, srv.missions, targetLevels, targetTechs, targetUnits)
 	solution := solver.Solve(initialState)
 
 	// Verify results match
@@ -223,7 +227,9 @@ func TestSolveWithInitialState(t *testing.T) {
 	initialState := converter.ProtoRequestToGameState(req)
 	targetLevels := converter.ProtoTargetsToModelTargets(req.TargetLevels)
 
-	solver := castle.NewSolver(srv.buildings, srv.technologies, srv.missions, targetLevels)
+	targetTechs := models.GetTargetTechnologies(srv.technologies, targetLevels[models.Library])
+	targetUnits := models.GetTargetUnits()
+	solver := castle.NewSolver(srv.buildings, srv.technologies, srv.missions, targetLevels, targetTechs, targetUnits)
 	solution := solver.Solve(initialState)
 
 	// Verify results match

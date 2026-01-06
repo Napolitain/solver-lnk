@@ -176,11 +176,14 @@ func GetTargetLevels() map[BuildingType]int {
 	}
 }
 
-// GetTargetTechnologies returns default tech targets (all available techs)
-func GetTargetTechnologies(technologies map[string]*Technology) []string {
+// GetTargetTechnologies returns default tech targets (all reachable techs)
+// Only includes technologies that can be researched with the target Library level
+func GetTargetTechnologies(technologies map[string]*Technology, targetLibraryLevel int) []string {
 	techs := make([]string, 0, len(technologies))
-	for name := range technologies {
-		techs = append(techs, name)
+	for name, tech := range technologies {
+		if tech.RequiredLibraryLevel <= targetLibraryLevel {
+			techs = append(techs, name)
+		}
 	}
 	return techs
 }
@@ -189,4 +192,3 @@ func GetTargetTechnologies(technologies map[string]*Technology) []string {
 func GetTargetUnits() map[UnitType]int {
 	return make(map[UnitType]int) // Empty = train for missions only
 }
-
