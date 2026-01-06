@@ -25,7 +25,7 @@ func FuzzROICalculation(f *testing.F) {
 		models.OreMine:    10,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 
 	f.Fuzz(func(t *testing.T, woodRate, stoneRate, ironRate uint8) {
 		state := NewState(models.NewGameState())
@@ -84,7 +84,7 @@ func FuzzDynamicScarcity(f *testing.F) {
 		models.OreMine:    10,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 
 	f.Fuzz(func(t *testing.T, woodRate, stoneRate, ironRate uint8) {
 		state := NewState(models.NewGameState())
@@ -126,7 +126,7 @@ func FuzzMissionSelection(f *testing.F) {
 		models.Tavern: 10,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 
 	f.Fuzz(func(t *testing.T, tavernLevel uint8, spearmen, archers, horsemen, crossbowmen uint16) {
 		state := NewState(models.NewGameState())
@@ -223,7 +223,7 @@ func FuzzSolverMissionNoOverlap(f *testing.F) {
 			models.Farm:       5,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		initialState := models.NewGameState()
 		initialState.BuildingLevels[models.Lumberjack] = 1
 		initialState.BuildingLevels[models.Quarry] = 1
@@ -286,7 +286,7 @@ func FuzzROINonNegative(f *testing.F) {
 			models.OreMine:    30,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		state := NewState(models.NewGameState())
 		state.SetBuildingLevel(models.Lumberjack, lj)
 		state.SetBuildingLevel(models.Quarry, q)
@@ -359,7 +359,7 @@ func FuzzResourcesNeverNegative(f *testing.F) {
 			models.Farm:       3,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 
 		initialState := models.NewGameState()
 		initialState.Resources[models.Wood] = float64(startWood)
@@ -425,7 +425,7 @@ func FuzzBuildingQueueSingleItem(f *testing.F) {
 			models.Farm:       5,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		initialState := models.NewGameState()
 		solution := solver.Solve(initialState)
 
@@ -463,7 +463,7 @@ func FuzzResearchQueueSingleItem(f *testing.F) {
 			models.Farm:    farm,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		initialState := models.NewGameState()
 		solution := solver.Solve(initialState)
 
@@ -507,7 +507,7 @@ func FuzzStorageNeverExceeded(f *testing.F) {
 			models.OreMine:    om,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		initialState := models.NewGameState()
 		solution := solver.Solve(initialState)
 
@@ -545,7 +545,7 @@ func FuzzFarmResearchPrerequisites(f *testing.F) {
 			models.OreMine:    10,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		initialState := models.NewGameState()
 		solution := solver.Solve(initialState)
 
@@ -619,7 +619,7 @@ func FuzzMissionNoSameTypeOverlap(f *testing.F) {
 			models.Farm:       10,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		initialState := models.NewGameState()
 		solution := solver.Solve(initialState)
 
@@ -667,7 +667,7 @@ func FuzzAllTargetsReached(f *testing.F) {
 			models.OreMine:    om,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		initialState := models.NewGameState()
 		solution := solver.Solve(initialState)
 
@@ -715,8 +715,8 @@ func FuzzDeterministicOutput(f *testing.F) {
 		}
 
 		// Run solver twice with same inputs
-		solver1 := NewSolver(buildings, technologies, missions, targetLevels)
-		solver2 := NewSolver(buildings, technologies, missions, targetLevels)
+		solver1 := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
+		solver2 := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 
 		initialState1 := models.NewGameState()
 		initialState1.Resources[models.Wood] = float64(startW)

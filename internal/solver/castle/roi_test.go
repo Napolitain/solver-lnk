@@ -19,7 +19,7 @@ func TestROIFormulaUsesCost(t *testing.T) {
 		models.OreMine:    10,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	state := NewState(models.NewGameState())
 
 	// Initialize state with some production
@@ -67,7 +67,7 @@ func TestDynamicScarcityCalculation(t *testing.T) {
 		models.OreMine:    5,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	state := NewState(models.NewGameState())
 
 	// Set balanced production
@@ -104,7 +104,7 @@ func TestDynamicScarcityChangesWithProduction(t *testing.T) {
 		models.OreMine:    10,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 
 	// Test with high wood production (wood is abundant, should have low scarcity)
 	state1 := NewState(models.NewGameState())
@@ -144,7 +144,7 @@ func TestProductionTechROIUsesCost(t *testing.T) {
 		models.Library:    5,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	state := NewState(models.NewGameState())
 
 	// Set production rates
@@ -184,7 +184,7 @@ func TestTavernROIUsesCost(t *testing.T) {
 		models.Tavern: 5,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	state := NewState(models.NewGameState())
 	state.SetBuildingLevel(models.Tavern, 1)
 
@@ -219,7 +219,7 @@ func TestZeroROIBuildings(t *testing.T) {
 		models.Market:         5,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	state := NewState(models.NewGameState())
 
 	zeroROIBuildings := []models.BuildingType{

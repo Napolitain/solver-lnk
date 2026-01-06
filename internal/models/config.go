@@ -157,7 +157,7 @@ func CastleConfigToGameState(c *pb.CastleConfig) *GameState {
 	return state
 }
 
-// GetTargetLevels returns fixed target levels (always max)
+// GetTargetLevels returns default building target levels
 func GetTargetLevels() map[BuildingType]int {
 	return map[BuildingType]int{
 		Lumberjack:     30,
@@ -175,3 +175,18 @@ func GetTargetLevels() map[BuildingType]int {
 		Fortifications: 20,
 	}
 }
+
+// GetTargetTechnologies returns default tech targets (all available techs)
+func GetTargetTechnologies(technologies map[string]*Technology) []string {
+	techs := make([]string, 0, len(technologies))
+	for name := range technologies {
+		techs = append(techs, name)
+	}
+	return techs
+}
+
+// GetTargetUnits returns default unit targets (empty = missions only, backward compat)
+func GetTargetUnits() map[UnitType]int {
+	return make(map[UnitType]int) // Empty = train for missions only
+}
+

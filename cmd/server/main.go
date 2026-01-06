@@ -64,7 +64,9 @@ func (s *server) Solve(ctx context.Context, req *pb.SolveRequest) (*pb.SolveResp
 
 	// Run solver
 	solveStart := time.Now()
-	solver := castle.NewSolver(s.buildings, s.technologies, s.missions, targetLevels)
+	targetTechs := models.GetTargetTechnologies(s.technologies)
+	targetUnits := models.GetTargetUnits()
+	solver := castle.NewSolver(s.buildings, s.technologies, s.missions, targetLevels, targetTechs, targetUnits)
 	solution := solver.Solve(initialState)
 	solveDuration := time.Since(solveStart)
 

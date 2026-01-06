@@ -80,6 +80,8 @@ func runSolver(cmd *cobra.Command, args []string) {
 	// Load config or use defaults
 	var initialState *models.GameState
 	var targetLevels map[models.BuildingType]int
+	var targetTechs []string
+	var targetUnits map[models.UnitType]int
 
 	if configFile != "" {
 		config, err := models.LoadCastleConfig(configFile)
@@ -93,6 +95,8 @@ func runSolver(cmd *cobra.Command, args []string) {
 		}
 		initialState = models.CastleConfigToGameState(config)
 		targetLevels = models.GetTargetLevels()
+		targetTechs = models.GetTargetTechnologies(technologies)
+		targetUnits = models.GetTargetUnits()
 		if !quiet && !silent {
 			infoColor.Printf("📄 Loaded config from %s\n\n", configFile)
 		}
@@ -109,25 +113,13 @@ func runSolver(cmd *cobra.Command, args []string) {
 		}
 
 		// Default targets
-		targetLevels = map[models.BuildingType]int{
-			models.Lumberjack:     30,
-			models.Quarry:         30,
-			models.OreMine:        30,
-			models.Farm:           30,
-			models.WoodStore:      20,
-			models.StoneStore:     20,
-			models.OreStore:       20,
-			models.Keep:           10,
-			models.Arsenal:        30,
-			models.Library:        10,
-			models.Tavern:         10,
-			models.Market:         8,
-			models.Fortifications: 20,
-		}
+		targetLevels = models.GetTargetLevels()
+		targetTechs = models.GetTargetTechnologies(technologies)
+		targetUnits = models.GetTargetUnits()
 	}
 
 	if !quiet && !nextOnly && !silent {
-		printInitialState(initialState, targetLevels)
+		printInitialState(initialState, targetLevels, targetTechs, targetUnits)
 		infoColor.Println("🔄 Solving with multiple strategies...")
 	}
 
@@ -142,7 +134,7 @@ func runSolver(cmd *cobra.Command, args []string) {
 	}
 
 	// Use V4 event-driven solver
-	v4Solver := castle.NewSolver(buildings, technologies, missions, targetLevels)
+	v4Solver := castle.NewSolver(buildings, technologies, missions, targetLevels, targetTechs, targetUnits)
 	solution = v4Solver.Solve(initialState)
 	strategyName = "EventDriven"
 
@@ -202,7 +194,7 @@ func runSolver(cmd *cobra.Command, args []string) {
 	printSummary(solution, targetLevels, finalFoodUsed, finalFoodCapacity, totalCompletionTime)
 }
 
-func printInitialState(state *models.GameState, targets map[models.BuildingType]int) {
+func printInitialState(state *models.GameState, targets map[models.BuildingType]int, targetTechs []string, targetUnits map[models.UnitType]int) {
 	infoColor := color.New(color.FgYellow)
 
 	infoColor.Println("📊 Initial State:")
@@ -214,7 +206,9 @@ func printInitialState(state *models.GameState, targets map[models.BuildingType]
 	fmt.Println()
 
 	infoColor.Println("🎯 Targets:")
-
+	
+	// Buildings
+	fmt.Println("   Buildings:")
 	var sortedTargets []models.BuildingType
 	for bt := range targets {
 		sortedTargets = append(sortedTargets, bt)
@@ -222,10 +216,33 @@ func printInitialState(state *models.GameState, targets map[models.BuildingType]
 	sort.Slice(sortedTargets, func(i, j int) bool {
 		return string(sortedTargets[i]) < string(sortedTargets[j])
 	})
-
 	for _, bt := range sortedTargets {
-		fmt.Printf("   • %s: Level %d\n", formatBuildingName(string(bt)), targets[bt])
+		fmt.Printf("     • %s: Level %d\n", formatBuildingName(string(bt)), targets[bt])
 	}
+	
+	// Technologies
+	if len(targetTechs) > 0 {
+		fmt.Println("   Technologies:")
+		techCount := len(targetTechs)
+		if techCount > 5 {
+			fmt.Printf("     • All %d available technologies\n", techCount)
+		} else {
+			for _, tech := range targetTechs {
+				fmt.Printf("     • %s\n", tech)
+			}
+		}
+	}
+	
+	// Units
+	if len(targetUnits) > 0 {
+		fmt.Println("   Units:")
+		for ut, count := range targetUnits {
+			fmt.Printf("     • %s: %d\n", ut, count)
+		}
+	} else {
+		fmt.Println("   Units: Train for missions")
+	}
+	
 	fmt.Println()
 }
 

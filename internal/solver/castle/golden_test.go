@@ -41,7 +41,7 @@ func TestGoldenBuildOrder(t *testing.T) {
 		models.Fortifications: 20,
 	}
 
-	solver := NewSolver(buildings, techs, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, techs, missions, targetLevels)
 	initialState := &models.GameState{
 		BuildingLevels:         map[models.BuildingType]int{},
 		Resources:              map[models.ResourceType]float64{},

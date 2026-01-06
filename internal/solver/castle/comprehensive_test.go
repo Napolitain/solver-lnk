@@ -27,7 +27,7 @@ func TestDoNotRecommendAlreadyResearchedTech(t *testing.T) {
 		models.Farm:       30,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 
 	state := models.NewGameState()
 	state.BuildingLevels[models.Lumberjack] = 22
@@ -88,7 +88,7 @@ func TestCropRotationNotRecommendedTooEarly(t *testing.T) {
 		models.Farm:       30,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 
 	state := models.NewGameState()
 	state.BuildingLevels[models.Lumberjack] = 22
@@ -155,7 +155,7 @@ func TestLibraryRequiredBeforeResearch(t *testing.T) {
 		models.Library:    10,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	initialState := models.NewGameState()
 	solution := solver.Solve(initialState)
 
@@ -216,7 +216,7 @@ func FuzzLibraryPrerequisiteRespected(f *testing.F) {
 			models.OreMine:    10,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		initialState := models.NewGameState()
 		solution := solver.Solve(initialState)
 
@@ -266,7 +266,7 @@ func TestFoodCapacityMatchesFarmLevel(t *testing.T) {
 		models.OreMine:    30,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	initialState := models.NewGameState()
 	solution := solver.Solve(initialState)
 
@@ -309,7 +309,7 @@ func TestFoodUsageNeverExceedsCapacity(t *testing.T) {
 		models.Tavern:     10,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	initialState := models.NewGameState()
 	solution := solver.Solve(initialState)
 
@@ -369,7 +369,7 @@ func FuzzFoodNeverExceedsCapacity(f *testing.F) {
 			models.OreMine:    10,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		initialState := models.NewGameState()
 		solution := solver.Solve(initialState)
 
@@ -415,7 +415,7 @@ func TestMissionsRunContinuously(t *testing.T) {
 		models.Tavern:     5,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	initialState := models.NewGameState()
 	solution := solver.Solve(initialState)
 
@@ -463,7 +463,7 @@ func FuzzMissionUnitRequirementsMet(f *testing.F) {
 			models.Farm:       15,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		initialState := models.NewGameState()
 		solution := solver.Solve(initialState)
 
@@ -546,7 +546,7 @@ func TestUnitTechPrerequisiteRespected(t *testing.T) {
 		models.Library:    10,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	initialState := models.NewGameState()
 	solution := solver.Solve(initialState)
 
@@ -595,7 +595,7 @@ func TestUnitResourceCostsDeducted(t *testing.T) {
 		models.Tavern:     10,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	initialState := models.NewGameState()
 	solution := solver.Solve(initialState)
 
@@ -635,7 +635,7 @@ func TestROIIncludesCosts(t *testing.T) {
 		models.OreMine:    30,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	state := NewState(models.NewGameState())
 	state.SetBuildingLevel(models.Lumberjack, 10)
 	state.SetBuildingLevel(models.Quarry, 10)
@@ -703,7 +703,7 @@ func FuzzROISensibleOrdering(f *testing.F) {
 			models.OreMine:    30,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		state := NewState(models.NewGameState())
 		state.SetBuildingLevel(models.Lumberjack, lj)
 		state.SetBuildingLevel(models.Quarry, q)
@@ -775,8 +775,8 @@ func FuzzDeterministicWithVaryingStartPoints(f *testing.F) {
 		}
 
 		// Run twice
-		solver1 := NewSolver(buildings, technologies, missions, targetLevels)
-		solver2 := NewSolver(buildings, technologies, missions, targetLevels)
+		solver1 := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
+		solver2 := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 
 		state1 := models.NewGameState()
 		state1.BuildingLevels[models.Lumberjack] = lj
@@ -825,7 +825,7 @@ func TestAllResearchCompleted(t *testing.T) {
 		models.Library:    10,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	initialState := models.NewGameState()
 	solution := solver.Solve(initialState)
 
@@ -859,7 +859,7 @@ func TestFinalArmyMatchesNeeds(t *testing.T) {
 		models.Library:    10,
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	initialState := models.NewGameState()
 	solution := solver.Solve(initialState)
 
@@ -926,7 +926,7 @@ func TestFoodExactlyUsed(t *testing.T) {
 		initialState.BuildingLevels[bt] = 1
 	}
 
-	solver := NewSolver(buildings, technologies, missions, targetLevels)
+	solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 	solution := solver.Solve(initialState)
 
 	// Get the last training action to check food usage
@@ -1033,7 +1033,7 @@ func FuzzTrainingQueueSingleItem(f *testing.F) {
 			models.Farm:       15,
 		}
 
-		solver := NewSolver(buildings, technologies, missions, targetLevels)
+		solver := castle.NewTestSolver(buildings, technologies, missions, targetLevels)
 		initialState := models.NewGameState()
 		solution := solver.Solve(initialState)
 

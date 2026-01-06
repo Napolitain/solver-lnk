@@ -12,6 +12,8 @@ type Solver struct {
 	Technologies [20]*models.Technology
 	Missions     []*models.Mission
 	TargetLevels models.BuildingLevelMap
+	TargetTechs  map[string]bool          // Which techs to research (empty = all)
+	TargetUnits  map[models.UnitType]int  // Exact unit counts (empty = missions only)
 }
 
 // MissionEvent tracks when a mission started and ended (for testing)
@@ -27,6 +29,8 @@ func NewSolver(
 	technologies map[string]*models.Technology,
 	missions []*models.Mission,
 	targetLevels map[models.BuildingType]int,
+	targetTechs []string,
+	targetUnits map[models.UnitType]int,
 ) *Solver {
 	var targets models.BuildingLevelMap
 	for bt, level := range targetLevels {
@@ -45,12 +49,33 @@ func NewSolver(
 			techArray[idx] = tech
 		}
 	}
+	
+	// Convert tech list to set (empty = all techs)
+	techTargets := make(map[string]bool)
+	if len(targetTechs) > 0 {
+		for _, tech := range targetTechs {
+			techTargets[tech] = true
+		}
+	} else {
+		// Default: target all available techs
+		for name := range technologies {
+			techTargets[name] = true
+		}
+	}
+	
+	// Copy unit targets (empty = missions only)
+	unitTargets := make(map[models.UnitType]int)
+	for ut, count := range targetUnits {
+		unitTargets[ut] = count
+	}
 
 	return &Solver{
 		Buildings:    buildingArray,
 		Technologies: techArray,
 		Missions:     missions,
 		TargetLevels: targets,
+		TargetTechs:  techTargets,
+		TargetUnits:  unitTargets,
 	}
 }
 
@@ -564,6 +589,10 @@ func (s *Solver) pickNextRemainingResearch(state *State) *ResearchAction {
 		}
 		if state.ResearchedTechs[name] {
 			continue
+		}
+		// Check if this tech is in our targets
+		if !s.TargetTechs[name] {
+			continue // Skip techs not in target list
 		}
 		if tech.RequiredLibraryLevel > libraryLevel {
 			continue
@@ -1202,13 +1231,35 @@ func (s *Solver) advanceTime(state *State, seconds int) {
 }
 
 func (s *Solver) allTargetsReached(state *State) bool {
-	allReached := true
+	// Check buildings
+	allBuildings := true
 	s.TargetLevels.Each(func(bt models.BuildingType, target int) {
 		if target > 0 && state.GetBuildingLevel(bt) < target {
-			allReached = false
+			allBuildings = false
 		}
 	})
-	return allReached
+	if !allBuildings {
+		return false
+	}
+	
+	// Check technologies
+	for techName := range s.TargetTechs {
+		if !state.ResearchedTechs[techName] {
+			return false
+		}
+	}
+	
+	// Check units (if targets specified)
+	if len(s.TargetUnits) > 0 {
+		for unitType, targetCount := range s.TargetUnits {
+			currentCount := state.Army.Get(unitType)
+			if currentCount < targetCount {
+				return false
+			}
+		}
+	}
+	
+	return true
 }
 
 func (s *Solver) initializeState(state *State) {
@@ -1495,15 +1546,25 @@ func (s *Solver) getUnitTechsNeededForMissions(state *State) []string {
 
 // pickBestTrainingAction selects the best unit to train for missions
 func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
-	if len(s.Missions) == 0 {
-		return nil
-	}
-
 	// Check if we have food headroom for training
-	// Units cost 1-2 food each; only train if we have spare capacity
 	foodHeadroom := state.FoodCapacity - state.FoodUsed
 	if foodHeadroom < MinFoodHeadroomForTraining {
 		return nil // Not enough food buffer for training
+	}
+
+	arsenalLevel := state.GetBuildingLevel(models.Arsenal)
+	if arsenalLevel < 1 {
+		return nil // Can't train without arsenal
+	}
+
+	// If unit targets are specified, train to exactly those counts
+	if len(s.TargetUnits) > 0 {
+		return s.pickTrainingForTargets(state)
+	}
+
+	// Otherwise, train for missions (backward compatible)
+	if len(s.Missions) == 0 {
+		return nil
 	}
 
 	currentTavernLevel := state.GetBuildingLevel(models.Tavern)
@@ -1512,13 +1573,7 @@ func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
 		targetTavernLevel = currentTavernLevel
 	}
 
-	arsenalLevel := state.GetBuildingLevel(models.Arsenal)
-	if arsenalLevel < 1 {
-		return nil // Can't train without arsenal
-	}
-
 	// Calculate maximum units needed for ALL missions at target tavern level
-	// This ensures we train units proactively before tavern upgrades
 	unitNeeds := s.calculateMissionUnitNeeds(targetTavernLevel)
 
 	// Find which unit type we need most (compared to what we have)
@@ -1574,6 +1629,68 @@ func (s *Solver) pickBestTrainingAction(state *State) *TrainUnitAction {
 		return &TrainUnitAction{
 			UnitType:   d.unitType,
 			Definition: d.def,
+		}
+	}
+
+	return nil
+}
+
+// pickTrainingForTargets trains units to reach exact target counts
+func (s *Solver) pickTrainingForTargets(state *State) *TrainUnitAction {
+	// Check each unit target
+	type unitDeficit struct {
+		unitType models.UnitType
+		deficit  int
+		def      *models.UnitDefinition
+	}
+
+	var deficits []unitDeficit
+	for unitType, targetCount := range s.TargetUnits {
+		currentCount := state.Army.Get(unitType)
+		if currentCount >= targetCount {
+			continue // Already reached target
+		}
+
+		def := models.GetUnitDefinition(unitType)
+		if def == nil {
+			continue
+		}
+
+		// Check tech requirement
+		if def.RequiredTech != "" && !state.ResearchedTechs[def.RequiredTech] {
+			continue // Need tech first
+		}
+
+		deficits = append(deficits, unitDeficit{
+			unitType: unitType,
+			deficit:  targetCount - currentCount,
+			def:      def,
+		})
+	}
+
+	if len(deficits) == 0 {
+		return nil // All targets reached
+	}
+
+	// Sort by deficit (train most needed first), then by training time
+	sort.Slice(deficits, func(i, j int) bool {
+		if deficits[i].deficit != deficits[j].deficit {
+			return deficits[i].deficit > deficits[j].deficit
+		}
+		return deficits[i].def.TrainingTimeSeconds < deficits[j].def.TrainingTimeSeconds
+	})
+
+	// Pick first affordable unit
+	for _, d := range deficits {
+		// Check food capacity
+		if state.FoodUsed+d.def.FoodCost > state.FoodCapacity {
+			continue
+		}
+
+		return &TrainUnitAction{
+			UnitType:   d.unitType,
+			Definition: d.def,
+			Count:      1, // Train one at a time (batching infrastructure ready)
 		}
 	}
 
