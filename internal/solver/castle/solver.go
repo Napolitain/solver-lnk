@@ -315,9 +315,14 @@ func (s *Solver) handleTrainingComplete(state *State, event Event, events *Event
 	ta := event.Payload.(*TrainUnitAction)
 
 	// Record training action
+	count := ta.Count
+	if count == 0 {
+		count = 1 // Default to 1
+	}
+	
 	*trainingActions = append(*trainingActions, models.TrainUnitAction{
 		UnitType:     ta.UnitType,
-		Count:        1,
+		Count:        count,
 		StartTime:    state.Now - ta.Duration(),
 		EndTime:      state.Now,
 		Costs:        ta.Costs(),
@@ -325,8 +330,8 @@ func (s *Solver) handleTrainingComplete(state *State, event Event, events *Event
 		FoodCapacity: state.FoodCapacity,
 	})
 
-	// Add unit to army
-	state.Army.Add(ta.UnitType, 1)
+	// Add units to army (batch)
+	state.Army.Add(ta.UnitType, count)
 
 	// Clear pending
 	state.PendingTraining = nil

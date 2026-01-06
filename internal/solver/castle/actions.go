@@ -47,29 +47,45 @@ func (a *ResearchAction) Description() string {
 	return a.Technology.Name
 }
 
-// TrainUnitAction represents training a single unit
+// TrainUnitAction represents training units (can be batched)
 type TrainUnitAction struct {
 	UnitType   models.UnitType
 	Definition *models.UnitDefinition
+	Count      int // Number of units in this batch (default 1)
 }
 
 func (a *TrainUnitAction) Costs() models.Costs {
-	costs := a.Definition.ResourceCosts
-	costs.Food = a.Definition.FoodCost
-	return costs
+	count := a.Count
+	if count == 0 {
+		count = 1 // Default to 1 if not set
+	}
+	return models.Costs{
+		Wood:  a.Definition.ResourceCosts.Wood * count,
+		Stone: a.Definition.ResourceCosts.Stone * count,
+		Iron:  a.Definition.ResourceCosts.Iron * count,
+		Food:  a.Definition.FoodCost * count,
+	}
 }
 
 func (a *TrainUnitAction) Duration() int {
-	return a.Definition.TrainingTimeSeconds
+	count := a.Count
+	if count == 0 {
+		count = 1 // Default to 1 if not set
+	}
+	return a.Definition.TrainingTimeSeconds * count
 }
 
 func (a *TrainUnitAction) Description() string {
 	return a.Definition.Name
 }
 
-// FoodCost returns the food cost for training this unit
+// FoodCost returns the total food cost for this batch
 func (a *TrainUnitAction) FoodCost() int {
-	return a.Definition.FoodCost
+	count := a.Count
+	if count == 0 {
+		count = 1 // Default to 1 if not set
+	}
+	return a.Definition.FoodCost * count
 }
 
 // StartMissionAction represents starting a tavern mission
