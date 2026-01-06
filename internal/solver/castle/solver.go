@@ -8,8 +8,8 @@ import (
 
 // Solver is the V4 event-driven solver
 type Solver struct {
-	Buildings    map[models.BuildingType]*models.Building
-	Technologies map[string]*models.Technology
+	Buildings    [13]*models.Building
+	Technologies [20]*models.Technology
 	Missions     []*models.Mission
 	TargetLevels models.BuildingLevelMap
 }
@@ -28,14 +28,27 @@ func NewSolver(
 	missions []*models.Mission,
 	targetLevels map[models.BuildingType]int,
 ) *Solver {
-	// Convert map to struct for determinism
 	var targets models.BuildingLevelMap
 	for bt, level := range targetLevels {
 		targets.Set(bt, level)
 	}
+
+	var buildingArray [13]*models.Building
+	for bt, building := range buildings {
+		buildingArray[bt.Index()] = building
+	}
+
+	var techArray [20]*models.Technology
+	for name, tech := range technologies {
+		idx := models.TechName(name).Index()
+		if idx >= 0 {
+			techArray[idx] = tech
+		}
+	}
+
 	return &Solver{
-		Buildings:    buildings,
-		Technologies: technologies,
+		Buildings:    buildingArray,
+		Technologies: techArray,
 		Missions:     missions,
 		TargetLevels: targets,
 	}
@@ -454,7 +467,7 @@ func (s *Solver) isPostBuildingComplete(state *State) bool {
 	libraryLevel := state.GetBuildingLevel(models.Library)
 	for _, techName := range models.AllTechNames() {
 		name := string(techName)
-		tech := s.Technologies[name]
+		tech := s.Technologies[models.TechName(name).Index()]
 		if tech == nil {
 			continue
 		}
@@ -540,7 +553,7 @@ func (s *Solver) pickNextRemainingResearch(state *State) *ResearchAction {
 	// First check known techs in deterministic order
 	for _, techName := range models.AllTechNames() {
 		name := string(techName)
-		tech := s.Technologies[name]
+		tech := s.Technologies[models.TechName(name).Index()]
 		if tech == nil {
 			continue
 		}
@@ -555,48 +568,7 @@ func (s *Solver) pickNextRemainingResearch(state *State) *ResearchAction {
 		}
 	}
 
-	// Then check any additional techs not in AllTechNames (e.g., Fortress construction)
-	// Sort by library level for determinism
-	type techInfo struct {
-		name  string
-		tech  *models.Technology
-		level int
-	}
-	var additionalTechs []techInfo
-	for name, tech := range s.Technologies {
-		// Skip if already researched
-		if state.ResearchedTechs[name] {
-			continue
-		}
-		// Skip if library level too low
-		if tech.RequiredLibraryLevel > libraryLevel {
-			continue
-		}
-		// Check if this tech is in AllTechNames
-		found := false
-		for _, knownTech := range models.AllTechNames() {
-			if string(knownTech) == name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			additionalTechs = append(additionalTechs, techInfo{name, tech, tech.RequiredLibraryLevel})
-		}
-	}
-
-	// Sort by library level (lowest first) for determinism
-	sort.Slice(additionalTechs, func(i, j int) bool {
-		if additionalTechs[i].level != additionalTechs[j].level {
-			return additionalTechs[i].level < additionalTechs[j].level
-		}
-		return additionalTechs[i].name < additionalTechs[j].name
-	})
-
-	if len(additionalTechs) > 0 {
-		return &ResearchAction{Technology: additionalTechs[0].tech}
-	}
-
+	// Technologies array only contains AllTechNames techs, no additional techs to check
 	return nil
 }
 
@@ -859,11 +831,11 @@ func (s *Solver) resolvePrerequisites(state *State, action *BuildingAction) *Bui
 	}
 
 	// Check technology prerequisites
-	building := s.Buildings[action.BuildingType]
+	building := s.Buildings[action.BuildingType.Index()]
 	if building != nil {
 		if techName, ok := building.TechnologyPrerequisites[action.ToLevel]; ok {
 			if !state.ResearchedTechs[techName] {
-				tech := s.Technologies[techName]
+				tech := s.Technologies[models.TechName(techName).Index()]
 				if tech != nil {
 					libraryLevel := state.GetBuildingLevel(models.Library)
 					if libraryLevel < tech.RequiredLibraryLevel {
@@ -883,7 +855,7 @@ func (s *Solver) resolvePrerequisites(state *State, action *BuildingAction) *Bui
 
 // createFarmUpgrade creates a Farm upgrade action to reach required food capacity
 func (s *Solver) createFarmUpgrade(state *State, requiredFood int) *BuildingAction {
-	farmBuilding := s.Buildings[models.Farm]
+	farmBuilding := s.Buildings[models.Farm.Index()]
 	if farmBuilding == nil {
 		return nil
 	}
@@ -916,7 +888,7 @@ func (s *Solver) createFarmUpgrade(state *State, requiredFood int) *BuildingActi
 // createStorageUpgrade creates a storage upgrade action
 func (s *Solver) createStorageUpgrade(state *State, rt models.ResourceType, requiredCap int) *BuildingAction {
 	storageType := resourceToStorage(rt)
-	building := s.Buildings[storageType]
+	building := s.Buildings[storageType.Index()]
 	if building == nil {
 		return nil
 	}
@@ -939,7 +911,7 @@ func (s *Solver) createStorageUpgrade(state *State, rt models.ResourceType, requ
 
 // createLibraryUpgrade creates a Library upgrade action
 func (s *Solver) createLibraryUpgrade(state *State, requiredLevel int) *BuildingAction {
-	building := s.Buildings[models.Library]
+	building := s.Buildings[models.Library.Index()]
 	if building == nil {
 		return nil
 	}
@@ -1237,7 +1209,7 @@ func (s *Solver) allTargetsReached(state *State) bool {
 func (s *Solver) initializeState(state *State) {
 	// Calculate production rates
 	for _, bt := range []models.BuildingType{models.Lumberjack, models.Quarry, models.OreMine} {
-		building := s.Buildings[bt]
+		building := s.Buildings[bt.Index()]
 		if building == nil {
 			continue
 		}
@@ -1251,7 +1223,7 @@ func (s *Solver) initializeState(state *State) {
 
 	// Calculate storage caps
 	for _, bt := range []models.BuildingType{models.WoodStore, models.StoneStore, models.OreStore} {
-		building := s.Buildings[bt]
+		building := s.Buildings[bt.Index()]
 		if building == nil {
 			continue
 		}
@@ -1264,7 +1236,7 @@ func (s *Solver) initializeState(state *State) {
 	}
 
 	// Calculate food capacity
-	farmBuilding := s.Buildings[models.Farm]
+	farmBuilding := s.Buildings[models.Farm.Index()]
 	if farmBuilding != nil {
 		level := state.GetBuildingLevel(models.Farm)
 		levelData := farmBuilding.GetLevelData(level)
@@ -1275,7 +1247,7 @@ func (s *Solver) initializeState(state *State) {
 }
 
 func (s *Solver) updateAfterBuild(state *State, ba *BuildingAction) {
-	building := s.Buildings[ba.BuildingType]
+	building := s.Buildings[ba.BuildingType.Index()]
 	if building == nil {
 		return
 	}
@@ -1326,7 +1298,7 @@ func (s *Solver) calculateDynamicScarcity(state *State, bt models.BuildingType) 
 		if targetLevel == 0 {
 			return
 		}
-		building := s.Buildings[targetBT]
+		building := s.Buildings[targetBT.Index()]
 		if building == nil {
 			return
 		}
@@ -1416,7 +1388,7 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 		if target == 0 || prereqAction != nil {
 			return
 		}
-		building := s.Buildings[bt]
+		building := s.Buildings[bt.Index()]
 		if building == nil {
 			return
 		}
@@ -1429,7 +1401,7 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 		// Only check the immediate next level for tech prerequisites
 		if techName, ok := building.TechnologyPrerequisites[nextLevel]; ok {
 			if !state.ResearchedTechs[techName] {
-				tech := s.Technologies[techName]
+				tech := s.Technologies[models.TechName(techName).Index()]
 				if tech != nil && libraryLevel >= tech.RequiredLibraryLevel {
 					prereqAction = &ResearchAction{Technology: tech}
 					return
@@ -1447,7 +1419,7 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 		if state.ResearchedTechs[techName] {
 			continue
 		}
-		tech := s.Technologies[techName]
+		tech := s.Technologies[models.TechName(techName).Index()]
 		if tech != nil && libraryLevel >= tech.RequiredLibraryLevel {
 			return &ResearchAction{Technology: tech}
 		}
@@ -1458,7 +1430,7 @@ func (s *Solver) pickBestResearchAction(state *State) *ResearchAction {
 		if state.ResearchedTechs[techName] {
 			continue
 		}
-		tech := s.Technologies[techName]
+		tech := s.Technologies[models.TechName(techName).Index()]
 		if tech != nil && libraryLevel >= tech.RequiredLibraryLevel {
 			return &ResearchAction{Technology: tech}
 		}
@@ -1492,7 +1464,7 @@ func (s *Solver) getUnitTechsNeededForMissions(state *State) []string {
 		if def != nil && def.RequiredTech != "" {
 			if !techsNeeded[def.RequiredTech] {
 				techsNeeded[def.RequiredTech] = true
-				tech := s.Technologies[def.RequiredTech]
+				tech := s.Technologies[models.TechName(def.RequiredTech).Index()]
 				libLevel := 0
 				if tech != nil {
 					libLevel = tech.RequiredLibraryLevel

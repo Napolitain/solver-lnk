@@ -129,7 +129,7 @@ func (s *Solver) calculateProductionTechMetric(state *State, action *ProductionT
 
 	libraryLevel := state.GetBuildingLevel(models.Library)
 	if libraryLevel < action.RequiredLibraryLevel {
-		libraryBuilding := s.Buildings[models.Library]
+		libraryBuilding := s.Buildings[models.Library.Index()]
 		if libraryBuilding != nil {
 			for level := libraryLevel + 1; level <= action.RequiredLibraryLevel; level++ {
 				levelData := libraryBuilding.GetLevelData(level)
@@ -154,7 +154,7 @@ func (s *Solver) productionTechROI(state *State, action *ProductionTechAction) f
 
 // getBestProductionTechAction returns the best production tech to research
 func (s *Solver) getBestProductionTechAction(state *State) *ProductionTechAction {
-	libraryBuilding := s.Buildings[models.Library]
+	libraryBuilding := s.Buildings[models.Library.Index()]
 	if libraryBuilding == nil {
 		return nil
 	}
@@ -166,7 +166,7 @@ func (s *Solver) getBestProductionTechAction(state *State) *ProductionTechAction
 		if state.ResearchedTechs[techName] {
 			continue
 		}
-		tech := s.Technologies[techName]
+		tech := s.Technologies[models.TechName(techName).Index()]
 		if tech == nil {
 			continue
 		}
@@ -200,7 +200,7 @@ func (s *Solver) getAllBuildingActionsSortedByROI(state *State) []*BuildingActio
 			return
 		}
 
-		building := s.Buildings[bt]
+		building := s.Buildings[bt.Index()]
 		if building == nil {
 			return
 		}

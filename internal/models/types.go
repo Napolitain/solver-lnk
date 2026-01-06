@@ -43,6 +43,26 @@ func AllBuildingTypes() []BuildingType {
 	}
 }
 
+// Index returns the array index for a BuildingType (for array-based storage)
+func (bt BuildingType) Index() int {
+	switch bt {
+	case Lumberjack: return 0
+	case Quarry: return 1
+	case OreMine: return 2
+	case Farm: return 3
+	case WoodStore: return 4
+	case StoneStore: return 5
+	case OreStore: return 6
+	case Keep: return 7
+	case Arsenal: return 8
+	case Library: return 9
+	case Tavern: return 10
+	case Market: return 11
+	case Fortifications: return 12
+	default: return -1
+	}
+}
+
 // BuildingLevelMap is a deterministic struct for building levels (replaces map[BuildingType]int)
 type BuildingLevelMap struct {
 	Lumberjack     int
@@ -224,6 +244,33 @@ func AllTechNames() []TechName {
 		TechWheelbarrow, TechFlamingArrows, // lib 8
 		TechBlacksmith,             // lib 9
 		TechMapOfArea, TechCistern, // lib 10
+	}
+}
+
+// Index returns the array index for a TechName (for array-based storage)
+func (tn TechName) Index() int {
+	switch tn {
+	case TechLongbow: return 0
+	case TechCropRotation: return 1
+	case TechYoke: return 2
+	case TechCellarStoreroom: return 3
+	case TechStirrup: return 4
+	case TechWeaponsmith: return 5
+	case TechArmoursmith: return 6
+	case TechBeerTester: return 7
+	case TechSwordsmith: return 8
+	case TechIronHardening: return 9
+	case TechCrossbow: return 10
+	case TechPoisonArrows: return 11
+	case TechHorseBreeding: return 12
+	case TechWeaponsManufacturing: return 13
+	case TechHorseArmour: return 14
+	case TechWheelbarrow: return 15
+	case TechFlamingArrows: return 16
+	case TechBlacksmith: return 17
+	case TechMapOfArea: return 18
+	case TechCistern: return 19
+	default: return -1
 	}
 }
 
