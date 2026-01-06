@@ -1,5 +1,38 @@
 # Remaining Tasks
 
+## ✅ Target System - COMPLETED
+
+**Status**: Fully implemented and tested (v0.2.0)
+
+The solver now supports comprehensive target states across three dimensions:
+- **Buildings**: Target levels (e.g., Lumberjack 30, Farm 30)
+- **Technologies**: List of techs to research (defaults to all available)
+- **Units**: Exact counts per unit type (defaults to missions only)
+
+### Usage
+
+**CLI defaults** (backward compatible):
+```bash
+./castle -d data  # Builds to max levels, researches all techs, trains for missions
+```
+
+**Protobuf configuration** (for gRPC clients):
+```protobuf
+message TargetState {
+  repeated BuildingLevel building_targets = 1;
+  repeated Technology technology_targets = 2;  // Empty = all
+  repeated UnitCount unit_targets = 3;         // Empty = missions only
+}
+```
+
+### Semantics
+- **Completion**: Build order completes when ALL targets are reached
+- **Technologies**: Empty list = research all available (default)
+- **Units**: Empty list = train for missions only (default)
+- **Priority**: Event-driven ROI-based (unchanged)
+
+---
+
 ## Unit Training Batching Implementation
 
 **Status:** Infrastructure complete (batching support added), batch size logic not yet implemented.

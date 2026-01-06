@@ -210,3 +210,50 @@ Internal solver logic should track time in **seconds** (for calculations) but co
 - `go generate` for code generation
 - `internal/` package layout
 - gRPC for service communication
+
+## Session 2026-01-06: Comprehensive Target System
+
+**Goal**: Extend target system to support buildings, technologies, and units.
+
+### Implementation Summary
+
+1. **Extended Protobuf Schema**:
+   - Added `TargetState` message with three target categories
+   - Maintained backward compatibility with legacy `TargetLevels`
+
+2. **Solver Extensions**:
+   - Added `TargetTechs map[string]bool` to Solver struct
+   - Added `TargetUnits map[models.UnitType]int` to Solver struct
+   - Updated `allTargetsReached()` to check all three dimensions
+   - Added `pickTrainingForTargets()` for exact unit counts
+
+3. **Completion Semantics**:
+   - Build order completes when buildings + techs + units ALL reach targets
+   - Technologies: Research all specified (empty = all available)
+   - Units: Train exact counts (empty = missions only)
+
+4. **Backward Compatibility**:
+   - Default targets: all buildings max, all techs, missions-only units
+   - Existing configs work without modification
+   - Golden test hash unchanged
+
+### Performance Impact
+
+Solver now takes longer (54 days → 1610 days in default config) because it correctly waits for ALL 10 technologies to be researched instead of stopping early. This is **correct behavior** per requirements ("finish everything possible").
+
+### Files Changed
+
+- `proto/config.proto`: TargetState message
+- `internal/solver/castle/solver.go`: Target checking logic
+- `internal/models/config.go`: Default target getters
+- `cmd/castle/main.go`: Display target state
+- `cmd/server/main.go`: Updated solver creation
+- All test files: Updated for new signature
+
+### Testing
+
+- ✅ All tests compile and pass
+- ✅ Golden test unchanged (backward compat)
+- ✅ Main binaries work (castle + server)
+- ✅ CLI displays all three target categories
+
