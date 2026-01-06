@@ -254,9 +254,6 @@ func (s *Solver) handleBuildingComplete(
 	// Update building level on completion
 	state.SetBuildingLevel(ba.BuildingType, ba.ToLevel)
 
-	// Invalidate scarcity cache since building levels changed
-	state.scarcityCacheValid = false
-
 	// Update production rates and storage caps
 	s.updateAfterBuild(state, ba)
 
@@ -1294,13 +1291,6 @@ func buildingToResource(bt models.BuildingType) models.ResourceType {
 // calculateDynamicScarcity calculates scarcity based on remaining build costs
 // This replaces the hardcoded 40/40/20 ratios with actual demand from remaining buildings
 func (s *Solver) calculateDynamicScarcity(state *State, bt models.BuildingType) float64 {
-	// Check cache first
-	if state.scarcityCacheValid {
-		if cached, ok := state.scarcityCache[bt]; ok {
-			return cached
-		}
-	}
-
 	// Calculate remaining costs for all target buildings
 	var remainingWood, remainingStone, remainingIron float64
 
@@ -1357,52 +1347,28 @@ func (s *Solver) calculateDynamicScarcity(state *State, bt models.BuildingType) 
 	stoneSupply := stoneRate / totalRate
 	ironSupply := ironRate / totalRate
 
-	// Initialize cache if needed
-	if state.scarcityCache == nil {
-		state.scarcityCache = make(map[models.BuildingType]float64)
-	}
-
-	// Calculate and cache scarcity for all production buildings
-	woodScarcity := woodDemand / woodSupply
-	if woodScarcity < 0.5 {
-		woodScarcity = 0.5
-	}
-	if woodScarcity > 2.0 {
-		woodScarcity = 2.0
-	}
-	state.scarcityCache[models.Lumberjack] = woodScarcity
-
-	stoneScarcity := stoneDemand / stoneSupply
-	if stoneScarcity < 0.5 {
-		stoneScarcity = 0.5
-	}
-	if stoneScarcity > 2.0 {
-		stoneScarcity = 2.0
-	}
-	state.scarcityCache[models.Quarry] = stoneScarcity
-
-	ironScarcity := ironDemand / ironSupply
-	if ironScarcity < 0.5 {
-		ironScarcity = 0.5
-	}
-	if ironScarcity > 2.0 {
-		ironScarcity = 2.0
-	}
-	state.scarcityCache[models.OreMine] = ironScarcity
-
-	state.scarcityCacheValid = true
-
-	// Return the requested building's scarcity
+	// Scarcity = demand / supply
+	var scarcity float64
 	switch bt {
 	case models.Lumberjack:
-		return woodScarcity
+		scarcity = woodDemand / woodSupply
 	case models.Quarry:
-		return stoneScarcity
+		scarcity = stoneDemand / stoneSupply
 	case models.OreMine:
-		return ironScarcity
+		scarcity = ironDemand / ironSupply
 	default:
 		return 1.0
 	}
+
+	// Cap the multiplier to avoid extreme values
+	if scarcity < 0.5 {
+		scarcity = 0.5
+	}
+	if scarcity > 2.0 {
+		scarcity = 2.0
+	}
+
+	return scarcity
 }
 
 // ProductionTechAction represents a production tech that can be researched
