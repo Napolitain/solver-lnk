@@ -8,9 +8,9 @@ import (
 
 // ROIMetric represents the components of an ROI calculation
 type ROIMetric struct {
-	GainPerHour     float64
-	TotalCost       float64
-	ScarcityBonus   float64 // Multiplier adjustment (0.0 = no adjustment, 0.5 = +50% ROI)
+	GainPerHour   float64
+	TotalCost     float64
+	ScarcityBonus float64 // Multiplier adjustment (0.0 = no adjustment, 0.5 = +50% ROI)
 }
 
 // Calculate computes the final ROI value
@@ -149,12 +149,6 @@ func (s *Solver) calculateProductionTechMetric(state *State, action *ProductionT
 // productionTechROI calculates the ROI for a production tech using ROIMetric
 func (s *Solver) productionTechROI(state *State, action *ProductionTechAction) float64 {
 	metric := s.calculateProductionTechMetric(state, action)
-	return metric.Calculate()
-}
-
-// tavernROI calculates ROI for Tavern upgrade using ROIMetric
-func (s *Solver) tavernROI(state *State, toLevel int, totalResourceCost float64) float64 {
-	metric := s.calculateTavernMetric(state, toLevel, totalResourceCost)
 	return metric.Calculate()
 }
 
