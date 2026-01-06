@@ -39,6 +39,10 @@ type State struct {
 
 	// Missions
 	RunningMissions []*models.MissionState
+
+	// Cache for expensive calculations (invalidate when building levels change)
+	scarcityCache       map[models.BuildingType]float64
+	scarcityCacheValid  bool
 }
 
 // NewState creates a new state from initial game state

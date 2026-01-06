@@ -20,6 +20,7 @@ var (
 	configFile string
 	quiet      bool
 	nextOnly   bool
+	silent     bool
 )
 
 func main() {
@@ -35,6 +36,7 @@ for Lords and Knights castle development.`,
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to JSON config file")
 	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Minimal output")
 	rootCmd.Flags().BoolVarP(&nextOnly, "next", "n", false, "Show only the next action")
+	rootCmd.Flags().BoolVarP(&silent, "silent", "s", false, "No output (for benchmarking)")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -48,7 +50,7 @@ func runSolver(cmd *cobra.Command, args []string) {
 	successColor := color.New(color.FgGreen, color.Bold)
 	infoColor := color.New(color.FgYellow)
 
-	if !quiet {
+	if !quiet && !silent {
 		titleColor.Println("\n╭───────────────────────────╮")
 		titleColor.Println("│  Lords and Knights        │")
 		titleColor.Println("│  Build Order Optimizer    │")
@@ -71,7 +73,7 @@ func runSolver(cmd *cobra.Command, args []string) {
 		technologies = make(map[string]*models.Technology)
 	}
 
-	if !quiet {
+	if !quiet && !silent {
 		infoColor.Printf("📦 Loaded %d buildings, %d technologies\n\n", len(buildings), len(technologies))
 	}
 
@@ -91,7 +93,7 @@ func runSolver(cmd *cobra.Command, args []string) {
 		}
 		initialState = models.CastleConfigToGameState(config)
 		targetLevels = models.GetTargetLevels()
-		if !quiet {
+		if !quiet && !silent {
 			infoColor.Printf("📄 Loaded config from %s\n\n", configFile)
 		}
 	} else {
@@ -124,7 +126,7 @@ func runSolver(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if !quiet && !nextOnly {
+	if !quiet && !nextOnly && !silent {
 		printInitialState(initialState, targetLevels)
 		infoColor.Println("🔄 Solving with multiple strategies...")
 	}
@@ -143,6 +145,11 @@ func runSolver(cmd *cobra.Command, args []string) {
 	v4Solver := castle.NewSolver(buildings, technologies, missions, targetLevels)
 	solution = v4Solver.Solve(initialState)
 	strategyName = "EventDriven"
+
+	// If silent mode, just run solver and exit
+	if silent {
+		return
+	}
 
 	// If --next flag is set, just show the first action and exit
 	if nextOnly {
