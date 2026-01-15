@@ -48,48 +48,47 @@ We have organized fuzz tests into several categories, each enforcing specific ga
 
 ### Phase 7: End-State Tests
 - `FuzzAllTargetsReached` - All building targets are reached
-- `FuzzSolverEndingCondition` - **NEW** Comprehensive ending condition validation
 
 ### Phase 8: Determinism Tests
 - `FuzzDeterministicOutput` - Same inputs produce same outputs
-- `FuzzSolverBuildingLevels` - **NEW** Building levels progress correctly
 
-## New Comprehensive Fuzz Tests
+### Phase 9: Comprehensive End-to-End Test
+- `FuzzSolverEndToEnd` - **UNIFIED** Complete end-to-end validation with all invariants
 
-Three new fuzz tests were added to enforce strict game rules:
+## Comprehensive End-to-End Fuzz Test
 
-### 1. FuzzSolverEndingCondition
+The `FuzzSolverEndToEnd` test is a unified, comprehensive fuzz test that validates the entire solver flow from initial state to full targets reached. It consolidates all invariants and property assertions into a single test:
 
-Validates the ending condition and complete state:
+**The test validates 13 categories of game rules:**
 
-**Assertions:**
-- All building targets must be reached
-- Time always progresses forward (no time travel)
-- Food usage never exceeds capacity at any point
-- Library prerequisites respected for all research
-- All resource costs are non-negative
-- Total time is positive and reasonable (< 200 days for most configs)
-
-### 2. FuzzSolverResourceConstraints
-
-Validates resource management throughout simulation:
-
-**Assertions:**
-- Resource costs are non-negative
-- Resource costs are reasonable (not astronomically high)
-- Final resources are non-negative
-
-### 3. FuzzSolverBuildingLevels
-
-Validates building level progression:
-
-**Assertions:**
-- Building levels increase by exactly 1 per upgrade
-- FromLevel matches current tracked level
-- ToLevel = FromLevel + 1 (no skipping levels)
-- Buildings don't exceed maximum level (30)
-- Final levels meet or exceed targets
-- All building levels are >= 1 (game default)
+1. **Ending Conditions**
+   - All building targets that were set must be reached
+   
+2. **Time Progression**
+   - Building queue: only one at a time, no overlaps
+   - Research queue: only one at a time, no overlaps
+   - Training actions: no negative durations
+   - Total time must be positive and reasonable (< 200 days for most configs)
+   
+3. **Food Capacity**
+   - Food usage never exceeds capacity at any point in time
+   - All food events validated chronologically
+   
+4. **Library Prerequisites**
+   - All researched techs must have library level requirements met when research started
+   
+5. **Resource Management**
+   - Resource costs must be non-negative for all actions
+   - Costs must be reasonable (not astronomically high)
+   - Final resources must be non-negative
+   
+6. **Building Level Progression**
+   - Building levels increase by exactly 1 per upgrade
+   - FromLevel matches current state
+   - ToLevel = FromLevel + 1 (no skipping levels)
+   - Buildings don't exceed maximum level (30)
+   - Final levels meet or exceed targets
+   - All building levels are >= 1 (game default)
 
 ## Game Rules Enforced
 
@@ -132,18 +131,17 @@ The fuzz tests enforce these core game rules from RULES.md:
 # Run all fuzz tests with seed corpus (fast)
 go test ./internal/solver/castle -v
 
-# Run specific fuzz test with seed corpus
-go test ./internal/solver/castle -run FuzzSolverEndingCondition -v
+# Run the comprehensive end-to-end fuzz test
+go test ./internal/solver/castle -run FuzzSolverEndToEnd -v
 ```
 
 ### Active Fuzzing (Discovery)
 ```bash
-# Fuzz for 30 seconds to find new edge cases
-go test -fuzz=FuzzSolverEndingCondition -fuzztime=30s ./internal/solver/castle
+# Fuzz the comprehensive end-to-end test for 30 seconds
+go test -fuzz=FuzzSolverEndToEnd -fuzztime=30s ./internal/solver/castle
 
-# Fuzz multiple tests
-go test -fuzz=FuzzSolverBuildingLevels -fuzztime=30s ./internal/solver/castle
-go test -fuzz=FuzzSolverResourceConstraints -fuzztime=30s ./internal/solver/castle
+# Fuzz for longer to discover more edge cases
+go test -fuzz=FuzzSolverEndToEnd -fuzztime=5m ./internal/solver/castle
 ```
 
 ### Run All Quality Checks
