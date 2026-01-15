@@ -1,6 +1,7 @@
 package castle
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/napolitain/solver-lnk/internal/loader"
@@ -809,24 +810,35 @@ func FuzzSolverEndingCondition(f *testing.F) {
 		}
 
 		// ASSERTION 2: Time must always progress forward (no time travel)
-		lastTime := 0
+		// Check building queue (only one at a time)
+		lastBuildingEndTime := 0
 		for _, ba := range solution.BuildingActions {
-			if ba.StartTime < lastTime {
-				t.Errorf("TIME VIOLATION: Building %s started at %d but previous action ended at %d",
-					ba.BuildingType, ba.StartTime, lastTime)
+			if ba.StartTime < lastBuildingEndTime {
+				t.Errorf("TIME VIOLATION: Building %s started at %d but previous building ended at %d (overlap)",
+					ba.BuildingType, ba.StartTime, lastBuildingEndTime)
 			}
 			if ba.EndTime < ba.StartTime {
 				t.Errorf("TIME VIOLATION: Building %s ended (%d) before it started (%d)",
 					ba.BuildingType, ba.EndTime, ba.StartTime)
 			}
-			lastTime = ba.EndTime
+			lastBuildingEndTime = ba.EndTime
 		}
+		
+		// Check research queue (only one at a time)
+		lastResearchEndTime := 0
 		for _, ra := range solution.ResearchActions {
+			if ra.StartTime < lastResearchEndTime {
+				t.Errorf("TIME VIOLATION: Research %s started at %d but previous research ended at %d (overlap)",
+					ra.TechnologyName, ra.StartTime, lastResearchEndTime)
+			}
 			if ra.EndTime < ra.StartTime {
 				t.Errorf("TIME VIOLATION: Research %s ended (%d) before it started (%d)",
 					ra.TechnologyName, ra.EndTime, ra.StartTime)
 			}
+			lastResearchEndTime = ra.EndTime
 		}
+		
+		// Check training actions
 		for _, ta := range solution.TrainingActions {
 			if ta.EndTime < ta.StartTime {
 				t.Errorf("TIME VIOLATION: Training %s ended (%d) before it started (%d)",
@@ -878,6 +890,11 @@ func FuzzSolverEndingCondition(f *testing.F) {
 			}
 		}
 
+		// Sort events by time to ensure we check them in chronological order
+		sort.Slice(foodEvents, func(i, j int) bool {
+			return foodEvents[i].time < foodEvents[j].time
+		})
+
 		// Check each event - food used should never exceed capacity
 		for _, event := range foodEvents {
 			if event.used > event.capacity {
@@ -927,22 +944,28 @@ func FuzzSolverEndingCondition(f *testing.F) {
 		}
 
 		finalLibraryLevel := finalLevels[models.Library]
-		// Get final food state from last action that modified it
+		// Get final food state from the action with the latest end time
 		var finalFoodUsed, finalFoodCapacity int
-		if len(solution.BuildingActions) > 0 {
-			lastBA := solution.BuildingActions[len(solution.BuildingActions)-1]
-			finalFoodUsed = lastBA.FoodUsed
-			finalFoodCapacity = lastBA.FoodCapacity
+		var latestTime int
+		
+		// Check all action types for the latest food state
+		for _, ba := range solution.BuildingActions {
+			if ba.EndTime > latestTime {
+				latestTime = ba.EndTime
+				finalFoodUsed = ba.FoodUsed
+				finalFoodCapacity = ba.FoodCapacity
+			}
 		}
-		// Also check research and training actions for later food state
 		for _, ra := range solution.ResearchActions {
-			if ra.FoodUsed > finalFoodUsed {
+			if ra.EndTime > latestTime {
+				latestTime = ra.EndTime
 				finalFoodUsed = ra.FoodUsed
 				finalFoodCapacity = ra.FoodCapacity
 			}
 		}
 		for _, ta := range solution.TrainingActions {
-			if ta.FoodUsed > finalFoodUsed {
+			if ta.EndTime > latestTime {
+				latestTime = ta.EndTime
 				finalFoodUsed = ta.FoodUsed
 				finalFoodCapacity = ta.FoodCapacity
 			}
@@ -1089,13 +1112,7 @@ func FuzzSolverBuildingLevels(f *testing.F) {
 			buildingLevels[bt] = level
 		}
 		// Buildings not in initialState default to level 1 (as per State.GetBuildingLevel)
-		allBuildings := []models.BuildingType{
-			models.Lumberjack, models.Quarry, models.OreMine,
-			models.Farm, models.WoodStore, models.StoneStore, models.OreStore,
-			models.Library, models.Keep, models.Arsenal, models.Tavern,
-			models.Market, models.Fortifications,
-		}
-		for _, bt := range allBuildings {
+		for _, bt := range models.AllBuildingTypes() {
 			if _, exists := buildingLevels[bt]; !exists {
 				buildingLevels[bt] = 1 // Default level in game
 			}
