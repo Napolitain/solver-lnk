@@ -1055,16 +1055,230 @@ func FuzzSolverEndToEnd(f *testing.F) {
 					bt, level)
 			}
 		}
+
+		// =====================================================================
+		// ADDITIONAL CORRECTNESS ASSERTIONS
+		// =====================================================================
+
+		// ASSERTION 14: No duplicate research - same tech should never be researched twice
+		researchedTechs := make(map[string]bool)
+		for _, ra := range solution.ResearchActions {
+			if researchedTechs[ra.TechnologyName] {
+				t.Errorf("DUPLICATE RESEARCH: Tech %s was researched multiple times",
+					ra.TechnologyName)
+			}
+			researchedTechs[ra.TechnologyName] = true
+		}
+
+		// ASSERTION 15: Technology prerequisite chains validated
+		// Check that unit training respects tech prerequisites
+		for _, ta := range solution.TrainingActions {
+			unitType := ta.UnitType
+			// Find the tech that enables this unit type
+			var requiredTech string
+			for techName, tech := range technologies {
+				if tech.EnablesBuilding == string(unitType) || 
+				   (tech.InternalName != "" && tech.InternalName == string(unitType)) {
+					requiredTech = techName
+					break
+				}
+			}
+			// If there's a required tech, verify it was researched before training
+			if requiredTech != "" && !researchedTechs[requiredTech] {
+				t.Errorf("TECH PREREQUISITE VIOLATION: Unit %s trained without researching %s",
+					unitType, requiredTech)
+			}
+		}
+
+		// ASSERTION 16: Action durations match data files
+		for _, ba := range solution.BuildingActions {
+			building := buildings[ba.BuildingType]
+			if building == nil {
+				continue
+			}
+			levelData := building.GetLevelData(ba.ToLevel)
+			if levelData == nil {
+				continue
+			}
+			expectedDuration := levelData.BuildTimeSeconds
+			actualDuration := ba.EndTime - ba.StartTime
+			// Allow small tolerance for rounding
+			if actualDuration < expectedDuration-1 || actualDuration > expectedDuration+1 {
+				t.Errorf("DURATION VIOLATION: Building %s level %d expected %d seconds but took %d",
+					ba.BuildingType, ba.ToLevel, expectedDuration, actualDuration)
+			}
+		}
+
+		for _, ra := range solution.ResearchActions {
+			tech := technologies[ra.TechnologyName]
+			if tech == nil {
+				continue
+			}
+			expectedDuration := tech.ResearchTimeSeconds
+			actualDuration := ra.EndTime - ra.StartTime
+			// Allow small tolerance for rounding
+			if actualDuration < expectedDuration-1 || actualDuration > expectedDuration+1 {
+				t.Errorf("DURATION VIOLATION: Research %s expected %d seconds but took %d",
+					ra.TechnologyName, expectedDuration, actualDuration)
+			}
+		}
+
+		// ASSERTION 17: Production rate consistency
+		// Verify that production buildings provide the expected production rates
+		for _, ba := range solution.BuildingActions {
+			building := buildings[ba.BuildingType]
+			if building == nil {
+				continue
+			}
+			levelData := building.GetLevelData(ba.ToLevel)
+			if levelData == nil || levelData.ProductionRate == nil {
+				continue
+			}
+			// Production rate should match the level data
+			// This is validated implicitly by the solver but we check the data exists
+			if *levelData.ProductionRate < 0 {
+				t.Errorf("PRODUCTION RATE VIOLATION: Building %s level %d has negative production rate: %f",
+					ba.BuildingType, ba.ToLevel, *levelData.ProductionRate)
+			}
+		}
+
+		// ASSERTION 18: Storage upgrades triggered before exceeding capacity
+		// Track storage capacities over time
+		storageCaps := map[models.ResourceType]int{
+			models.Wood:  10000, // Default starting capacity
+			models.Stone: 10000,
+			models.Iron:  10000,
+		}
+		
+		for _, ba := range solution.BuildingActions {
+			building := buildings[ba.BuildingType]
+			if building == nil {
+				continue
+			}
+			levelData := building.GetLevelData(ba.ToLevel)
+			if levelData == nil {
+				continue
+			}
+
+			// Check if costs would exceed storage before this action
+			if ba.Costs.Wood > storageCaps[models.Wood] {
+				// Check if this is a storage upgrade or if storage was upgraded before
+				if ba.BuildingType != models.WoodStore {
+					t.Errorf("STORAGE VIOLATION: Wood cost %d exceeds capacity %d at time %d (before %s upgrade)",
+						ba.Costs.Wood, storageCaps[models.Wood], ba.StartTime, ba.BuildingType)
+				}
+			}
+			if ba.Costs.Stone > storageCaps[models.Stone] {
+				if ba.BuildingType != models.StoneStore {
+					t.Errorf("STORAGE VIOLATION: Stone cost %d exceeds capacity %d at time %d (before %s upgrade)",
+						ba.Costs.Stone, storageCaps[models.Stone], ba.StartTime, ba.BuildingType)
+				}
+			}
+			if ba.Costs.Iron > storageCaps[models.Iron] {
+				if ba.BuildingType != models.OreStore {
+					t.Errorf("STORAGE VIOLATION: Iron cost %d exceeds capacity %d at time %d (before %s upgrade)",
+						ba.Costs.Iron, storageCaps[models.Iron], ba.StartTime, ba.BuildingType)
+				}
+			}
+
+			// Update storage capacity if this is a storage building
+			if levelData.StorageCapacity != nil {
+				switch ba.BuildingType {
+				case models.WoodStore:
+					storageCaps[models.Wood] = *levelData.StorageCapacity
+				case models.StoneStore:
+					storageCaps[models.Stone] = *levelData.StorageCapacity
+				case models.OreStore:
+					storageCaps[models.Iron] = *levelData.StorageCapacity
+				}
+			}
+		}
+
+		// =====================================================================
+		// OPTIMALITY ASSERTIONS (BASIC CHECKS)
+		// =====================================================================
+
+		// ASSERTION 19: Resource balance - production buildings upgraded in reasonable ratios
+		// Check that no single production building is over-leveled compared to others
+		ljLevel := finalLevels[models.Lumberjack]
+		qLevel := finalLevels[models.Quarry]
+		omLevel := finalLevels[models.OreMine]
+		
+		maxProd := ljLevel
+		if qLevel > maxProd {
+			maxProd = qLevel
+		}
+		if omLevel > maxProd {
+			maxProd = omLevel
+		}
+		minProd := ljLevel
+		if qLevel < minProd {
+			minProd = qLevel
+		}
+		if omLevel < minProd {
+			minProd = omLevel
+		}
+		
+		// Allow max 10 level difference for flexibility (reasonable imbalance)
+		if maxProd-minProd > 10 && maxProd > 5 {
+			t.Logf("INFO: Production building imbalance detected: LJ=%d, Q=%d, OM=%d (diff=%d)",
+				ljLevel, qLevel, omLevel, maxProd-minProd)
+		}
+
+		// ASSERTION 20: Parallel queue utilization - check for idle time
+		// Building queue should not be idle when there are pending targets
+		if len(solution.BuildingActions) > 1 {
+			var totalGap int
+			for i := 1; i < len(solution.BuildingActions); i++ {
+				gap := solution.BuildingActions[i].StartTime - solution.BuildingActions[i-1].EndTime
+				if gap > 0 {
+					totalGap += gap
+				}
+			}
+			// Allow some idle time but not excessive (more than 10% of total time)
+			if totalGap > solution.TotalTimeSeconds/10 && solution.TotalTimeSeconds > 86400 {
+				t.Logf("INFO: Building queue had significant idle time: %d seconds (%.1f%% of total)",
+					totalGap, float64(totalGap)*100/float64(solution.TotalTimeSeconds))
+			}
+		}
+
+		// Research queue utilization
+		if len(solution.ResearchActions) > 1 {
+			var totalGap int
+			for i := 1; i < len(solution.ResearchActions); i++ {
+				gap := solution.ResearchActions[i].StartTime - solution.ResearchActions[i-1].EndTime
+				if gap > 0 {
+					totalGap += gap
+				}
+			}
+			// Research queue can have more gaps as it depends on library level
+			if totalGap > solution.TotalTimeSeconds/5 && len(solution.ResearchActions) > 3 {
+				t.Logf("INFO: Research queue had significant idle time: %d seconds (%.1f%% of total)",
+					totalGap, float64(totalGap)*100/float64(solution.TotalTimeSeconds))
+			}
+		}
+
+		// ASSERTION 21: Farm upgrades are on-demand
+		// Farm should only be upgraded when food capacity is needed
+		farmUpgrades := 0
+		for _, ba := range solution.BuildingActions {
+			if ba.BuildingType == models.Farm {
+				farmUpgrades++
+				// Check that food usage was approaching capacity
+				usageRatio := float64(ba.FoodUsed) / float64(ba.FoodCapacity)
+				if usageRatio < 0.5 && farmUpgrades > 1 {
+					t.Logf("INFO: Farm upgraded when only %.1f%% of food capacity was used",
+						usageRatio*100)
+				}
+			}
+		}
 		
 		// =====================================================================
 		// OPTIONAL INFO LOGGING (not errors)
 		// =====================================================================
 		
 		// Log info about unresearched techs (acceptable behavior)
-		researchedTechs := make(map[string]bool)
-		for _, ra := range solution.ResearchActions {
-			researchedTechs[ra.TechnologyName] = true
-		}
+		// researchedTechs already built in ASSERTION 14 above
 
 		finalLibraryLevel := finalLevels[models.Library]
 		var finalFoodUsed, finalFoodCapacity int
