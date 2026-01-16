@@ -61,15 +61,29 @@ func TestAllMissionsAtTavern3Scheduled(t *testing.T) {
 	}
 
 	// Check that spearmen were trained (required for all tavern 3 missions)
+	// Maximum requirement from missions: Chop wood needs 20 spearmen
 	spearmenTrained := 0
 	for _, train := range solution.TrainingActions {
 		if train.UnitType == models.Spearman {
 			spearmenTrained += train.Count
 		}
 	}
-	t.Logf("Spearmen trained: %d", spearmenTrained)
-	if spearmenTrained < 20 {
-		t.Errorf("Expected at least 20 spearmen to be trained (for chop_wood mission), got %d", spearmenTrained)
+	
+	// Calculate minimum spearmen needed from mission data
+	minSpearmenNeeded := 0
+	for _, m := range missions {
+		if m.TavernLevel <= 3 && (m.MaxTavernLevel == 0 || m.MaxTavernLevel >= 3) {
+			for _, req := range m.UnitsRequired {
+				if req.Type == models.Spearman && req.Count > minSpearmenNeeded {
+					minSpearmenNeeded = req.Count
+				}
+			}
+		}
+	}
+	
+	t.Logf("Spearmen trained: %d (minimum required: %d)", spearmenTrained, minSpearmenNeeded)
+	if spearmenTrained < minSpearmenNeeded {
+		t.Errorf("Expected at least %d spearmen to be trained, got %d", minSpearmenNeeded, spearmenTrained)
 	}
 
 	// Check that horsemen were trained (required for chop_wood mission)
@@ -79,8 +93,21 @@ func TestAllMissionsAtTavern3Scheduled(t *testing.T) {
 			horsemenTrained += train.Count
 		}
 	}
-	t.Logf("Horsemen trained: %d", horsemenTrained)
-	if horsemenTrained < 20 {
-		t.Errorf("Expected at least 20 horsemen to be trained (for chop_wood mission), got %d", horsemenTrained)
+	
+	// Calculate minimum horsemen needed from mission data
+	minHorsemenNeeded := 0
+	for _, m := range missions {
+		if m.TavernLevel <= 3 && (m.MaxTavernLevel == 0 || m.MaxTavernLevel >= 3) {
+			for _, req := range m.UnitsRequired {
+				if req.Type == models.Horseman && req.Count > minHorsemenNeeded {
+					minHorsemenNeeded = req.Count
+				}
+			}
+		}
+	}
+	
+	t.Logf("Horsemen trained: %d (minimum required: %d)", horsemenTrained, minHorsemenNeeded)
+	if horsemenTrained < minHorsemenNeeded {
+		t.Errorf("Expected at least %d horsemen to be trained, got %d", minHorsemenNeeded, horsemenTrained)
 	}
 }
