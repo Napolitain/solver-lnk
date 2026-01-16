@@ -225,6 +225,9 @@ func (s *Solver) handleMissionComplete(state *State, event Event, events *EventQ
 		Rewards:      ms.Mission.Rewards,
 	})
 
+	// Track completed missions
+	state.CompletedMissions[ms.Mission.Name]++
+
 	// Add resources from mission rewards
 	for _, reward := range ms.Mission.Rewards {
 		avgReward := reward.AverageReward()
@@ -445,6 +448,9 @@ func (s *Solver) runPostBuildingPhase(
 				Rewards:      ms.Mission.Rewards,
 			})
 
+			// Track completed missions
+			state.CompletedMissions[ms.Mission.Name]++
+
 			// Add resources from mission rewards
 			for _, reward := range ms.Mission.Rewards {
 				avgReward := reward.AverageReward()
@@ -502,6 +508,43 @@ func (s *Solver) isPostBuildingComplete(state *State) bool {
 			}
 			if state.FoodUsed+def.FoodCost <= state.FoodCapacity {
 				return false // Can still train units
+			}
+		}
+	}
+
+	// Check if all missions at target tavern level have been completed at least once
+	// Only check if we have a tavern target - if no tavern target, don't wait for missions
+	targetTavernLevel := s.TargetLevels.Get(models.Tavern)
+	if targetTavernLevel > 0 && len(s.Missions) > 0 {
+		currentTavernLevel := state.GetBuildingLevel(models.Tavern)
+		if currentTavernLevel >= targetTavernLevel {
+			// Check if there's any mission at target tavern level that hasn't been completed
+			for _, mission := range s.Missions {
+				// Only check missions at the exact target tavern level
+				if mission.TavernLevel != targetTavernLevel {
+					continue
+				}
+				// Check max tavern level
+				if mission.MaxTavernLevel > 0 && currentTavernLevel > mission.MaxTavernLevel {
+					continue
+				}
+				// Check if this mission has been completed at least once
+				if state.CompletedMissions[mission.Name] == 0 {
+					// Check if we have the units and resources to run it
+					canRun := true
+					for _, req := range mission.UnitsRequired {
+						have := state.Army.Get(req.Type)
+						onMission := state.UnitsOnMission.Get(req.Type)
+						available := have - onMission
+						if available < req.Count {
+							canRun = false
+							break
+						}
+					}
+					if canRun && s.canAfford(state, mission.ResourceCosts) {
+						return false // Need to complete this mission at least once
+					}
+				}
 			}
 		}
 	}
@@ -1610,10 +1653,63 @@ func (s *Solver) pickBestMissionToStart(state *State) *models.Mission {
 	// Allow missions during building if we have units available
 	// Missions provide resources which help building progress
 
+	tavernLevel := state.GetBuildingLevel(models.Tavern)
+	targetTavernLevel := s.TargetLevels.Get(models.Tavern)
+
+	// First, try to pick a mission at target tavern level that hasn't been completed yet
+	// This ensures all target-level missions get done at least once
+	if targetTavernLevel > 0 && tavernLevel >= targetTavernLevel {
+		for _, mission := range s.Missions {
+			// Only consider missions at the exact target tavern level
+			if mission.TavernLevel != targetTavernLevel {
+				continue
+			}
+
+			// Check tavern level (max)
+			if mission.MaxTavernLevel > 0 && tavernLevel > mission.MaxTavernLevel {
+				continue
+			}
+
+			// Skip if already completed
+			if state.CompletedMissions[mission.Name] > 0 {
+				continue
+			}
+
+			// Check if this mission is already running
+			alreadyRunning := false
+			for _, running := range state.RunningMissions {
+				if running.Mission.Name == mission.Name {
+					alreadyRunning = true
+					break
+				}
+			}
+			if alreadyRunning {
+				continue
+			}
+
+			// Check unit availability
+			canRun := true
+			for _, req := range mission.UnitsRequired {
+				have := state.Army.Get(req.Type)
+				onMission := state.UnitsOnMission.Get(req.Type)
+				available := have - onMission
+				if available < req.Count {
+					canRun = false
+					break
+				}
+			}
+			if !canRun {
+				continue
+			}
+
+			// Found an uncompleted mission at target level - prioritize it
+			return mission
+		}
+	}
+
+	// If all target-level missions are done (or no target), pick best ROI mission
 	var best *models.Mission
 	var bestROI float64
-
-	tavernLevel := state.GetBuildingLevel(models.Tavern)
 
 	for _, mission := range s.Missions {
 		// Check tavern level (min)
