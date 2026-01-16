@@ -512,16 +512,16 @@ func (s *Solver) isPostBuildingComplete(state *State) bool {
 		}
 	}
 
-	// Check if all missions at target tavern level have been completed at least once
+	// Check if all available missions at current tavern level have been completed at least once
 	// Only check if we have a tavern target - if no tavern target, don't wait for missions
 	targetTavernLevel := s.TargetLevels.Get(models.Tavern)
 	if targetTavernLevel > 0 && len(s.Missions) > 0 {
 		currentTavernLevel := state.GetBuildingLevel(models.Tavern)
-		if currentTavernLevel >= targetTavernLevel {
-			// Check if there's any mission at target tavern level that hasn't been completed
+		if currentTavernLevel > 0 {
+			// Check if there's any mission available at current tavern level that hasn't been completed
 			for _, mission := range s.Missions {
-				// Only check missions at the exact target tavern level
-				if mission.TavernLevel != targetTavernLevel {
+				// Check if mission is available at current tavern level
+				if mission.TavernLevel > currentTavernLevel {
 					continue
 				}
 				// Check max tavern level
@@ -530,20 +530,9 @@ func (s *Solver) isPostBuildingComplete(state *State) bool {
 				}
 				// Check if this mission has been completed at least once
 				if state.CompletedMissions[mission.Name] == 0 {
-					// Check if we have the units and resources to run it
-					canRun := true
-					for _, req := range mission.UnitsRequired {
-						have := state.Army.Get(req.Type)
-						onMission := state.UnitsOnMission.Get(req.Type)
-						available := have - onMission
-						if available < req.Count {
-							canRun = false
-							break
-						}
-					}
-					if canRun && s.canAfford(state, mission.ResourceCosts) {
-						return false // Need to complete this mission at least once
-					}
+					// Mission hasn't been completed yet - keep going to try to complete it
+					// We'll wait for units to be trained if needed
+					return false
 				}
 			}
 		}
@@ -1656,12 +1645,12 @@ func (s *Solver) pickBestMissionToStart(state *State) *models.Mission {
 	tavernLevel := state.GetBuildingLevel(models.Tavern)
 	targetTavernLevel := s.TargetLevels.Get(models.Tavern)
 
-	// First, try to pick a mission at target tavern level that hasn't been completed yet
-	// This ensures all target-level missions get done at least once
-	if targetTavernLevel > 0 && tavernLevel >= targetTavernLevel {
+	// First, try to pick a mission available at current tavern level that hasn't been completed yet
+	// This ensures all available missions get done at least once
+	if targetTavernLevel > 0 && tavernLevel > 0 {
 		for _, mission := range s.Missions {
-			// Only consider missions at the exact target tavern level
-			if mission.TavernLevel != targetTavernLevel {
+			// Check if mission is available at current tavern level
+			if mission.TavernLevel > tavernLevel {
 				continue
 			}
 
@@ -1702,12 +1691,12 @@ func (s *Solver) pickBestMissionToStart(state *State) *models.Mission {
 				continue
 			}
 
-			// Found an uncompleted mission at target level - prioritize it
+			// Found an uncompleted mission - prioritize it
 			return mission
 		}
 	}
 
-	// If all target-level missions are done (or no target), pick best ROI mission
+	// If all available missions are done (or no target), pick best ROI mission
 	var best *models.Mission
 	var bestROI float64
 
