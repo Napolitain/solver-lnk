@@ -38,16 +38,18 @@ type State struct {
 	UnitsOnMission models.Army // Busy on missions
 
 	// Missions
-	RunningMissions []*models.MissionState
+	RunningMissions   []*models.MissionState
+	CompletedMissions map[string]int // Track how many times each mission has been completed
 }
 
 // NewState creates a new state from initial game state
 func NewState(gs *models.GameState) *State {
 	s := &State{
-		Now:             0,
-		ProductionBonus: 1.0,
-		ResearchedTechs: make(map[string]bool),
-		RunningMissions: make([]*models.MissionState, 0),
+		Now:               0,
+		ProductionBonus:   1.0,
+		ResearchedTechs:   make(map[string]bool),
+		RunningMissions:   make([]*models.MissionState, 0),
+		CompletedMissions: make(map[string]int),
 	}
 
 	// Copy building levels to deterministic struct
